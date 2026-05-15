@@ -1,19 +1,6 @@
 import { ref, computed } from 'vue'
 import * as api from '../api'
-
-export interface GameState {
-  current_scene: string
-  collected_fragments: string[]
-  revealed_fragments: string[]
-  fragment_states: Record<string, { id: string; name: string; collected: boolean; revealed: boolean; scene: string }>
-  npc_trust: Record<string, number>
-  key_choices: string[]
-  dialogue_history: Array<{ role: string; content: string }>
-  current_mood: string
-  play_time: number
-  chapter: number
-  ending: string | null
-}
+import type { GameState } from '../types/game'
 
 const gameState = ref<GameState | null>(null)
 const loading = ref(false)
@@ -24,7 +11,7 @@ export function useGameState() {
     loading.value = true
     try {
       const res = await api.getInitialState()
-      gameState.value = res.data as GameState
+      gameState.value = res.data
     } catch (e: unknown) {
       error.value = (e as Error).message || '初始化失败'
     } finally {
@@ -36,7 +23,7 @@ export function useGameState() {
     loading.value = true
     try {
       const res = await api.loadGame(slotId)
-      gameState.value = (res.data as { game_state: GameState }).game_state
+      gameState.value = res.data.game_state
     } catch {
       error.value = '存档加载失败'
     } finally {

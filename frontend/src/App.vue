@@ -11,8 +11,10 @@ type View = 'home' | 'intro' | 'game' | 'ending'
 const currentView = ref<View>('home')
 const showSaves = ref(false)
 const endingType = ref<'hope' | 'bittersweet' | 'tragic'>('hope')
+const loadSlotId = ref<number | null>(null)
 
 const startGame = () => {
+  loadSlotId.value = null
   currentView.value = 'intro'
 }
 
@@ -24,9 +26,9 @@ const loadGame = () => {
   showSaves.value = true
 }
 
-const loadFromSlot = async (_slotId: number) => {
+const loadFromSlot = async (slotId: number) => {
   showSaves.value = false
-  // Game.vue 会通过 slotId 加载对应存档
+  loadSlotId.value = slotId
   currentView.value = 'game'
 }
 
@@ -36,6 +38,7 @@ const onEnding = (type: 'hope' | 'bittersweet' | 'tragic') => {
 }
 
 const restart = () => {
+  loadSlotId.value = null
   currentView.value = 'home'
 }
 </script>
@@ -49,7 +52,7 @@ const restart = () => {
     <Home v-if="currentView === 'home'" @start="startGame" @load="loadGame" />
 
     <!-- 游戏主界面 -->
-    <Game v-if="currentView === 'game'" @ending="onEnding" />
+    <Game v-if="currentView === 'game'" :load-slot-id="loadSlotId" @ending="onEnding" />
 
     <!-- 结局 -->
     <Ending v-if="currentView === 'ending'" :ending-type="endingType" @restart="restart" />

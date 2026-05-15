@@ -2,31 +2,36 @@
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { useGameState } from '../composables/useGameState'
 import { useTypewriter } from '../composables/useTypewriter'
-import { chatWithNpc, getSceneDetail, advanceNarrative, saveGame } from '../api'
+import { chatWithNpc, chatWithNpcStream, getSceneDetail, advanceNarrative, saveGame } from '../api'
 import SceneIllustration from '../components/SceneIllustration.vue'
 import MemoryProgress from '../components/MemoryProgress.vue'
+import type { Scene, NpcSummary, Fragment, ChatMessage, EndingType } from '../types/game'
 
 const emit = defineEmits<{
-  ending: [type: 'hope' | 'bittersweet' | 'tragic']
+  ending: [type: EndingType]
 }>()
 
-const { gameState, initGame, updateTrust, collectFragment, revealFragment, addDialogue, collectedCount, totalFragments } = useGameState()
+const props = defineProps<{
+  loadSlotId?: number | null
+}>()
 
-const currentScene = ref<any>(null)
-const currentNpcs = ref<any[]>([])
-const sceneFragments = ref<any[]>([])
+const { gameState, initGame, loadFromSlot, updateTrust, collectFragment, revealFragment, addDialogue, collectedCount, totalFragments } = useGameState()
+
+const currentScene = ref<Scene | null>(null)
+const currentNpcs = ref<NpcSummary[]>([])
+const sceneFragments = ref<Array<Fragment & { is_collected: boolean }>>([])
 const narrativeText = ref('')
 const playerInput = ref('')
 const presetOptions = ref<string[]>([])
-const selectedNpc = ref<any>(null)
+const selectedNpc = ref<NpcSummary | null>(null)
 const showFragmentPopup = ref(false)
-const popupFragment = ref<any>(null)
+const popupFragment = ref<(Fragment & { just_collected?: boolean }) | null>(null)
 const chatLoading = ref(false)
 const showInventory = ref(false)
 
 const { displayText: typewriterText, isTyping, start: typeStart, skip: typeSkip } = useTypewriter(25)
 
-const chatHistory = ref<Array<{ role: 'player' | 'npc' | 'system'; content: string; npcName?: string }>>([])
+const chatHistory = ref<ChatMessage[]>([])
 const chatContainer = ref<HTMLElement | null>(null)
 
 // 场景切换
@@ -45,7 +50,11 @@ const autoSave = async () => {
 }
 
 onMounted(async () => {
-  await initGame()
+  if (props.loadSlotId != null) {
+    await loadFromSlot(props.loadSlotId)
+  } else {
+    await initGame()
+  }
   await loadScene()
 })
 
@@ -99,43 +108,57 @@ const sendMessage = async (text?: string) => {
   addDialogue('player', msg)
   scrollToBottom()
 
+  // 添加 NPC 占位消息
+  const npcMsgIndex = chatHistory.value.length
+  chatHistory.value.push({ role: 'npc', content: '', npcName: selectedNpc.value.name })
+
   try {
-    const res = await chatWithNpc({
-      npc_id: selectedNpc.value.id,
-      player_input: msg,
-      game_state: gameState.value,
-    })
+    // 优先用 SSE 流式
+    chatWithNpcStream(
+      { npc_id: selectedNpc.value.id, player_input: msg, game_state: gameState.value },
+      // onToken
+      (token) => {
+        chatHistory.value[npcMsgIndex].content += token
+        scrollToBottom()
+      },
+      // onDone
+      (data) => {
+        // 用后端解析后的干净文本替换流式拼接文本
+        chatHistory.value[npcMsgIndex].content = data.reply
+        addDialogue('npc', data.reply)
 
-    const data = res.data
-    chatHistory.value.push({ role: 'npc', content: data.reply, npcName: selectedNpc.value.name })
-    addDialogue('npc', data.reply)
+        if (data.trust_change !== 0) {
+          updateTrust(selectedNpc.value!.id, data.trust_change)
+        }
 
-    // 更新信任度
-    if (data.trust_change !== 0) {
-      updateTrust(selectedNpc.value.id, data.trust_change)
-    }
+        if (data.fragment_revealed && data.fragment_data) {
+          revealFragment(data.fragment_revealed)
+          const trust = gameState.value!.npc_trust[selectedNpc.value!.id] || 30
+          if (trust >= 60) {
+            collectFragment(data.fragment_revealed)
+            popupFragment.value = { ...data.fragment_data, just_collected: true }
+          } else {
+            popupFragment.value = { ...data.fragment_data, just_collected: false }
+          }
+          showFragmentPopup.value = true
+        }
 
-    // 揭示碎片
-    if (data.fragment_revealed && data.fragment_data) {
-      revealFragment(data.fragment_revealed)
-      // 检查是否自动收集（信任度足够）
-      const trust = gameState.value.npc_trust[selectedNpc.value.id] || 30
-      if (trust >= 60) {
-        collectFragment(data.fragment_revealed)
-        popupFragment.value = { ...data.fragment_data, just_collected: true }
-      } else {
-        popupFragment.value = { ...data.fragment_data, just_collected: false }
-      }
-      showFragmentPopup.value = true
-    }
+        if (data.reply.includes('？') || data.reply.includes('?')) {
+          presetOptions.value = ['继续问', '换个话题', '告辞']
+        }
 
-    // 更新预设选项
-    if (data.reply.includes('？') || data.reply.includes('?')) {
-      presetOptions.value = ['继续问', '换个话题', '告辞']
-    }
+        chatLoading.value = false
+        scrollToBottom()
+      },
+      // onError
+      (errMsg) => {
+        chatHistory.value[npcMsgIndex].content = `[${errMsg}]`
+        chatLoading.value = false
+        scrollToBottom()
+      },
+    )
   } catch {
     chatHistory.value.push({ role: 'system', content: '[连接中断，请重试]' })
-  } finally {
     chatLoading.value = false
     scrollToBottom()
   }
@@ -167,11 +190,32 @@ watch(() => gameState.value?.collected_fragments?.length, (newVal) => {
     // 所有碎片收集完成
     narrativeText.value = '所有记忆碎片已经收集完毕……陈爷爷的记忆正在恢复。那些消散的光影，重新聚合成完整的画面。'
     typeStart(narrativeText.value)
-    // 触发结局
     setTimeout(() => emit('ending', 'hope'), 4000)
   } else if (newVal) {
     // 每收集一个碎片自动存档
     autoSave()
+    // 检查是否触发结局（场景切换到最后一幕且收集了足够碎片）
+    const percent = totalFragments.value > 0 ? (newVal / totalFragments.value) * 100 : 0
+    if (gameState.value?.current_scene === 'scene_2089' && percent >= 40) {
+      narrativeText.value = '记忆修复程序启动……碎片正在聚合……'
+      typeStart(narrativeText.value)
+      const endingType = percent >= 80 ? 'hope' : 'bittersweet'
+      setTimeout(() => emit('ending', endingType), 5000)
+    }
+  }
+})
+
+// 场景切换到最后一幕且碎片不足 40% 时触发悲剧结局
+watch(() => gameState.value?.current_scene, (newScene) => {
+  if (newScene === 'scene_2089' && gameState.value) {
+    const percent = totalFragments.value > 0
+      ? (gameState.value.collected_fragments.length / totalFragments.value) * 100
+      : 0
+    if (percent < 40 && gameState.value.collected_fragments.length > 0) {
+      narrativeText.value = '记忆碎片太少了……修复程序难以启动……'
+      typeStart(narrativeText.value)
+      setTimeout(() => emit('ending', 'tragic'), 5000)
+    }
   }
 })
 </script>
@@ -722,6 +766,111 @@ watch(() => gameState.value?.collected_fragments?.length, (newVal) => {
 .send-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ── 移动端适配 ── */
+@media (max-width: 768px) {
+  .main-area {
+    flex-direction: column;
+  }
+
+  .scene-panel {
+    width: 100%;
+    height: auto;
+    max-height: 40vh;
+    border-right: none;
+    border-bottom: 1px solid rgba(100, 150, 255, 0.1);
+  }
+
+  .scene-illustration-box {
+    height: 140px;
+    min-height: 140px;
+  }
+
+  .narrative-box {
+    padding: 12px 16px;
+    max-height: 80px;
+    overflow-y: auto;
+  }
+
+  .narrative-text {
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .npc-list {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  .npc-card {
+    min-width: 120px;
+    padding: 8px 10px;
+  }
+
+  .npc-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .dialogue-panel {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .chat-area {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .chat-msg {
+    max-width: 90%;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .input-area {
+    padding: 8px 12px;
+  }
+
+  .chat-input {
+    font-size: 14px;
+    padding: 10px 14px;
+  }
+
+  .top-bar {
+    padding: 8px 12px;
+  }
+
+  .scene-title {
+    font-size: 14px;
+  }
+
+  .scene-time {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+
+  .fragment-popup {
+    width: 90%;
+    padding: 24px;
+  }
+
+  .popup-icon {
+    font-size: 40px;
+  }
+
+  .popup-title {
+    font-size: 20px;
+  }
+
+  .inventory-panel {
+    width: 85%;
+    max-height: 70vh;
+  }
 }
 
 /* 碎片弹窗 */

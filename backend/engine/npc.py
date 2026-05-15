@@ -8,6 +8,20 @@ from backend.config import settings
 from backend.engine.world import get_npc, get_scene
 from backend.prompts.npc_dialogue import build_npc_prompt
 
+# ── OpenAI 客户端单例 ──
+_client: OpenAI | None = None
+
+
+def _get_client() -> OpenAI:
+    global _client
+    if _client is None:
+        _client = OpenAI(
+            api_key=settings.DEEPSEEK_API_KEY,
+            base_url=settings.DEEPSEEK_BASE_URL,
+            timeout=30,
+        )
+    return _client
+
 
 def chat_with_npc(npc_id: str, player_input: str, game_state: dict) -> dict:
     """
@@ -32,11 +46,7 @@ def chat_with_npc(npc_id: str, player_input: str, game_state: dict) -> dict:
     prompt = build_npc_prompt(npc, scene, game_state, player_input)
 
     try:
-        client = OpenAI(
-            api_key=settings.DEEPSEEK_API_KEY,
-            base_url=settings.DEEPSEEK_BASE_URL,
-            timeout=30,
-        )
+        client = _get_client()
 
         response = client.chat.completions.create(
             model=settings.DEEPSEEK_MODEL,
@@ -94,3 +104,51 @@ def _parse_npc_response(content: str) -> tuple:
         content = re.sub(r'\[心情[:：].+?\]', '', content).strip()
 
     return content, fragment_revealed, trust_change, npc_mood
+
+
+def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
+    """流式 NPC 对话，yield token 和最终元数据"""
+    npc = get_npc(npc_id)
+    if not npc:
+        yield {"type": "error", "content": "找不到这个角色。"}
+        return
+
+    scene = get_scene(npc["scene"])
+    if not scene:
+        yield {"type": "error", "content": "场景加载失败。"}
+        return
+
+    prompt = build_npc_prompt(npc, scene, game_state, player_input)
+
+    try:
+        client = _get_client()
+        stream = client.chat.completions.create(
+            model=settings.DEEPSEEK_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=300,
+            stream=True,
+        )
+
+        full_content = ""
+        for chunk in stream:
+            delta = chunk.choices[0].delta
+            if delta.content:
+                full_content += delta.content
+                yield {"type": "token", "content": delta.content}
+
+        # 流结束，解析元数据
+        reply_text, fragment_revealed, trust_change, npc_mood = _parse_npc_response(full_content)
+        yield {
+            "type": "done",
+            "metadata": {
+                "reply": reply_text,
+                "fragment_revealed": fragment_revealed,
+                "trust_change": trust_change,
+                "npc_mood": npc_mood,
+            },
+        }
+
+    except Exception as e:
+        logger.error(f"NPC流式对话失败: {e}")
+        yield {"type": "error", "content": "对话引擎暂时不可用，请稍后重试。"}

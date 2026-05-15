@@ -5,6 +5,20 @@ from openai import OpenAI
 from backend.config import settings
 from backend.prompts.narrative import build_narrative_prompt
 
+# ── OpenAI 客户端单例 ──
+_client: OpenAI | None = None
+
+
+def _get_client() -> OpenAI:
+    global _client
+    if _client is None:
+        _client = OpenAI(
+            api_key=settings.DEEPSEEK_API_KEY,
+            base_url=settings.DEEPSEEK_BASE_URL,
+            timeout=30,
+        )
+    return _client
+
 
 def advance_narrative(game_state: dict, action: str) -> dict:
     """
@@ -22,11 +36,7 @@ def advance_narrative(game_state: dict, action: str) -> dict:
     prompt = build_narrative_prompt(game_state, action)
 
     try:
-        client = OpenAI(
-            api_key=settings.DEEPSEEK_API_KEY,
-            base_url=settings.DEEPSEEK_BASE_URL,
-            timeout=30,
-        )
+        client = _get_client()
 
         response = client.chat.completions.create(
             model=settings.DEEPSEEK_MODEL,
