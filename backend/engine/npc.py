@@ -8,6 +8,7 @@ from backend.config import settings
 from backend.engine.world import get_npc, get_scene
 from backend.prompts.npc_dialogue import build_npc_prompt
 from backend.engine.butterfly import get_npc_modifiers, get_fragment_boost
+from backend.engine.emotion import process_emotion
 
 # ── OpenAI 客户端单例 ──
 _client: OpenAI | None = None
@@ -125,6 +126,11 @@ def chat_with_npc(npc_id: str, player_input: str, game_state: dict) -> dict:
         mods_text = "\n".join(butterfly_mods)
         prompt += f"\n\n【记忆回响】{mods_text}"
 
+    # 情感状态机: 处理玩家输入对NPC情感的影响
+    emotion_result = process_emotion(npc_id, player_input, game_state)
+    if emotion_result["prompt_hint"]:
+        prompt += f"\n\n{emotion_result['prompt_hint']}"
+
     try:
         client = _get_client()
 
@@ -140,12 +146,29 @@ def chat_with_npc(npc_id: str, player_input: str, game_state: dict) -> dict:
         # 解析JSON回复
         reply_text, fragment_revealed, trust_change, npc_mood, inner_thought = _parse_json_response(content)
 
+        # 情感状态机: 应用信任度乘数
+        trust_multiplier = emotion_result["trust_multiplier"]
+        trust_change = int(trust_change * trust_multiplier)
+
+        # 情感状态机: 碎片揭露加成
+        fragment_bonus = emotion_result["fragment_bonus"]
+        if fragment_revealed and fragment_bonus > 0:
+            # 如果有碎片揭露且有情感加成，增加信任度
+            trust_change += fragment_bonus // 5
+
+        # 情感转移效果描述
+        emotion_effect = emotion_result["emotion_change"]["effect"]
+        if emotion_effect:
+            reply_text = f"{reply_text}\n\n*{emotion_effect}*"
+
         return {
             "reply": reply_text,
             "fragment_revealed": fragment_revealed,
             "trust_change": trust_change,
             "npc_mood": npc_mood,
             "inner_thought": inner_thought,
+            "emotion_state": emotion_result["emotion_change"]["current"],
+        }
         }
 
     except Exception as e:
@@ -179,6 +202,11 @@ def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
         mods_text = "\n".join(butterfly_mods)
         prompt += f"\n\n【记忆回响】{mods_text}"
 
+    # 情感状态机: 处理玩家输入对NPC情感的影响
+    emotion_result = process_emotion(npc_id, player_input, game_state)
+    if emotion_result["prompt_hint"]:
+        prompt += f"\n\n{emotion_result['prompt_hint']}"
+
     try:
         client = _get_client()
         stream = client.chat.completions.create(
@@ -198,6 +226,16 @@ def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
 
         # 流结束，解析JSON元数据
         reply_text, fragment_revealed, trust_change, npc_mood, inner_thought = _parse_json_response(full_content)
+
+        # 情感状态机: 应用信任度乘数
+        trust_multiplier = emotion_result["trust_multiplier"]
+        trust_change = int(trust_change * trust_multiplier)
+
+        # 情感转移效果描述
+        emotion_effect = emotion_result["emotion_change"]["effect"]
+        if emotion_effect:
+            reply_text = f"{reply_text}\n\n*{emotion_effect}*"
+
         yield {
             "type": "done",
             "metadata": {
@@ -206,6 +244,7 @@ def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
                 "trust_change": trust_change,
                 "npc_mood": npc_mood,
                 "inner_thought": inner_thought,
+                "emotion_state": emotion_result["emotion_change"]["current"],
             },
         }
 

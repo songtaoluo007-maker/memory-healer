@@ -9,6 +9,7 @@ import MemoryProgress from '../components/MemoryProgress.vue'
 import NpcAvatar from '../components/NpcAvatar.vue'
 import HotspotOverlay from '../components/HotspotOverlay.vue'
 import SceneTransition from '../components/SceneTransition.vue'
+import MemoryPanel from '../components/MemoryPanel.vue'
 import { useHotspots } from '../composables/useHotspots'
 import type { Hotspot } from '../composables/useHotspots'
 import type { Scene, NpcSummary, Fragment, ChatMessage, EndingType } from '../types/game'
@@ -42,6 +43,9 @@ const { playBGM, playSFX, isMuted, toggleMute } = useAudio()
 
 // 热区探索（初始场景，loadScene时会更新）
 const { hotspots, exploredIds, exploreHotspot, explorationProgress } = useHotspots(gameState.value?.current_scene || 'scene_1972')
+
+// 记忆档案面板
+const showMemoryPanel = ref(false)
 
 const chatHistory = ref<ChatMessage[]>([])
 const chatContainer = ref<HTMLElement | null>(null)
@@ -339,6 +343,10 @@ watch(() => gameState.value?.current_scene, (newScene) => {
         <span class="scene-title">{{ currentScene?.title || '加载中...' }}</span>
       </div>
       <div class="status-right">
+        <!-- 记忆档案 -->
+        <button class="btn-memory" @click="showMemoryPanel = true" title="记忆档案">
+          📜
+        </button>
         <!-- 音频控制 -->
         <button class="audio-toggle" @click="toggleMute" :title="isMuted ? '取消静音' : '静音'">
           {{ isMuted ? '🔇' : '🔊' }}
@@ -508,6 +516,16 @@ watch(() => gameState.value?.current_scene, (newScene) => {
         </div>
       </div>
     </div>
+
+    <!-- 记忆档案面板 -->
+    <MemoryPanel
+      v-if="showMemoryPanel && gameState"
+      :fragment-states="gameState.fragment_states"
+      :current-scene="gameState.current_scene"
+      :collected-count="gameState.collected_fragments?.length || 0"
+      :total-fragments="Object.keys(gameState.fragment_states || {}).length"
+      @close="showMemoryPanel = false"
+    />
   </div>
 </template>
 
@@ -571,6 +589,21 @@ watch(() => gameState.value?.current_scene, (newScene) => {
 }
 
 .audio-toggle:hover {
+  background: rgba(100, 150, 255, 0.15);
+  border-color: rgba(100, 150, 255, 0.4);
+}
+
+.btn-memory {
+  background: none;
+  border: 1px solid rgba(100, 150, 255, 0.2);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-memory:hover {
   background: rgba(100, 150, 255, 0.15);
   border-color: rgba(100, 150, 255, 0.4);
 }
