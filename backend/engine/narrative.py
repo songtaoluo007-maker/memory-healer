@@ -64,6 +64,7 @@ def advance_narrative(game_state: dict, action: str) -> dict:
                 "mood": result.get("mood", "neutral"),
                 "hints": result.get("hints", ""),
                 "trigger_event": result.get("trigger_event"),
+                "narrative_callback": result.get("narrative_callback", ""),
             }
         except json.JSONDecodeError:
             # 如果JSON解析失败，返回纯文本
@@ -73,6 +74,7 @@ def advance_narrative(game_state: dict, action: str) -> dict:
                 "mood": "neutral",
                 "hints": "",
                 "trigger_event": None,
+                "narrative_callback": "",
             }
 
     except Exception as e:
@@ -83,4 +85,5 @@ def advance_narrative(game_state: dict, action: str) -> dict:
             "mood": "neutral",
             "hints": "尝试重新连接记忆通道",
             "trigger_event": None,
+            "narrative_callback": "",
         }

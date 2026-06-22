@@ -2,9 +2,11 @@
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { useGameState } from '../composables/useGameState'
 import { useTypewriter } from '../composables/useTypewriter'
-import { chatWithNpc, chatWithNpcStream, getSceneDetail, advanceNarrative, saveGame } from '../api'
+import { useAudio } from '../composables/useAudio'
+import { chatWithNpcStream, getSceneDetail, advanceNarrative, saveGame } from '../api'
 import SceneIllustration from '../components/SceneIllustration.vue'
 import MemoryProgress from '../components/MemoryProgress.vue'
+import NpcAvatar from '../components/NpcAvatar.vue'
 import type { Scene, NpcSummary, Fragment, ChatMessage, EndingType } from '../types/game'
 
 const emit = defineEmits<{
@@ -30,6 +32,9 @@ const chatLoading = ref(false)
 const showInventory = ref(false)
 
 const { displayText: typewriterText, isTyping, start: typeStart, skip: typeSkip } = useTypewriter(25)
+
+// 音频系统
+const { playBGM, playSFX, isMuted, toggleMute } = useAudio()
 
 const chatHistory = ref<ChatMessage[]>([])
 const chatContainer = ref<HTMLElement | null>(null)
@@ -77,12 +82,15 @@ const loadScene = async () => {
     typeStart(narrativeText.value)
   } finally {
     setTimeout(() => { sceneTransitioning.value = false }, 600)
+    // 播放场景BGM
+    playBGM(gameState.value.current_scene)
   }
 }
 
 // 场景切换
 const switchScene = async (targetScene: string) => {
   if (!gameState.value || sceneTransitioning.value) return
+  playSFX('scene_transition')
   sceneTransitioning.value = true
   gameState.value.current_scene = targetScene
   selectedNpc.value = null
@@ -94,6 +102,7 @@ const switchScene = async (targetScene: string) => {
 const selectNpc = (npc: any) => {
   selectedNpc.value = npc
   playerInput.value = ''
+  playSFX('dialogue_start')
 }
 
 const sendMessage = async (text?: string) => {
@@ -129,6 +138,7 @@ const sendMessage = async (text?: string) => {
 
         if (data.trust_change !== 0) {
           updateTrust(selectedNpc.value!.id, data.trust_change)
+          playSFX(data.trust_change > 0 ? 'trust_up' : 'trust_down')
         }
 
         if (data.fragment_revealed && data.fragment_data) {
@@ -137,6 +147,7 @@ const sendMessage = async (text?: string) => {
           if (trust >= 60) {
             collectFragment(data.fragment_revealed)
             popupFragment.value = { ...data.fragment_data, just_collected: true }
+            playSFX('fragment_found')
           } else {
             popupFragment.value = { ...data.fragment_data, just_collected: false }
           }
@@ -190,7 +201,10 @@ watch(() => gameState.value?.collected_fragments?.length, (newVal) => {
     // 所有碎片收集完成
     narrativeText.value = '所有记忆碎片已经收集完毕……陈爷爷的记忆正在恢复。那些消散的光影，重新聚合成完整的画面。'
     typeStart(narrativeText.value)
-    setTimeout(() => emit('ending', 'hope'), 4000)
+    setTimeout(() => {
+      playSFX('ending_hope')
+      emit('ending', 'hope')
+    }, 4000)
   } else if (newVal) {
     // 每收集一个碎片自动存档
     autoSave()
@@ -200,7 +214,10 @@ watch(() => gameState.value?.collected_fragments?.length, (newVal) => {
       narrativeText.value = '记忆修复程序启动……碎片正在聚合……'
       typeStart(narrativeText.value)
       const endingType = percent >= 80 ? 'hope' : 'bittersweet'
-      setTimeout(() => emit('ending', endingType), 5000)
+      setTimeout(() => {
+        playSFX(endingType === 'hope' ? 'ending_hope' : 'ending_bittersweet')
+        emit('ending', endingType)
+      }, 5000)
     }
   }
 })
@@ -214,7 +231,10 @@ watch(() => gameState.value?.current_scene, (newScene) => {
     if (percent < 40 && gameState.value.collected_fragments.length > 0) {
       narrativeText.value = '记忆碎片太少了……修复程序难以启动……'
       typeStart(narrativeText.value)
-      setTimeout(() => emit('ending', 'tragic'), 5000)
+      setTimeout(() => {
+        playSFX('ending_tragic')
+        emit('ending', 'tragic')
+      }, 5000)
     }
   }
 })
@@ -229,6 +249,10 @@ watch(() => gameState.value?.current_scene, (newScene) => {
         <span class="scene-title">{{ currentScene?.title || '加载中...' }}</span>
       </div>
       <div class="status-right">
+        <!-- 音频控制 -->
+        <button class="audio-toggle" @click="toggleMute" :title="isMuted ? '取消静音' : '静音'">
+          {{ isMuted ? '🔇' : '🔊' }}
+        </button>
         <!-- 场景导航 -->
         <div class="scene-nav" v-if="currentScene?.exits">
           <button
@@ -274,7 +298,7 @@ watch(() => gameState.value?.current_scene, (newScene) => {
             :class="{ active: selectedNpc?.id === npc.id }"
             @click="selectNpc(npc)"
           >
-            <div class="npc-avatar">{{ npc.name[0] }}</div>
+            <NpcAvatar :npc-id="npc.id" :emotion="getTrustLevel(npc.id).label === '完全信任' ? 'happy' : 'neutral'" :size="48" />
             <div class="npc-info">
               <span class="npc-name">{{ npc.name }}</span>
               <span class="npc-title">{{ npc.title }}</span>
@@ -322,7 +346,7 @@ watch(() => gameState.value?.current_scene, (newScene) => {
             v-for="opt in presetOptions"
             :key="opt"
             class="preset-btn"
-            @click="sendMessage(opt)"
+            @click="playSFX('click'); sendMessage(opt)"
             :disabled="chatLoading"
           >
             {{ opt }}
@@ -338,7 +362,7 @@ watch(() => gameState.value?.current_scene, (newScene) => {
             @keyup.enter="sendMessage()"
             :disabled="chatLoading"
           />
-          <button class="send-btn" @click="sendMessage()" :disabled="chatLoading || !playerInput.trim()">
+          <button class="send-btn" @click="playSFX('click'); sendMessage()" :disabled="chatLoading || !playerInput.trim()">
             ➤
           </button>
         </div>
@@ -360,7 +384,7 @@ watch(() => gameState.value?.current_scene, (newScene) => {
         <p class="fragment-memory" v-if="popupFragment?.memory_text && popupFragment?.just_collected">
           「{{ popupFragment.memory_text }}」
         </p>
-        <button class="btn-close" @click="popupFragment?.just_collected ? (showFragmentPopup = false) : collectCurrentFragment(popupFragment?.id)">
+        <button class="btn-close" @click="popupFragment?.just_collected ? (showFragmentPopup = false) : collectCurrentFragment(popupFragment?.id || '')">
           {{ popupFragment?.just_collected ? '继续探索' : '收集碎片' }}
         </button>
       </div>
@@ -438,6 +462,21 @@ watch(() => gameState.value?.current_scene, (newScene) => {
   padding: 4px 12px;
   border-radius: 6px;
   background: rgba(100, 150, 255, 0.1);
+}
+
+.audio-toggle {
+  background: none;
+  border: 1px solid rgba(100, 150, 255, 0.2);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.audio-toggle:hover {
+  background: rgba(100, 150, 255, 0.15);
+  border-color: rgba(100, 150, 255, 0.4);
 }
 
 .scene-nav {

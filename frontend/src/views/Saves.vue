@@ -1,20 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { listSaves, deleteSave } from '../api'
+import type { SaveSlot } from '../types/game'
 
 const emit = defineEmits<{
   load: [slotId: number]
   close: []
 }>()
-
-interface SaveSlot {
-  slot_id: number
-  slot_name: string
-  scene_id: string
-  play_time: number
-  created_at: string
-  updated_at: string
-}
 
 const saves = ref<SaveSlot[]>([])
 const loading = ref(true)

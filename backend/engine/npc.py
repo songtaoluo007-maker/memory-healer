@@ -1,4 +1,4 @@
-"""NPC对话引擎"""
+"""NPC对话引擎 — JSON输出解析"""
 import json
 import re
 from typing import Optional
@@ -23,62 +23,51 @@ def _get_client() -> OpenAI:
     return _client
 
 
-def chat_with_npc(npc_id: str, player_input: str, game_state: dict) -> dict:
+def _parse_json_response(content: str) -> tuple:
     """
-    与NPC对话，返回AI生成的回复和状态更新
-
-    Returns:
-        {
-            "reply": "NPC回复文本",
-            "fragment_revealed": "fragment_id" or None,
-            "trust_change": int,
-            "npc_mood": "happy/sad/neutral/thinking"
-        }
+    解析NPC的JSON输出，返回 (reply, fragment, trust_delta, emotion, inner_thought)
+    兼容旧版标签格式作为降级方案
     """
-    npc = get_npc(npc_id)
-    if not npc:
-        return {"reply": "[系统] 找不到这个角色。", "fragment_revealed": None, "trust_change": 0, "npc_mood": "neutral"}
+    # 尝试清理markdown包裹
+    cleaned = content.strip()
+    if cleaned.startswith("```json"):
+        cleaned = cleaned[7:]
+    elif cleaned.startswith("```"):
+        cleaned = cleaned[3:]
+    if cleaned.endswith("```"):
+        cleaned = cleaned[:-3]
+    cleaned = cleaned.strip()
 
-    scene = get_scene(npc["scene"])
-    if not scene:
-        return {"reply": "[系统] 场景加载失败。", "fragment_revealed": None, "trust_change": 0, "npc_mood": "neutral"}
-
-    prompt = build_npc_prompt(npc, scene, game_state, player_input)
-
+    # 尝试JSON解析
     try:
-        client = _get_client()
+        data = json.loads(cleaned)
+        reply = data.get("reply", "").strip()
+        fragment = data.get("fragment")
+        trust_delta = data.get("trust_delta", 0)
+        emotion = data.get("emotion", "neutral")
+        inner_thought = data.get("inner_thought", "")
 
-        response = client.chat.completions.create(
-            model=settings.DEEPSEEK_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=300,
-        )
+        # 校验emotion枚举
+        valid_emotions = {"neutral", "happy", "sad", "thinking", "touched", "nostalgic", "worried"}
+        if emotion not in valid_emotions:
+            emotion = "neutral"
 
-        content = response.choices[0].message.content.strip()
+        # 校验trust_delta范围
+        if not isinstance(trust_delta, (int, float)):
+            trust_delta = 0
+        trust_delta = max(-20, min(20, int(trust_delta)))
 
-        # 解析回复
-        reply_text, fragment_revealed, trust_change, npc_mood = _parse_npc_response(content)
+        if reply:
+            return reply, fragment, trust_delta, emotion, inner_thought
+    except (json.JSONDecodeError, KeyError, TypeError):
+        pass
 
-        return {
-            "reply": reply_text,
-            "fragment_revealed": fragment_revealed,
-            "trust_change": trust_change,
-            "npc_mood": npc_mood,
-        }
-
-    except Exception as e:
-        logger.error(f"NPC对话失败: {e}")
-        return {
-            "reply": f"[系统] 对话引擎暂时不可用，请稍后重试。",
-            "fragment_revealed": None,
-            "trust_change": 0,
-            "npc_mood": "neutral",
-        }
+    # 降级：尝试旧版标签解析（兼容过渡期）
+    return _parse_legacy_tags(content)
 
 
-def _parse_npc_response(content: str) -> tuple:
-    """解析NPC回复中的标签"""
+def _parse_legacy_tags(content: str) -> tuple:
+    """兼容旧版 [碎片:xxx] [信任:+N] [心情:xxx] 标签格式"""
     fragment_revealed = None
     trust_change = 0
     npc_mood = "neutral"
@@ -103,7 +92,64 @@ def _parse_npc_response(content: str) -> tuple:
         npc_mood = mood_match.group(1).strip()
         content = re.sub(r'\[心情[:：].+?\]', '', content).strip()
 
-    return content, fragment_revealed, trust_change, npc_mood
+    return content, fragment_revealed, trust_change, npc_mood, ""
+
+
+def chat_with_npc(npc_id: str, player_input: str, game_state: dict) -> dict:
+    """
+    与NPC对话，返回AI生成的回复和状态更新
+
+    Returns:
+        {
+            "reply": "NPC回复文本",
+            "fragment_revealed": "fragment_id" or None,
+            "trust_change": int,
+            "npc_mood": "happy/sad/neutral/thinking/touched/nostalgic/worried",
+            "inner_thought": "NPC内心独白"
+        }
+    """
+    npc = get_npc(npc_id)
+    if not npc:
+        return {"reply": "[系统] 找不到这个角色。", "fragment_revealed": None, "trust_change": 0, "npc_mood": "neutral", "inner_thought": ""}
+
+    scene = get_scene(npc["scene"])
+    if not scene:
+        return {"reply": "[系统] 场景加载失败。", "fragment_revealed": None, "trust_change": 0, "npc_mood": "neutral", "inner_thought": ""}
+
+    prompt = build_npc_prompt(npc, scene, game_state, player_input)
+
+    try:
+        client = _get_client()
+
+        response = client.chat.completions.create(
+            model=settings.DEEPSEEK_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=400,
+        )
+
+        content = response.choices[0].message.content.strip()
+
+        # 解析JSON回复
+        reply_text, fragment_revealed, trust_change, npc_mood, inner_thought = _parse_json_response(content)
+
+        return {
+            "reply": reply_text,
+            "fragment_revealed": fragment_revealed,
+            "trust_change": trust_change,
+            "npc_mood": npc_mood,
+            "inner_thought": inner_thought,
+        }
+
+    except Exception as e:
+        logger.error(f"NPC对话失败: {e}")
+        return {
+            "reply": f"[系统] 对话引擎暂时不可用，请稍后重试。",
+            "fragment_revealed": None,
+            "trust_change": 0,
+            "npc_mood": "neutral",
+            "inner_thought": "",
+        }
 
 
 def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
@@ -126,7 +172,7 @@ def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
             model=settings.DEEPSEEK_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=300,
+            max_tokens=400,
             stream=True,
         )
 
@@ -137,8 +183,8 @@ def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
                 full_content += delta.content
                 yield {"type": "token", "content": delta.content}
 
-        # 流结束，解析元数据
-        reply_text, fragment_revealed, trust_change, npc_mood = _parse_npc_response(full_content)
+        # 流结束，解析JSON元数据
+        reply_text, fragment_revealed, trust_change, npc_mood, inner_thought = _parse_json_response(full_content)
         yield {
             "type": "done",
             "metadata": {
@@ -146,6 +192,7 @@ def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
                 "fragment_revealed": fragment_revealed,
                 "trust_change": trust_change,
                 "npc_mood": npc_mood,
+                "inner_thought": inner_thought,
             },
         }
 

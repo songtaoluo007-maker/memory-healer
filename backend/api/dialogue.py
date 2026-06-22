@@ -24,6 +24,7 @@ class DialogueResponse(BaseModel):
     fragment_data: dict | None = None
     trust_change: int = 0
     npc_mood: str = "neutral"
+    inner_thought: str = ""
 
 
 @router.post("/chat", response_model=DialogueResponse)
@@ -40,6 +41,7 @@ def dialogue_chat(req: DialogueRequest, request: Request):
         fragment_data=fragment_data,
         trust_change=result.get("trust_change", 0),
         npc_mood=result.get("npc_mood", "neutral"),
+        inner_thought=result.get("inner_thought", ""),
     )
 
 
@@ -60,7 +62,7 @@ def dialogue_chat_stream(req: DialogueRequest, request: Request):
                 fragment_data = None
                 if metadata.get("fragment_revealed"):
                     fragment_data = get_fragment(metadata["fragment_revealed"])
-                yield f"data: {json.dumps({'type': 'done', 'reply': buffer, 'fragment_revealed': metadata.get('fragment_revealed'), 'fragment_data': fragment_data, 'trust_change': metadata.get('trust_change', 0), 'npc_mood': metadata.get('npc_mood', 'neutral')}, ensure_ascii=False)}\n\n"
+                yield f"data: {json.dumps({'type': 'done', 'reply': buffer, 'fragment_revealed': metadata.get('fragment_revealed'), 'fragment_data': fragment_data, 'trust_change': metadata.get('trust_change', 0), 'npc_mood': metadata.get('npc_mood', 'neutral'), 'inner_thought': metadata.get('inner_thought', '')}, ensure_ascii=False)}\n\n"
             elif chunk["type"] == "error":
                 yield f"data: {json.dumps({'type': 'error', 'content': chunk['content']}, ensure_ascii=False)}\n\n"
 

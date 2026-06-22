@@ -86,6 +86,7 @@ export interface DialogueResponse {
   fragment_data: Fragment | null
   trust_change: number
   npc_mood: string
+  inner_thought?: string
 }
 
 export interface NarrativeResult {
@@ -94,6 +95,7 @@ export interface NarrativeResult {
   mood: string
   hints: string
   trigger_event: string | null
+  narrative_callback?: string
 }
 
 export interface SaveSlot {
@@ -102,6 +104,8 @@ export interface SaveSlot {
   scene_id: string
   play_time: number
   saved_at: string
+  created_at: string
+  updated_at: string
 }
 
 export interface ChatMessage {
