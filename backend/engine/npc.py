@@ -169,7 +169,6 @@ def chat_with_npc(npc_id: str, player_input: str, game_state: dict) -> dict:
             "inner_thought": inner_thought,
             "emotion_state": emotion_result["emotion_change"]["current"],
         }
-        }
 
     except Exception as e:
         logger.error(f"NPC对话失败: {e}")

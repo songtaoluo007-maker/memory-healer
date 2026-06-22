@@ -1,38 +1,130 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [master, main]
+    branches: [ master, main ]
   pull_request:
-    branches: [master, main]
+    branches: [ master, main ]
 
 jobs:
-  backend-test:
-    name: Backend Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Run tests
-        run: cd backend && python -m pytest tests/ -v --tb=short
-
-  frontend-build:
-    name: Frontend Build
+  # ── 前端检查 ──
+  frontend-check:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: npm
+          node-version: '20'
+          cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npx vue-tsc --noEmit
-      - run: npm run build
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx vue-tsc -b
+
+      - name: Lint
+        run: npx eslint src --ext .ts,.vue || true
+
+      - name: Build
+        run: npx vite build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
+
+  # ── 后端检查 ──
+  backend-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov flake8
+
+      - name: Lint
+        run: flake8 --max-line-length=120 --ignore=E501,W503 . || true
+
+      - name: Run tests with coverage
+        run: pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          backend/coverage.xml
+          retention-days: 7
+
+  # ── 集成测试 ──
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: [frontend-check, backend-check]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Docker Compose
+        run: |
+          docker compose build
+          docker compose up -d
+
+      - name: Wait for services
+        run: |
+          sleep 10
+          curl -f http://localhost:8000/api/health || exit 1
+          curl -f http://localhost:5173 || exit 1
+
+      - name: Run smoke tests
+        run: |
+          # 测试场景API
+          curl -s http://localhost:8000/api/scene/ids | grep -q "scene_1972"
+          # 测试对话API（非流式）
+          curl -s -X POST http://localhost:8000/api/dialogue/chat \
+            -H "Content-Type: application/json" \
+            -d '{"npc_id":"chen_shouyi_young","player_input":"你好","game_state":{"current_scene":"scene_1972","npc_trust":{"chen_shouyi_young":30},"collected_fragments":[],"dialogue_history":[]}}' | grep -q "reply"
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down
+
+  # ── 部署（仅main分支）──
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [integration-test]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Deploy notification
+        run: echo "Ready to deploy! Build artifacts are ready."
