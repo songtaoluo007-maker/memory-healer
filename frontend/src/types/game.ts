@@ -57,6 +57,7 @@ export interface GameState {
   dialogue_history: Array<{ role: string; content: string }>
   current_mood: string
   play_time: number
+  play_start_time: number
   chapter: number
   ending: string | null
   butterfly_choices?: Record<string, string>

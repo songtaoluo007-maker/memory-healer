@@ -59,6 +59,7 @@ def create_initial_state() -> dict:
             "scene": fdata["scene"],
         }
 
+    import time
     return {
         "current_scene": "scene_1972",
         "collected_fragments": [],
@@ -69,6 +70,7 @@ def create_initial_state() -> dict:
         "dialogue_history": [],
         "current_mood": "warm",
         "play_time": 0,
+        "play_start_time": int(time.time() * 1000),
         "chapter": 1,
         "ending": None,
     }

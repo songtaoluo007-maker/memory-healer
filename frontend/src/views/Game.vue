@@ -55,9 +55,12 @@ const chatContainer = ref<HTMLElement | null>(null)
 // 场景切换
 const sceneTransitioning = ref(false)
 
-// 游戏时间
-const playStartTime = Date.now()
-const getPlayTime = () => Math.floor((Date.now() - playStartTime) / 1000)
+// 游戏时间（持久化到gameState，避免页面切换重置）
+const getPlayTime = () => {
+  if (!gameState.value) return 0
+  const startTime = gameState.value.play_start_time || Date.now()
+  return Math.floor((Date.now() - startTime) / 1000)
+}
 
 // 自动存档
 const autoSave = async () => {
@@ -533,6 +536,8 @@ watch(() => gameState.value?.current_scene, (newScene) => {
 .bg-layer :deep(.scene-illustration) {
   width: 100%;
   height: 100%;
+  content-visibility: auto;
+  contain-intrinsic-size: 800px 500px;
 }
 .bg-layer :deep(.scene-illustration svg),
 .bg-layer :deep(.scene-illustration img) {
