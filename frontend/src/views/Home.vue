@@ -44,6 +44,7 @@ const showMenu = ref(true)
       <div class="footer" role="contentinfo">
         <p>腾讯云黑客松 · AI叙事游戏</p>
         <p class="tech">Powered by DeepSeek · Vue 3 · FastAPI</p>
+        <p class="version">v1.0.0 · P12</p>
       </div>
     </div>
   </div>
@@ -187,5 +188,11 @@ const showMenu = ref(true)
 .tech {
   font-size: 11px;
   margin-top: 4px;
+}
+
+.version {
+  font-size: 10px;
+  margin-top: 8px;
+  opacity: 0.3;
 }
 </style>

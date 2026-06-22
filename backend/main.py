@@ -69,10 +69,13 @@ app.add_middleware(
 # ── 请求日志中间件 ──
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    """记录请求日志（DEBUG模式）"""
+    """记录请求日志（DEBUG模式）+ 静态资源缓存头"""
     if settings.DEBUG:
         logger.debug("{} {}", request.method, request.url.path)
     response = await call_next(request)
+    # 静态资源缓存（7天）
+    if request.url.path.startswith("/assets/"):
+        response.headers["Cache-Control"] = "public, max-age=604800, immutable"
     return response
 
 app.include_router(dialogue_router)
