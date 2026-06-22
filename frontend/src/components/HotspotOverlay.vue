@@ -4,7 +4,10 @@
  * 皮影戏风格：热区用脉冲光圈+小灯笼图标提示
  */
 import { ref, computed } from 'vue'
+import { useI18n } from '../composables/useI18n'
 import type { Hotspot } from '../composables/useHotspots'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   hotspots: Hotspot[]
@@ -37,6 +40,8 @@ const handleClick = (hotspot: Hotspot) => {
     class="hotspot-overlay"
     viewBox="0 0 800 600"
     preserveAspectRatio="xMidYMid meet"
+    role="img"
+    :aria-label="t('a11y.hotspot')"
   >
     <defs>
       <!-- 脉冲动画 -->

@@ -3,6 +3,9 @@
  * NPC动态头像组件
  * 根据NPC ID和情感状态显示不同的SVG头像
  */
+import { useI18n } from '../composables/useI18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   npcId: string
@@ -27,7 +30,7 @@ const getEmotion = (e?: string) => emotionMap[e || 'neutral'] || emotionMap.neut
 </script>
 
 <template>
-  <div class="npc-avatar" :style="{ width: avatarSize + 'px', height: avatarSize + 'px' }">
+  <div class="npc-avatar" :style="{ width: avatarSize + 'px', height: avatarSize + 'px' }" role="img" :aria-label="t('a11y.npc')">
     <!-- 青年陈守义: 黑发、朝气、方脸 -->
     <svg v-if="npcId === 'chen_shouyi_young'" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <!-- 背景光晕 -->

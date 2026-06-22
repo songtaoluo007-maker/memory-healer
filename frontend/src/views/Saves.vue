@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { listSaves, deleteSave } from '../api'
+import { useI18n } from '../composables/useI18n'
 import type { SaveSlot } from '../types/game'
 
 const emit = defineEmits<{
@@ -8,6 +9,7 @@ const emit = defineEmits<{
   close: []
 }>()
 
+const { t } = useI18n()
 const saves = ref<SaveSlot[]>([])
 const loading = ref(true)
 
@@ -53,7 +55,7 @@ const getSceneName = (sceneId: string) => {
 </script>
 
 <template>
-  <div class="save-overlay" @click.self="emit('close')">
+  <div class="save-overlay" @click.self="emit('close')" role="dialog" aria-label="存档管理" aria-modal="true">
     <div class="save-panel">
       <div class="save-header">
         <h2>📂 存档管理</h2>

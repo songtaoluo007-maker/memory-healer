@@ -11,9 +11,10 @@ def test_build_narrative_prompt_basic():
         "current_mood": "warm",
     }
     prompt = build_narrative_prompt(game_state, "进入场景")
-    assert "scene_1972" in prompt
+    assert "1972年 西安老巷" in prompt
     assert "进入场景" in prompt
     assert "warm" in prompt
+    assert "0/9" in prompt  # 0个碎片
 
 
 def test_build_narrative_prompt_with_fragments():
@@ -24,9 +25,10 @@ def test_build_narrative_prompt_with_fragments():
         "current_mood": "melancholy",
     }
     prompt = build_narrative_prompt(game_state, "查看墙上的照片")
-    assert "fragment_letter" in prompt
-    assert "fragment_old_photos" in prompt
+    assert "2/9" in prompt  # 2个碎片
     assert "helped_old_man" in prompt
+    assert "melancholy" in prompt
+    assert "查看墙上的照片" in prompt
 
 
 def test_build_prompt_has_json_format():

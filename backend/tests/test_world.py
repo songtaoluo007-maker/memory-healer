@@ -60,9 +60,11 @@ def test_get_scene_fragments():
 
 def test_get_all_scene_ids():
     ids = get_all_scene_ids()
-    assert len(ids) == 3
+    assert len(ids) == 5
     assert "scene_1972" in ids
+    assert "scene_1990" in ids
     assert "scene_2024" in ids
+    assert "scene_2050" in ids
     assert "scene_2089" in ids
 
 
@@ -72,7 +74,7 @@ def test_create_initial_state():
     assert state["collected_fragments"] == []
     assert state["chapter"] == 1
     assert state["ending"] is None
-    assert len(state["fragment_states"]) == 9
+    assert len(state["fragment_states"]) == 17
     # 所有碎片初始状态为未收集
     for fid, fstate in state["fragment_states"].items():
         assert fstate["collected"] is False

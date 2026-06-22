@@ -11,6 +11,7 @@ import HotspotOverlay from '../components/HotspotOverlay.vue'
 import SceneTransition from '../components/SceneTransition.vue'
 import MemoryPanel from '../components/MemoryPanel.vue'
 import { useHotspots } from '../composables/useHotspots'
+import { useI18n } from '../composables/useI18n'
 import type { Hotspot } from '../composables/useHotspots'
 import type { Scene, NpcSummary, Fragment, ChatMessage, EndingType } from '../types/game'
 
@@ -40,6 +41,7 @@ const { displayText: typewriterText, isTyping, start: typeStart, skip: typeSkip 
 
 // 音频系统
 const { playBGM, playSFX, isMuted, toggleMute } = useAudio()
+const { t, lang, toggleLang } = useI18n()
 
 // 热区探索（初始场景，loadScene时会更新）
 const { hotspots, exploredIds, exploreHotspot, explorationProgress } = useHotspots(gameState.value?.current_scene || 'scene_1972')
@@ -351,15 +353,16 @@ watch(() => gameState.value?.current_scene, (newScene) => {
     />
 
     <!-- 顶部状态栏（悬浮） -->
-    <header class="top-bar">
+    <header class="top-bar" role="banner" aria-label="游戏状态栏">
       <div class="scene-info">
         <span class="scene-time">{{ currentScene?.time_period || '...' }}</span>
         <span class="scene-title">{{ currentScene?.title || '加载中...' }}</span>
         <span class="scene-location">{{ currentScene?.location || '' }}</span>
       </div>
       <div class="status-right">
-        <button class="icon-btn" @click="showMemoryPanel = true" title="记忆档案">📜</button>
-        <button class="icon-btn" @click="toggleMute" :title="isMuted ? '取消静音' : '静音'">{{ isMuted ? '🔇' : '🔊' }}</button>
+        <button class="lang-btn" @click="toggleLang" :title="lang === 'zh' ? 'Switch to English' : '切换到中文'" aria-label="语言切换">{{ lang === 'zh' ? 'EN' : '中' }}</button>
+        <button class="icon-btn" @click="showMemoryPanel = true" title="记忆档案" aria-label="打开记忆档案">📜</button>
+        <button class="icon-btn" @click="toggleMute" :title="isMuted ? '取消静音' : '静音'" :aria-label="isMuted ? '取消静音' : '静音'">{{ isMuted ? '🔇' : '🔊' }}</button>
         <div class="scene-nav" v-if="currentScene?.exits">
           <button
             v-for="(target, dir) in currentScene.exits"
@@ -376,14 +379,14 @@ watch(() => gameState.value?.current_scene, (newScene) => {
     </header>
 
     <!-- 叙事文本（左下悬浮） -->
-    <div class="narrative-float" v-if="narrativeText">
+    <div class="narrative-float" v-if="narrativeText" role="complementary" aria-label="叙事文本" aria-live="polite">
       <div class="narrative-text" @click="isTyping ? typeSkip() : null">
         {{ typewriterText }}<span v-if="isTyping" class="cursor">|</span>
       </div>
     </div>
 
     <!-- NPC选择条（底部悬浮） -->
-    <div class="npc-dock">
+    <div class="npc-dock" role="toolbar" aria-label="NPC角色选择">
       <div
         v-for="npc in currentNpcs"
         :key="npc.id"
@@ -400,7 +403,7 @@ watch(() => gameState.value?.current_scene, (newScene) => {
     </div>
 
     <!-- 对话面板（右侧悬浮） -->
-    <div class="dialogue-float" :class="{ open: selectedNpc }">
+    <div class="dialogue-float" :class="{ open: selectedNpc }" role="dialog" aria-label="NPC对话面板" aria-modal="false">
       <div class="dialogue-glass">
         <div class="dialogue-header" v-if="selectedNpc">
           <span>与 {{ selectedNpc.name }} 对话</span>
@@ -410,7 +413,7 @@ watch(() => gameState.value?.current_scene, (newScene) => {
           <span>选择下方角色开始对话</span>
         </div>
 
-        <div class="chat-area" ref="chatContainer">
+        <div class="chat-area" ref="chatContainer" role="log" aria-live="polite" aria-label="对话历史">
           <div v-if="!selectedNpc" class="empty-chat">
             <p>点击下方角色头像开始对话</p>
           </div>
@@ -451,7 +454,7 @@ watch(() => gameState.value?.current_scene, (newScene) => {
             @keyup.enter="sendMessage()"
             :disabled="chatLoading"
           />
-          <button class="send-btn" @click="playSFX('click'); sendMessage()" :disabled="chatLoading || !playerInput.trim()">➤</button>
+          <button class="send-btn" @click="playSFX('click'); sendMessage()" :disabled="chatLoading || !playerInput.trim()" aria-label="发送消息">➤</button>
         </div>
       </div>
     </div>
@@ -460,7 +463,7 @@ watch(() => gameState.value?.current_scene, (newScene) => {
     <SceneTransition :active="sceneTransitioning" :scene-id="gameState?.current_scene || ''" />
 
     <!-- 碎片弹窗 -->
-    <div class="popup-overlay" v-if="showFragmentPopup" @click.self="showFragmentPopup = false">
+    <div class="popup-overlay" v-if="showFragmentPopup" @click.self="showFragmentPopup = false" role="dialog" aria-label="记忆碎片" aria-modal="true">
       <div class="fragment-popup">
         <div class="popup-icon">🧩</div>
         <h3>{{ popupFragment?.just_collected ? '获得记忆碎片！' : '发现记忆碎片线索' }}</h3>
@@ -476,7 +479,7 @@ watch(() => gameState.value?.current_scene, (newScene) => {
     </div>
 
     <!-- 背包面板 -->
-    <div class="inventory-panel" v-if="showInventory">
+    <div class="inventory-panel" v-if="showInventory" role="complementary" aria-label="记忆碎片背包">
       <div class="inventory-header">
         <h3>🧩 记忆碎片</h3>
         <button @click="showInventory = false">✕</button>
@@ -1094,4 +1097,90 @@ watch(() => gameState.value?.current_scene, (newScene) => {
   background: rgba(232,180,80,0.2);
   border-radius: 3px;
 }
+
+/* 语言切换按钮 */
+.lang-btn {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(232,180,80,0.3);
+  border-radius: 6px;
+  color: #e8b450;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.lang-btn:hover {
+  background: rgba(232,180,80,0.2);
+  border-color: rgba(232,180,80,0.5);
+}
+
+/* 响应式优化 */
+@media (max-width: 480px) {
+  .top-bar {
+    padding: 8px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .scene-info {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .dialogue-float {
+    width: 100%;
+    right: -100%;
+  }
+  .dialogue-float.open {
+    right: 0;
+  }
+  .narrative-float {
+    left: 8px;
+    right: 8px;
+    bottom: 100px;
+    max-width: none;
+  }
+  .npc-dock {
+    padding: 6px 8px;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .npc-chip {
+    min-width: 80px;
+  }
+  .inventory-panel {
+    width: 100%;
+    max-height: 60vh;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .dialogue-float {
+    width: 360px;
+  }
+  .narrative-float {
+    max-width: 360px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .dialogue-float {
+    width: 380px;
+  }
+}
+
+/* 焦点样式（无障碍） */
+*:focus-visible {
+  outline: 2px solid rgba(232,180,80,0.6);
+  outline-offset: 2px;
+}
+
+/* 减少动画（无障碍） */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 </style>

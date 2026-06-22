@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from '../composables/useI18n'
 
 const emit = defineEmits<{
   start: []
   load: []
 }>()
 
+const { t, lang, toggleLang } = useI18n()
 const showMenu = ref(true)
 </script>
 
 <template>
-  <div class="home">
+  <div class="home" role="main" aria-label="游戏首页">
     <div class="particles">
       <div v-for="i in 20" :key="i" class="particle" :style="{
         left: Math.random() * 100 + '%',
@@ -29,17 +31,17 @@ const showMenu = ref(true)
       </div>
 
       <div class="menu" v-if="showMenu">
-        <button class="btn btn-primary" @click="emit('start')">
+        <button class="btn btn-primary" @click="emit('start')" aria-label="开始新的记忆修复之旅">
           <span class="btn-icon">▶</span>
           开始新的记忆修复
         </button>
-        <button class="btn btn-secondary" @click="emit('load')">
+        <button class="btn btn-secondary" @click="emit('load')" aria-label="读取之前的存档">
           <span class="btn-icon">📂</span>
           读取存档
         </button>
       </div>
 
-      <div class="footer">
+      <div class="footer" role="contentinfo">
         <p>腾讯云黑客松 · AI叙事游戏</p>
         <p class="tech">Powered by DeepSeek · Vue 3 · FastAPI</p>
       </div>
