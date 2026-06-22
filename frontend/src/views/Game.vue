@@ -341,6 +341,14 @@ watch(() => gameState.value?.current_scene, (newScene) => {
 
 <template>
   <div class="game" v-if="gameState">
+    <!-- 加载遮罩 -->
+    <Transition name="fade">
+      <div v-if="sceneTransitioning" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">记忆碎片正在重组...</div>
+      </div>
+    </Transition>
+
     <!-- 全屏背景图 -->
     <div class="bg-layer">
       <SceneIllustration :scene-id="gameState.current_scene" />
@@ -1186,6 +1194,47 @@ watch(() => gameState.value?.current_scene, (newScene) => {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* 加载遮罩 */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 26, 0.9);
+  backdrop-filter: blur(8px);
+}
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(232, 180, 80, 0.2);
+  border-top-color: #e8b450;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.loading-text {
+  color: #e8b450;
+  font-size: 14px;
+  font-family: 'Noto Serif SC', serif;
+  letter-spacing: 2px;
+}
+
+/* 淡入淡出过渡 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 </style>

@@ -56,20 +56,24 @@ app.add_exception_handler(RateLimitExceeded, lambda req, exc: JSONResponse(
     content={"error": "请求过于频繁，请稍后再试", "retry_after": exc.detail},
 ))
 
-# ── CORS（生产环境收紧）──
-ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-]
-
+# ── CORS（从配置读取）──
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=settings.cors_origins_list,
     allow_credentials=False,
     allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["Content-Type", "Authorization"],
 )
+
+
+# ── 请求日志中间件 ──
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """记录请求日志（DEBUG模式）"""
+    if settings.DEBUG:
+        logger.debug("{} {}", request.method, request.url.path)
+    response = await call_next(request)
+    return response
 
 app.include_router(dialogue_router)
 app.include_router(scene_router)
@@ -78,10 +82,24 @@ app.include_router(save_router)
 
 @app.get("/api/health")
 def health():
+    """健康检查（含诊断信息）"""
+    from backend.database import get_db
+    from sqlalchemy import text
+    
+    db_ok = True
+    try:
+        db = next(get_db())
+        db.execute(text("SELECT 1"))
+    except Exception:
+        db_ok = False
+    
     return {
-        "status": "ok",
+        "status": "ok" if db_ok else "degraded",
         "game": "拾忆",
+        "version": "1.0.0",
         "has_ai_key": bool(settings.DEEPSEEK_API_KEY and "your_" not in settings.DEEPSEEK_API_KEY),
+        "database": "ok" if db_ok else "error",
+        "debug": settings.DEBUG,
     }
 
 

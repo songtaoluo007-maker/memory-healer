@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onErrorCaptured } from 'vue'
 import Home from './views/Home.vue'
 import Intro from './views/Intro.vue'
 import Game from './views/Game.vue'
@@ -13,6 +13,18 @@ const currentView = ref<View>('home')
 const showSaves = ref(false)
 const endingType = ref<EndingType>('hope')
 const loadSlotId = ref<number | null>(null)
+const globalError = ref<string | null>(null)
+
+// 全局错误捕获
+onErrorCaptured((err, instance, info) => {
+  console.error('[拾忆错误]', err, info)
+  globalError.value = err.message || '发生了未知错误'
+  return false // 阻止错误向上传播
+})
+
+const clearError = () => {
+  globalError.value = null
+}
 
 const startGame = () => {
   loadSlotId.value = null
@@ -46,6 +58,16 @@ const restart = () => {
 
 <template>
   <div id="app">
+    <!-- 全局错误提示 -->
+    <div v-if="globalError" class="error-overlay" @click="clearError">
+      <div class="error-box">
+        <div class="error-icon">⚠️</div>
+        <div class="error-title">游戏遇到问题</div>
+        <div class="error-msg">{{ globalError }}</div>
+        <button class="error-btn" @click="clearError">确定</button>
+      </div>
+    </div>
+
     <!-- 开场动画 -->
     <Intro v-if="currentView === 'intro'" @complete="introComplete" />
 
@@ -91,5 +113,57 @@ body {
 ::-webkit-scrollbar-thumb {
   background: rgba(100, 150, 255, 0.2);
   border-radius: 3px;
+}
+
+/* 全局错误提示 */
+.error-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+}
+.error-box {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border: 1px solid rgba(232, 180, 80, 0.3);
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+.error-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e8b450;
+  margin-bottom: 12px;
+}
+.error-msg {
+  font-size: 14px;
+  color: #a0a0a0;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+.error-btn {
+  background: linear-gradient(135deg, #e8b450, #d4a03c);
+  color: #1a1a2e;
+  border: none;
+  padding: 10px 32px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.error-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(232, 180, 80, 0.3);
 }
 </style>
