@@ -6,7 +6,7 @@ defineProps<{
 
 <template>
   <!-- 1972年 西安老巷 -->
-  <svg v-if="sceneId === 'scene_1972'" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" class="scene-illustration">
+  <svg v-if="sceneId === 'scene_1972'" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" class="scene-illustration" preserveAspectRatio="xMidYMid slice">
     <!-- 天空渐变 -->
     <defs>
       <linearGradient id="sky1972" x1="0" y1="0" x2="0" y2="1">
@@ -159,7 +159,7 @@ defineProps<{
   </svg>
 
   <!-- 2024年 深圳城中村 -->
-  <svg v-else-if="sceneId === 'scene_2024'" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" class="scene-illustration">
+  <svg v-else-if="sceneId === 'scene_2024'" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" class="scene-illustration" preserveAspectRatio="xMidYMid slice">
     <defs>
       <linearGradient id="sky2024" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#1a1a2e" />
@@ -282,7 +282,7 @@ defineProps<{
   </svg>
 
   <!-- 2089年 拾忆实验室 -->
-  <svg v-else-if="sceneId === 'scene_2089'" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" class="scene-illustration">
+  <svg v-else-if="sceneId === 'scene_2089'" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" class="scene-illustration" preserveAspectRatio="xMidYMid slice">
     <defs>
       <linearGradient id="sky2089" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#0a0a2e" />
@@ -439,8 +439,149 @@ defineProps<{
     <ellipse cx="400" cy="200" rx="250" ry="150" fill="#4fc3f7" opacity="0.05" />
   </svg>
 
+
+
+  <!-- 2050年 北京颁奖典礼 -->
+  <svg v-else-if="sceneId === 'scene_2050'" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" class="scene-illustration" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <linearGradient id="sky2050" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1a0a3e" />
+        <stop offset="50%" stop-color="#2a1a5e" />
+        <stop offset="100%" stop-color="#3a2a6e" />
+      </linearGradient>
+      <radialGradient id="spotlight" cx="0.5" cy="0.3" r="0.6">
+        <stop offset="0%" stop-color="#ffd700" stop-opacity="0.3" />
+        <stop offset="100%" stop-color="#ffd700" stop-opacity="0" />
+      </radialGradient>
+    </defs>
+    <!-- 夜空 -->
+    <rect width="800" height="500" fill="url(#sky2050)" />
+    <!-- 建筑轮廓 - 未来感 -->
+    <g fill="#2a2a5e" opacity="0.6">
+      <rect x="30" y="60" width="100" height="300" rx="8" />
+      <rect x="150" y="80" width="80" height="280" rx="6" />
+      <rect x="570" y="70" width="90" height="290" rx="6" />
+      <rect x="680" y="50" width="80" height="310" rx="8" />
+    </g>
+    <!-- 玻璃幕墙反光 -->
+    <g fill="#4fc3f7" opacity="0.08">
+      <rect x="30" y="60" width="100" height="300" rx="8" />
+      <rect x="680" y="50" width="80" height="310" rx="8" />
+    </g>
+    <!-- 颁奖大厅 -->
+    <rect x="250" y="100" width="300" height="300" rx="12" fill="#2a2a5e" stroke="#ffd700" stroke-width="1" opacity="0.8" />
+    <!-- 大厅玻璃幕墙 -->
+    <rect x="260" y="110" width="280" height="180" rx="8" fill="#1a1a3e" opacity="0.6" />
+    <!-- 聚光灯 -->
+    <ellipse cx="400" cy="150" rx="200" ry="120" fill="url(#spotlight)" />
+    <!-- 舞台 -->
+    <rect x="300" y="320" width="200" height="60" rx="6" fill="#3a3a6e" />
+    <!-- 讲台 -->
+    <rect x="370" y="290" width="60" height="35" rx="4" fill="#4a4a7e" />
+    <!-- 获奖者剪影 -->
+    <g fill="#e8c4a0" opacity="0.6">
+      <ellipse cx="400" cy="270" rx="12" ry="18" />
+      <rect x="392" y="288" width="16" height="30" rx="4" />
+    </g>
+    <!-- 奖杯 -->
+    <g fill="#ffd700" opacity="0.7">
+      <rect x="395" y="300" width="10" height="15" rx="2" />
+      <ellipse cx="400" cy="298" rx="8" ry="5" />
+    </g>
+    <!-- 观众席 -->
+    <g fill="#3a3a5e" opacity="0.5">
+      <rect x="260" y="380" width="280" height="40" rx="4" />
+      <!-- 观众 -->
+      <g fill="#4a4a6e">
+        <ellipse cx="290" cy="390" rx="5" ry="8" />
+        <ellipse cx="320" cy="392" rx="5" ry="7" />
+        <ellipse cx="350" cy="390" rx="5" ry="8" />
+        <ellipse cx="380" cy="391" rx="5" ry="7" />
+        <ellipse cx="410" cy="390" rx="5" ry="8" />
+        <ellipse cx="440" cy="392" rx="5" ry="7" />
+        <ellipse cx="470" cy="390" rx="5" ry="8" />
+        <ellipse cx="500" cy="391" rx="5" ry="7" />
+      </g>
+    </g>
+    <!-- 全息投影文字 -->
+    <text x="400" y="200" text-anchor="middle" fill="#ffd700" font-size="20" font-family="sans-serif" opacity="0.6">
+      文化遗产保护奖
+    </text>
+    <!-- 光粒子 -->
+    <g>
+      <circle cx="300" cy="180" r="1.5" fill="#ffd700" opacity="0.4">
+        <animate attributeName="cy" values="180;160;180" dur="4s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="500" cy="170" r="1" fill="#ffd700" opacity="0.3">
+        <animate attributeName="cy" values="170;150;170" dur="3.5s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="400" cy="150" r="1.8" fill="#4fc3f7" opacity="0.3">
+        <animate attributeName="cy" values="150;130;150" dur="5s" repeatCount="indefinite" />
+      </circle>
+    </g>
+  </svg>
+
+  <!-- 1990年 深圳火车站 -->
+  <svg v-else-if="sceneId === 'scene_1990'" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" class="scene-illustration" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <linearGradient id="sky1990" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#87ceeb" />
+        <stop offset="60%" stop-color="#b0d4e8" />
+        <stop offset="100%" stop-color="#d4e8d0" />
+      </linearGradient>
+      <linearGradient id="concrete" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#b0b0b0" />
+        <stop offset="100%" stop-color="#8a8a8a" />
+      </linearGradient>
+    </defs>
+    <!-- 天空 -->
+    <rect width="800" height="500" fill="url(#sky1990)" />
+    <!-- 远处建筑 -->
+    <g fill="#a0a0a0" opacity="0.6">
+      <rect x="50" y="100" width="80" height="200" />
+      <rect x="150" y="80" width="60" height="220" />
+      <rect x="600" y="90" width="70" height="210" />
+      <rect x="690" y="110" width="50" height="190" />
+    </g>
+    <!-- 火车站主体 -->
+    <rect x="200" y="120" width="400" height="250" fill="url(#concrete)" />
+    <!-- 站名 -->
+    <rect x="280" y="130" width="240" height="50" rx="4" fill="#cc3300" opacity="0.9" />
+    <text x="400" y="165" text-anchor="middle" fill="#ffd700" font-size="28" font-weight="bold" font-family="sans-serif">深圳站</text>
+    <!-- 窗户 -->
+    <g fill="#b8d4e8" opacity="0.7">
+      <rect x="230" y="200" width="40" height="50" rx="2" />
+      <rect x="290" y="200" width="40" height="50" rx="2" />
+      <rect x="350" y="200" width="40" height="50" rx="2" />
+      <rect x="410" y="200" width="40" height="50" rx="2" />
+      <rect x="470" y="200" width="40" height="50" rx="2" />
+      <rect x="530" y="200" width="40" height="50" rx="2" />
+    </g>
+    <!-- 入口 -->
+    <rect x="340" y="280" width="120" height="90" rx="4" fill="#3a3a3a" />
+    <rect x="350" y="285" width="100" height="80" rx="2" fill="#4a4a4a" opacity="0.6" />
+    <!-- 广场 -->
+    <rect x="0" y="370" width="800" height="130" fill="#c0c0c0" />
+    <!-- 人流（简化人形） -->
+    <g fill="#3a3a4e" opacity="0.5">
+      <ellipse cx="300" cy="395" rx="6" ry="10" /><rect x="296" y="405" width="8" height="15" rx="2" />
+      <ellipse cx="350" cy="400" rx="5" ry="9" /><rect x="347" y="409" width="7" height="14" rx="2" />
+      <ellipse cx="420" cy="392" rx="6" ry="10" /><rect x="416" y="402" width="8" height="16" rx="2" />
+      <ellipse cx="480" cy="398" rx="5" ry="9" /><rect x="477" y="407" width="7" height="14" rx="2" />
+      <ellipse cx="530" cy="395" rx="6" ry="10" /><rect x="526" y="405" width="8" height="15" rx="2" />
+    </g>
+    <!-- 行李 -->
+    <g fill="#8b6914" opacity="0.4">
+      <rect x="310" y="415" width="15" height="10" rx="2" />
+      <rect x="430" y="412" width="18" height="12" rx="2" />
+    </g>
+    <!-- 条幅 -->
+    <rect x="250" y="270" width="300" height="8" rx="2" fill="#cc0000" opacity="0.7" />
+    <text x="400" y="277" text-anchor="middle" fill="#ffd700" font-size="6" font-family="sans-serif">时间就是金钱 效率就是生命</text>
+  </svg>
+
   <!-- 默认场景 -->
-  <svg v-else viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" class="scene-illustration">
+  <svg v-else viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" class="scene-illustration" preserveAspectRatio="xMidYMid slice">
     <rect width="800" height="500" fill="#1a1a3e" />
     <text x="400" y="250" text-anchor="middle" fill="#4fc3f7" font-size="24" opacity="0.3">记忆碎片...</text>
   </svg>
@@ -450,7 +591,6 @@ defineProps<{
 .scene-illustration {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  border-radius: 8px;
+  display: block;
 }
 </style>
