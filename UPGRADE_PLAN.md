@@ -963,3 +963,20 @@ await fetchEventSource('/api/dialogue/chat/stream', {
 4. **评委演示脚本** — 确保5分钟内展示所有亮点
 
 这四个做好，就能在黑客松中脱颖而出。
+
+
+---
+
+## P7升级完成 (2026-06-22)
+
+### 已完成内容
+- i18n多语言: useI18n.ts - 中英双语支持，localStorage持久化语言偏好
+- ARIA无障碍标签: Game.vue/Home.vue/Saves.vue/SceneIllustration/HotspotOverlay/NpcAvatar
+- 语言切换UI: Game.vue顶部栏添加EN/中切换按钮
+- 响应式优化: 4档断点(480/768/1024px)，移动端全屏对话
+- 无障碍CSS: focus-visible焦点样式 + prefers-reduced-motion减少动画
+- 测试修复: 78/78 PASSED
+
+### Commit 2293181
+- 10 files changed, 337 insertions, 38 deletions
+- vue-tsc: PASS | vite build: 189KB JS + 30KB CSS
