@@ -1,6 +1,6 @@
 """场景API"""
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from backend.engine.narrative import advance_narrative
 from backend.engine.world import (
     get_scene, get_npc_by_scene, get_scene_fragments,
@@ -15,10 +15,24 @@ class SceneRequest(BaseModel):
     scene_id: str
     game_state: dict
 
+    @validator('scene_id')
+    def validate_scene_id(cls, v):
+        if not v or len(v) > 50:
+            raise ValueError('scene_id长度必须在1-50之间')
+        if not v.replace('_', '').replace('-', '').isalnum():
+            raise ValueError('scene_id只能包含字母、数字、下划线和连字符')
+        return v
+
 
 class ActionRequest(BaseModel):
     action: str
     game_state: dict
+
+    @validator('action')
+    def validate_action(cls, v):
+        if not v or len(v) > 100:
+            raise ValueError('action长度必须在1-100之间')
+        return v.strip()
 
 
 @router.get("/list")

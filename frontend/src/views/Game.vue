@@ -1,19 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useGameState } from '../composables/useGameState'
 import { useTypewriter } from '../composables/useTypewriter'
 import { useAudio } from '../composables/useAudio'
 import { chatWithNpcStream, getSceneDetail, advanceNarrative, saveGame, recordChoice } from '../api'
-import SceneIllustration from '../components/SceneIllustration.vue'
-import MemoryProgress from '../components/MemoryProgress.vue'
-import NpcAvatar from '../components/NpcAvatar.vue'
-import HotspotOverlay from '../components/HotspotOverlay.vue'
-import SceneTransition from '../components/SceneTransition.vue'
-import MemoryPanel from '../components/MemoryPanel.vue'
 import { useHotspots } from '../composables/useHotspots'
 import { useI18n } from '../composables/useI18n'
 import type { Hotspot } from '../composables/useHotspots'
 import type { Scene, NpcSummary, Fragment, ChatMessage, EndingType } from '../types/game'
+
+// 懒加载重量级组件
+const SceneIllustration = defineAsyncComponent(() => import('../components/SceneIllustration.vue'))
+const MemoryProgress = defineAsyncComponent(() => import('../components/MemoryProgress.vue'))
+const NpcAvatar = defineAsyncComponent(() => import('../components/NpcAvatar.vue'))
+const HotspotOverlay = defineAsyncComponent(() => import('../components/HotspotOverlay.vue'))
+const SceneTransition = defineAsyncComponent(() => import('../components/SceneTransition.vue'))
+const MemoryPanel = defineAsyncComponent(() => import('../components/MemoryPanel.vue'))
 
 const emit = defineEmits<{
   ending: [type: EndingType]

@@ -3,7 +3,7 @@ import json
 import hashlib
 import time
 from fastapi import APIRouter, Depends, Header, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.save import SaveSlot
@@ -27,6 +27,30 @@ class SaveRequest(BaseModel):
     scene_id: str = ""
     play_time: int = 0
     session_token: str = ""
+
+    @validator('slot_id')
+    def validate_slot_id(cls, v):
+        if v < 0 or v > 10:
+            raise ValueError('slot_id必须在0-10之间')
+        return v
+
+    @validator('slot_name')
+    def validate_slot_name(cls, v):
+        if len(v) > 50:
+            raise ValueError('存档名称长度不能超过50')
+        return v.strip()
+
+    @validator('scene_id')
+    def validate_scene_id(cls, v):
+        if v and not v.replace('_', '').replace('-', '').isalnum():
+            raise ValueError('scene_id格式无效')
+        return v
+
+    @validator('play_time')
+    def validate_play_time(cls, v):
+        if v < 0 or v > 86400:  # 最多24小时
+            raise ValueError('游戏时间无效')
+        return v
 
 
 @router.post("/save")

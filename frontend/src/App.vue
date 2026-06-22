@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, onErrorCaptured } from 'vue'
-import Home from './views/Home.vue'
-import Intro from './views/Intro.vue'
-import Game from './views/Game.vue'
-import Ending from './views/Ending.vue'
-import Saves from './views/Saves.vue'
+import { ref, onErrorCaptured, defineAsyncComponent } from 'vue'
 import type { EndingType } from './types/game'
+
+// 懒加载视图组件
+const Home = defineAsyncComponent(() => import('./views/Home.vue'))
+const Intro = defineAsyncComponent(() => import('./views/Intro.vue'))
+const Game = defineAsyncComponent(() => import('./views/Game.vue'))
+const Ending = defineAsyncComponent(() => import('./views/Ending.vue'))
+const Saves = defineAsyncComponent(() => import('./views/Saves.vue'))
 
 type View = 'home' | 'intro' | 'game' | 'ending'
 
