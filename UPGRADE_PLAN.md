@@ -914,14 +914,14 @@ await fetchEventSource('/api/dialogue/chat/stream', {
 ## 十一、扩展路线图
 
 ### Phase 1: 体验补全（1-2周）
-- [ ] 音效/音乐系统
+- [x] 音效/音乐系统
 - [ ] NPC头像SVG
-- [ ] 热区探索交互
-- [ ] Prompt标签分离（解决NPC输出污染）
+- [x] 热区探索交互
+- [x] Prompt标签分离（解决NPC输出污染）
 
 ### Phase 2: 玩法深化（2-3周）
 - [ ] 碎片关联图 + 隐藏碎片
-- [ ] 蝴蝶效应系统
+- [x] 蝴蝶效应系统
 - [ ] NPC情感状态机
 - [ ] 多结局分支细化
 
@@ -932,7 +932,7 @@ await fetchEventSource('/api/dialogue/chat/stream', {
 - [ ] 性能优化（SVG懒加载、SSE重连）
 
 ### Phase 4: 扩展功能（长期）
-- [ ] PWA支持
+- [x] PWA支持
 - [ ] 更多场景（1990年陈守义来深圳的火车上、2050年他被评为非遗传承人的颁奖典礼）
 - [ ] 玩家创作系统（UGC场景/碎片）
 - [ ] 多语言支持（面向国际评委）
