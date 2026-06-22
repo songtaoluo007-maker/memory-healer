@@ -48,51 +48,64 @@ export const healthCheck = () =>
 export const recordChoice = (scene: string, choice: string, gameState: GameState) =>
   api.post('/api/dialogue/choice', { scene, choice, game_state: gameState })
 
-// SSE 流式对话
+// SSE 流式对话（带重连）
 export function chatWithNpcStream(
   data: DialogueRequest,
   onToken: (token: string) => void,
   onDone: (result: DialogueResponse) => void,
   onError: (msg: string) => void,
+  maxRetries = 2,
 ) {
   const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
   const controller = new AbortController()
 
-  fetch(`${baseURL}/api/dialogue/chat/stream`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-    signal: controller.signal,
-  }).then(async (res) => {
-    if (!res.ok) {
-      onError(`HTTP ${res.status}`)
-      return
-    }
-    const reader = res.body?.getReader()
-    if (!reader) return
-    const decoder = new TextDecoder()
-    let buffer = ''
-
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue
-        try {
-          const msg = JSON.parse(line.slice(6))
-          if (msg.type === 'token') onToken(msg.content)
-          else if (msg.type === 'done') onDone(msg as DialogueResponse)
-          else if (msg.type === 'error') onError(msg.content)
-        } catch {}
+  const attempt = (retriesLeft: number) => {
+    fetch(`${baseURL}/api/dialogue/chat/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      signal: controller.signal,
+    }).then(async (res) => {
+      if (!res.ok) {
+        if (res.status >= 500 && retriesLeft > 0) {
+          setTimeout(() => attempt(retriesLeft - 1), 1000)
+          return
+        }
+        onError(`HTTP ${res.status}`)
+        return
       }
-    }
-  }).catch((err) => {
-    if (err.name !== 'AbortError') onError(err.message)
-  })
+      const reader = res.body?.getReader()
+      if (!reader) return
+      const decoder = new TextDecoder()
+      let buffer = ''
 
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const msg = JSON.parse(line.slice(6))
+            if (msg.type === 'token') onToken(msg.content)
+            else if (msg.type === 'done') onDone(msg as DialogueResponse)
+            else if (msg.type === 'error') onError(msg.content)
+          } catch {}
+        }
+      }
+    }).catch((err) => {
+      if (err.name === 'AbortError') return
+      if (retriesLeft > 0) {
+        setTimeout(() => attempt(retriesLeft - 1), 1000)
+      } else {
+        onError(err.message)
+      }
+    })
+  }
+
+  attempt(maxRetries)
   return controller
 }

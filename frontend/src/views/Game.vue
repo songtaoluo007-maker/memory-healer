@@ -118,7 +118,7 @@ const switchScene = async (targetScene: string) => {
   await loadScene()
 }
 
-const selectNpc = (npc: any) => {
+const selectNpc = (npc: NpcSummary) => {
   selectedNpc.value = npc
   playerInput.value = ''
   playSFX('dialogue_start')

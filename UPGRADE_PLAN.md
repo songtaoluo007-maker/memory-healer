@@ -920,10 +920,10 @@ await fetchEventSource('/api/dialogue/chat/stream', {
 - [x] Prompt标签分离（解决NPC输出污染）
 
 ### Phase 2: 玩法深化（2-3周）
-- [ ] 碎片关联图 + 隐藏碎片
+- [x] 碎片关联图 + 隐藏碎片
 - [x] 蝴蝶效应系统
-- [ ] NPC情感状态机
-- [ ] 多结局分支细化
+- [x] NPC情感状态机
+- [x] 多结局分支细化
 
 ### Phase 3: 工程完善（1-2周）
 - [ ] CI/CD流水线
