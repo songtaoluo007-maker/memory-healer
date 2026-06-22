@@ -2,7 +2,7 @@
 import json
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from backend.engine.npc import chat_with_npc, chat_with_npc_stream
@@ -17,6 +17,26 @@ class DialogueRequest(BaseModel):
     npc_id: str
     player_input: str
     game_state: dict
+
+    @validator('npc_id')
+    def validate_npc_id(cls, v):
+        if not v or len(v) > 50:
+            raise ValueError('npc_id长度必须在1-50之间')
+        if not v.replace('_', '').replace('-', '').isalnum():
+            raise ValueError('npc_id只能包含字母、数字、下划线和连字符')
+        return v
+
+    @validator('player_input')
+    def validate_player_input(cls, v):
+        if not v or len(v) > 500:
+            raise ValueError('输入长度必须在1-500之间')
+        # 基本XSS防护
+        dangerous_patterns = ['<script', 'javascript:', 'onerror=', 'onload=']
+        v_lower = v.lower()
+        for pattern in dangerous_patterns:
+            if pattern in v_lower:
+                raise ValueError('输入包含不允许的内容')
+        return v.strip()
 
 
 class DialogueResponse(BaseModel):
