@@ -45,9 +45,44 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="拾忆 - AI叙事游戏",
-    description="AI驱动的记忆修复叙事游戏后端",
+    description="""## 拾忆 · Memory Healer
+
+AI驱动的记忆修复叙事游戏后端 API
+
+### 功能特性
+- 🎭 **NPC对话**: 与AI驱动的NPC进行深度对话
+- 🦋 **蝴蝶效应**: 选择影响后续剧情发展
+- 💾 **存档系统**: 多槽位存档/读档
+- 🎬 **场景管理**: 5个时代场景切换
+- 🧩 **碎片收集**: 17个记忆碎片探索
+
+### 技术栈
+- **后端**: FastAPI + SQLAlchemy + SQLite
+- **AI**: DeepSeek API (可选)
+- **前端**: Vue 3 + TypeScript + Vite
+""",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_tags=[
+        {
+            "name": "dialogue",
+            "description": "NPC对话相关接口",
+        },
+        {
+            "name": "scene",
+            "description": "场景管理接口",
+        },
+        {
+            "name": "save",
+            "description": "存档系统接口",
+        },
+        {
+            "name": "health",
+            "description": "健康检查接口",
+        },
+    ],
 )
 
 app.state.limiter = limiter
@@ -83,7 +118,7 @@ app.include_router(scene_router)
 app.include_router(save_router)
 
 
-@app.get("/api/health")
+@app.get("/api/health", tags=["health"])
 def health():
     """健康检查（含诊断信息）"""
     from backend.database import get_db
