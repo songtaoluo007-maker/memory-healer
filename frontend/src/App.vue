@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onErrorCaptured, defineAsyncComponent } from 'vue'
 import type { EndingType } from './types/game'
+import { useWebVitals } from './composables/useWebVitals'
 
 // 懒加载视图组件
 const Home = defineAsyncComponent(() => import('./views/Home.vue'))
@@ -23,6 +24,9 @@ onErrorCaptured((err, instance, info) => {
   globalError.value = err.message || '发生了未知错误'
   return false // 阻止错误向上传播
 })
+
+// Web Vitals 性能监控
+useWebVitals()
 
 const clearError = () => {
   globalError.value = null
