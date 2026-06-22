@@ -90,6 +90,20 @@ const fragmentsPercent = computed(() => {
   if (!totalFragments.value) return 0
   return Math.round((collectedCount.value / totalFragments.value) * 100)
 })
+
+const shareEnding = () => {
+  const text = `我在《拾忆》中达成了「${endingData.value.title}」结局！记忆完整度：${fragmentsPercent.value}%`
+  if (navigator.share) {
+    navigator.share({
+      title: '拾忆 - 记忆修复师',
+      text: text,
+      url: window.location.href,
+    })
+  } else {
+    navigator.clipboard.writeText(text)
+    alert('已复制到剪贴板！')
+  }
+}
 </script>
 
 <template>
@@ -135,6 +149,9 @@ const fragmentsPercent = computed(() => {
       <div class="ending-actions" :class="{ visible: phase >= 3 }">
         <button class="btn-restart" @click="emit('restart')">
           重新开始修复
+        </button>
+        <button class="btn-share" @click="shareEnding">
+          分享结局
         </button>
       </div>
     </div>
@@ -309,6 +326,26 @@ const fragmentsPercent = computed(() => {
 .btn-restart:hover {
   background: rgba(58, 95, 205, 0.4);
   border-color: rgba(100, 150, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.btn-share {
+  padding: 14px 40px;
+  border-radius: 8px;
+  border: 1px solid rgba(100, 255, 150, 0.3);
+  background: rgba(58, 205, 95, 0.2);
+  color: #e0ffe0;
+  font-size: 16px;
+  cursor: pointer;
+  font-family: 'Noto Serif SC', serif;
+  letter-spacing: 2px;
+  transition: all 0.3s;
+  margin-left: 16px;
+}
+
+.btn-share:hover {
+  background: rgba(58, 205, 95, 0.4);
+  border-color: rgba(100, 255, 150, 0.5);
   transform: translateY(-2px);
 }
 </style>
