@@ -6,6 +6,7 @@ from backend.engine.world import (
     get_scene, get_npc_by_scene, get_scene_fragments,
     get_all_scene_ids, create_initial_state,
 )
+from backend.engine.butterfly import get_scene_modifiers, get_npc_modifiers
 
 router = APIRouter(prefix="/api/scene", tags=["scene"])
 
@@ -58,6 +59,7 @@ def scene_detail(req: SceneRequest):
         "scene": scene,
         "npcs": [{"id": n["id"], "name": n["name"], "title": n["title"], "avatar": n["avatar"]} for n in npcs],
         "fragments": fragment_list,
+        "butterfly_mods": get_scene_modifiers(req.game_state, req.scene_id),
     }
 
 

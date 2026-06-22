@@ -44,6 +44,10 @@ export const deleteSave = (slotId: number) =>
 export const healthCheck = () =>
   api.get<{ status: string; game: string; has_ai_key: boolean }>('/api/health')
 
+// 蝴蝶效应: 记录玩家选择
+export const recordChoice = (scene: string, choice: string, gameState: GameState) =>
+  api.post('/api/dialogue/choice', { scene, choice, game_state: gameState })
+
 // SSE 流式对话
 export function chatWithNpcStream(
   data: DialogueRequest,

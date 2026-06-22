@@ -59,6 +59,7 @@ export interface GameState {
   play_time: number
   chapter: number
   ending: string | null
+  butterfly_choices?: Record<string, string>
 }
 
 export interface NpcSummary {
@@ -72,6 +73,7 @@ export interface SceneDetail {
   scene: Scene
   npcs: NpcSummary[]
   fragments: Array<Fragment & { is_collected: boolean }>
+  butterfly_mods?: string[]
 }
 
 export interface DialogueRequest {

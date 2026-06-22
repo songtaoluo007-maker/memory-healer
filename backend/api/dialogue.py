@@ -7,6 +7,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from backend.engine.npc import chat_with_npc, chat_with_npc_stream
 from backend.engine.world import get_fragment
+from backend.engine.butterfly import record_choice
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/api/dialogue", tags=["dialogue"])
@@ -67,3 +68,16 @@ def dialogue_chat_stream(req: DialogueRequest, request: Request):
                 yield f"data: {json.dumps({'type': 'error', 'content': chunk['content']}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+class ChoiceRequest(BaseModel):
+    scene: str
+    choice: str
+    game_state: dict
+
+
+@router.post("/choice")
+def record_player_choice(req: ChoiceRequest):
+    """记录玩家选择（蝴蝶效应触发）"""
+    updated_state = record_choice(req.game_state, req.scene, req.choice)
+    return {"status": "ok", "butterfly_choices": updated_state.get("butterfly_choices", {})}

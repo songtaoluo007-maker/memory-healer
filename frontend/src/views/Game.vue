@@ -3,10 +3,13 @@ import { ref, onMounted, watch, nextTick } from 'vue'
 import { useGameState } from '../composables/useGameState'
 import { useTypewriter } from '../composables/useTypewriter'
 import { useAudio } from '../composables/useAudio'
-import { chatWithNpcStream, getSceneDetail, advanceNarrative, saveGame } from '../api'
+import { chatWithNpcStream, getSceneDetail, advanceNarrative, saveGame, recordChoice } from '../api'
 import SceneIllustration from '../components/SceneIllustration.vue'
 import MemoryProgress from '../components/MemoryProgress.vue'
 import NpcAvatar from '../components/NpcAvatar.vue'
+import HotspotOverlay from '../components/HotspotOverlay.vue'
+import { useHotspots } from '../composables/useHotspots'
+import type { Hotspot } from '../composables/useHotspots'
 import type { Scene, NpcSummary, Fragment, ChatMessage, EndingType } from '../types/game'
 
 const emit = defineEmits<{
@@ -35,6 +38,9 @@ const { displayText: typewriterText, isTyping, start: typeStart, skip: typeSkip 
 
 // 音频系统
 const { playBGM, playSFX, isMuted, toggleMute } = useAudio()
+
+// 热区探索（初始场景，loadScene时会更新）
+const { hotspots, exploredIds, exploreHotspot, explorationProgress } = useHotspots(gameState.value?.current_scene || 'scene_1972')
 
 const chatHistory = ref<ChatMessage[]>([])
 const chatContainer = ref<HTMLElement | null>(null)
@@ -74,9 +80,17 @@ const loadScene = async () => {
 
     // 叙事推进
     const narrRes = await advanceNarrative('进入场景', gameState.value)
-    narrativeText.value = narrRes.data.scene_description
+    let sceneDesc = narrRes.data.scene_description
+
+    // 蝴蝶效应: 追加场景修改描述
+    const butterflyMods = res.data.butterfly_mods || []
+    if (butterflyMods.length > 0) {
+      sceneDesc += '\n\n' + butterflyMods.join('\n')
+    }
+
+    narrativeText.value = sceneDesc
     presetOptions.value = narrRes.data.available_actions
-    typeStart(narrRes.data.scene_description)
+    typeStart(sceneDesc)
   } catch {
     narrativeText.value = currentScene.value?.description || '场景加载中...'
     typeStart(narrativeText.value)
@@ -105,6 +119,80 @@ const selectNpc = (npc: any) => {
   playSFX('dialogue_start')
 }
 
+// 热区探索处理
+const handleExplore = async (hotspot: Hotspot) => {
+  playSFX('explore')
+  const result = exploreHotspot(hotspot.id)
+  if (!result) return
+
+  // 如果热区关联碎片，检查是否可以收集
+  if (hotspot.fragment_id && gameState.value) {
+    const fragStates = gameState.value.fragment_states
+    if (fragStates && fragStates[hotspot.fragment_id]) {
+      const fragState = fragStates[hotspot.fragment_id]
+      if (!fragState.revealed) {
+        revealFragment(hotspot.fragment_id)
+        fragState.revealed = true
+      }
+      // 热区发现的碎片直接收集
+      if (!fragState.collected) {
+        collectFragment(hotspot.fragment_id)
+        playSFX('fragment_found')
+        popupFragment.value = {
+          id: hotspot.fragment_id,
+          name: fragState.name || hotspot.hint,
+          scene: hotspot.scene,
+          description: hotspot.hint,
+          unlock_method: '探索发现',
+          unlock_hint: '',
+          memory_text: '',
+          collected: true,
+          just_collected: true,
+        }
+        showFragmentPopup.value = true
+      }
+    }
+  }
+
+  // 如果关联NPC，自动选中
+  if (hotspot.npc_id) {
+    const npc = currentNpcs.value.find(n => n.id === hotspot.npc_id)
+    if (npc) selectNpc(npc)
+  }
+
+  // 显示探索描述
+  narrativeText.value = hotspot.hint
+  typeStart(hotspot.hint)
+}
+
+// 蝴蝶效应: 检测玩家对话中的关键选择
+const detectAndRecordChoice = (playerMsg: string, npcId: string) => {
+  if (!gameState.value) return
+  const scene = gameState.value.current_scene
+
+  // 1972年: 鼓励/劝阻皮影戏
+  if (scene === 'scene_1972' && npcId === 'chen_shouyi_young') {
+    if (/坚持|继续|别放弃|加油|很好|厉害|手艺/.test(playerMsg)) {
+      recordChoice(scene, 'encourage_art', gameState.value)
+    } else if (/放弃|转行|没前途|别做了|算了/.test(playerMsg)) {
+      recordChoice(scene, 'discourage_art', gameState.value)
+    }
+    if (/小雨|孙女|家人/.test(playerMsg)) {
+      recordChoice(scene, 'mention_xiaoyu', gameState.value)
+    }
+  }
+
+  // 2024年: 帮助老人/找到信件
+  if (scene === 'scene_2024') {
+    if (npcId === 'chen_shouyi_old' && /帮你|照顾|陪伴|不孤单|我在这里/.test(playerMsg)) {
+      recordChoice(scene, 'help_elderly', gameState.value)
+    }
+    if (npcId === 'xiaoyu' && /信|找到了|给你|爷爷的/.test(playerMsg)) {
+      recordChoice(scene, 'found_letter', gameState.value)
+    }
+  }
+}
+
 const sendMessage = async (text?: string) => {
   const msg = text || playerInput.value.trim()
   if (!msg || !selectedNpc.value || !gameState.value || chatLoading.value) return
@@ -115,6 +203,7 @@ const sendMessage = async (text?: string) => {
   // 添加玩家消息
   chatHistory.value.push({ role: 'player', content: msg })
   addDialogue('player', msg)
+  detectAndRecordChoice(msg, selectedNpc.value.id)
   scrollToBottom()
 
   // 添加 NPC 占位消息
@@ -278,8 +367,16 @@ watch(() => gameState.value?.current_scene, (newScene) => {
         <!-- 场景插画 -->
         <div class="scene-illustration-box">
           <SceneIllustration :scene-id="gameState.current_scene" />
+          <HotspotOverlay
+            :hotspots="hotspots"
+            :explored-ids="exploredIds"
+            :scene-id="gameState.current_scene"
+            @explore="handleExplore"
+          />
           <div class="scene-overlay">
             <span class="scene-location">{{ currentScene?.location || '' }}</span>
+            <span class="explore-progress" v-if="explorationProgress < 100">探索 {{ explorationProgress }}%</span>
+            <span class="explore-done" v-else>✦ 已完全探索</span>
           </div>
         </div>
 
@@ -569,12 +666,36 @@ watch(() => gameState.value?.current_scene, (newScene) => {
   right: 0;
   padding: 8px 16px;
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .scene-location {
   font-size: 12px;
   color: rgba(200, 210, 255, 0.6);
   letter-spacing: 1px;
+}
+
+.explore-progress, .explore-done {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.explore-progress {
+  color: #f59e0b;
+  animation: pulse-text 2s ease-in-out infinite;
+}
+
+.explore-done {
+  color: #4ade80;
+}
+
+@keyframes pulse-text {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 .narrative-box {

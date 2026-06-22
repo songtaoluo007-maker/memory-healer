@@ -7,6 +7,7 @@ from openai import OpenAI
 from backend.config import settings
 from backend.engine.world import get_npc, get_scene
 from backend.prompts.npc_dialogue import build_npc_prompt
+from backend.engine.butterfly import get_npc_modifiers, get_fragment_boost
 
 # ── OpenAI 客户端单例 ──
 _client: OpenAI | None = None
@@ -118,6 +119,12 @@ def chat_with_npc(npc_id: str, player_input: str, game_state: dict) -> dict:
 
     prompt = build_npc_prompt(npc, scene, game_state, player_input)
 
+    # 蝴蝶效应: 添加NPC对话上下文修改
+    butterfly_mods = get_npc_modifiers(game_state, npc["scene"], npc_id)
+    if butterfly_mods:
+        mods_text = "\n".join(butterfly_mods)
+        prompt += f"\n\n【记忆回响】{mods_text}"
+
     try:
         client = _get_client()
 
@@ -165,6 +172,12 @@ def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
         return
 
     prompt = build_npc_prompt(npc, scene, game_state, player_input)
+
+    # 蝴蝶效应: 添加NPC对话上下文修改
+    butterfly_mods = get_npc_modifiers(game_state, npc["scene"], npc_id)
+    if butterfly_mods:
+        mods_text = "\n".join(butterfly_mods)
+        prompt += f"\n\n【记忆回响】{mods_text}"
 
     try:
         client = _get_client()
