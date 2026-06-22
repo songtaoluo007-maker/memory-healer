@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000"
     API_PREFIX: str = "/api"
     DEBUG: bool = False
+    ENVIRONMENT: str = "development"  # development | staging | production
 
     class Config:
         env_file = ".env"
@@ -26,6 +27,10 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> List[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT == "production"
 
 
 settings = Settings()

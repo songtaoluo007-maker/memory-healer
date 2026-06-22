@@ -104,13 +104,18 @@ app.add_middleware(
 # ── 请求日志中间件 ──
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    """记录请求日志（DEBUG模式）+ 静态资源缓存头"""
+    """记录请求日志（DEBUG模式）+ 静态资源缓存头 + 安全头"""
     if settings.DEBUG:
         logger.debug("{} {}", request.method, request.url.path)
     response = await call_next(request)
     # 静态资源缓存（7天）
     if request.url.path.startswith("/assets/"):
         response.headers["Cache-Control"] = "public, max-age=604800, immutable"
+    # 安全响应头
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
 
 app.include_router(dialogue_router)
