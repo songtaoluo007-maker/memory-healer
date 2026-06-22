@@ -926,10 +926,10 @@ await fetchEventSource('/api/dialogue/chat/stream', {
 - [x] 多结局分支细化
 
 ### Phase 3: 工程完善（1-2周）
-- [ ] CI/CD流水线
-- [ ] 测试覆盖率 > 60%
-- [ ] TypeScript类型强化
-- [ ] 性能优化（SVG懒加载、SSE重连）
+- [x] CI/CD流水线
+- [x] 测试覆盖率 > 60%
+- [x] TypeScript类型强化
+- [x] 性能优化（SVG懒加载、SSE重连）
 
 ### Phase 4: 扩展功能（长期）
 - [x] PWA支持
