@@ -5,12 +5,13 @@ import Intro from './views/Intro.vue'
 import Game from './views/Game.vue'
 import Ending from './views/Ending.vue'
 import Saves from './views/Saves.vue'
+import type { EndingType } from './types/game'
 
 type View = 'home' | 'intro' | 'game' | 'ending'
 
 const currentView = ref<View>('home')
 const showSaves = ref(false)
-const endingType = ref<'hope' | 'bittersweet' | 'tragic'>('hope')
+const endingType = ref<EndingType>('hope')
 const loadSlotId = ref<number | null>(null)
 
 const startGame = () => {
@@ -32,7 +33,7 @@ const loadFromSlot = async (slotId: number) => {
   currentView.value = 'game'
 }
 
-const onEnding = (type: 'hope' | 'bittersweet' | 'tragic') => {
+const onEnding = (type: EndingType) => {
   endingType.value = type
   currentView.value = 'ending'
 }

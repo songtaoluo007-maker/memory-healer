@@ -116,4 +116,7 @@ export interface ChatMessage {
   npcName?: string
 }
 
-export type EndingType = 'hope' | 'bittersweet' | 'tragic'
+export type EndingType = 'hope' | 'bittersweet' | 'tragic' | 'legacy'
+
+// 场景ID类型
+export type SceneId = 'scene_1972' | 'scene_1990' | 'scene_2024' | 'scene_2050' | 'scene_2089'

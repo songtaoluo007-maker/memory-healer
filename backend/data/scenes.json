@@ -9,12 +9,21 @@
     "bgm": "traditional_chinese.mp3",
     "npcs": ["chen_shouyi_young"],
     "fragments": ["fragment_shadow_puppet", "fragment_grandpa_knife", "fragment_three_kings"],
-    "exits": {
-      "forward": "scene_2024"
-    },
-    "triggers": {
-      "on_collect_all": "unlock_memory_1972"
-    }
+    "exits": {"forward": "scene_1990"},
+    "triggers": {"on_collect_all": "unlock_memory_1972"}
+  },
+  "scene_1990": {
+    "id": "scene_1990",
+    "title": "1990年 · 深圳火车站",
+    "time_period": "1990",
+    "location": "深圳火车站站台",
+    "description": "绿皮火车轰鸣着进站，站台上挤满了背着蛇皮袋的年轻人。陈守义站在人群中，手里攥着一张去深圳的硬座票，背后是装满皮影道具的旧木箱。广播里循环播放着'深圳特区欢迎您'。",
+    "mood": "hopeful",
+    "bgm": "station_ambient.mp3",
+    "npcs": ["chen_shouyi_1990", "stranger_1990"],
+    "fragments": ["train_ticket_fragment", "puppet_trunk_fragment", "farewell_letter_fragment", "station_clock_fragment"],
+    "exits": {"back": "scene_1972", "forward": "scene_2024"},
+    "triggers": {"on_collect_all": "unlock_memory_1990"}
   },
   "scene_2024": {
     "id": "scene_2024",
@@ -26,13 +35,21 @@
     "bgm": "city_ambient.mp3",
     "npcs": ["chen_shouyi_old"],
     "fragments": ["fragment_letter", "fragment_old_photos", "fragment_last_show"],
-    "exits": {
-      "back": "scene_1972",
-      "forward": "scene_2089"
-    },
-    "triggers": {
-      "on_collect_all": "unlock_memory_2024"
-    }
+    "exits": {"back": "scene_1990", "forward": "scene_2050"},
+    "triggers": {"on_collect_all": "unlock_memory_2024"}
+  },
+  "scene_2050": {
+    "id": "scene_2050",
+    "title": "2050年 · 颁奖典礼",
+    "time_period": "2050",
+    "location": "北京国家大剧院",
+    "description": "'中国非物质文化遗产传承杰出贡献奖'颁奖典礼正在进行。大屏幕上播放着陈守义一生的皮影戏历程。小雨作为AI记忆修复项目的负责人，正在台上讲述爷爷的故事。灯光温暖而庄重。",
+    "mood": "triumphant",
+    "bgm": "symphony.mp3",
+    "npcs": ["xiaoyu_2050", "journalist_2050"],
+    "fragments": ["award_trophy_fragment", "old_photos_wall_fragment", "hologram_stage_fragment", "audience_reactions_fragment"],
+    "exits": {"back": "scene_2024", "forward": "scene_2089"},
+    "triggers": {"on_collect_all": "unlock_memory_2050"}
   },
   "scene_2089": {
     "id": "scene_2089",
@@ -44,11 +61,7 @@
     "bgm": "ambient_future.mp3",
     "npcs": ["xiaoyu"],
     "fragments": ["fragment_family_photo", "fragment_certificate", "fragment_last_puppet"],
-    "exits": {
-      "back": "scene_2024"
-    },
-    "triggers": {
-      "on_collect_all": "unlock_memory_2089"
-    }
+    "exits": {"back": "scene_2050"},
+    "triggers": {"on_collect_all": "unlock_memory_2089"}
   }
 }

@@ -26,7 +26,47 @@
     "description": "一段完整的皮影戏表演记忆。幕布上，刘关张三兄弟与吕布激战，锣鼓声声声入耳。",
     "unlock_method": "trust",
     "unlock_hint": "让陈守义信任你到一定程度",
-    "memory_text": "陈守义说，他这辈子最骄傲的事，就是1970年在西安城墙下给300个人演了一场三英战吕布。那是他第一次，也是最后一次，觉得皮影戏还是有人看的。",
+    "memory_text": "陈守义说，他这辈子最骄傲的事，就是1970年在西安城墙下给300个人演了一场三英战吕布。",
+    "collected": false
+  },
+  "train_ticket_fragment": {
+    "id": "train_ticket_fragment",
+    "name": "南下的车票",
+    "scene": "scene_1990",
+    "description": "一张皱巴巴的硬座票，西安到深圳，1990年9月15日。票价42元，座位号被汗水浸得模糊了。",
+    "unlock_method": "explore",
+    "unlock_hint": "看看陈守义手里攥着的东西",
+    "memory_text": "陈守义攒了三个月的工分才买到这张票。他说走的那天，妈追到火车站，塞给他两个煮鸡蛋。",
+    "collected": false
+  },
+  "puppet_trunk_fragment": {
+    "id": "puppet_trunk_fragment",
+    "name": "皮影道具箱",
+    "scene": "scene_1990",
+    "description": "一个旧木箱，里面整整齐齐码着三十多个皮影人偶。最上面是一个穿西装的现代人——和其他传统皮影格格不入。",
+    "unlock_method": "dialogue",
+    "unlock_hint": "问问陈守义箱子里装了什么",
+    "memory_text": "陈守义偷偷刻了那个穿西装的皮影，想看看传统手艺能不能讲现代故事。他说这是他的'实验品'。",
+    "collected": false
+  },
+  "farewell_letter_fragment": {
+    "id": "farewell_letter_fragment",
+    "name": "给师父的信",
+    "scene": "scene_1990",
+    "description": "一封写了一半的信：'师父，徒弟不孝，要去南方了。皮影戏的事……'后面的字被涂掉了好几遍。",
+    "unlock_method": "explore",
+    "unlock_hint": "看看陈守义口袋里露出的纸角",
+    "memory_text": "这封信陈守义写了三天，最后还是没寄出去。他说不知道该怎么跟师父说——他怕师父觉得他背叛了皮影戏。",
+    "collected": false
+  },
+  "station_clock_fragment": {
+    "id": "station_clock_fragment",
+    "name": "站台的时钟",
+    "scene": "scene_1990",
+    "description": "深圳火车站巨大的圆形时钟，指针指向下午3:47。秒针一格一格跳动，像是在倒数什么。",
+    "unlock_method": "dialogue",
+    "unlock_hint": "和陈守义聊聊他还有多久上车",
+    "memory_text": "陈守义说，火车还有23分钟就到了。他看着时钟，突然说了一句：'时间不等人，手艺也不等人。'",
     "collected": false
   },
   "fragment_letter": {
@@ -36,14 +76,14 @@
     "description": "一封被反复展开又折好的信。信纸上是小女孩歪歪扭扭的字迹：「爷爷，我好想你。你什么时候来深圳看我？」",
     "unlock_method": "dialogue",
     "unlock_hint": "问问陈守义桌上的那封信",
-    "memory_text": "小雨6岁那年写了这封信。陈守义收到后，坐了36个小时的绿皮火车去深圳看她。那是他第一次来深圳。",
+    "memory_text": "小雨6岁那年写了这封信。陈守义收到后，坐了36个小时的绿皮火车去深圳看她。",
     "collected": false
   },
   "fragment_old_photos": {
     "id": "fragment_old_photos",
     "name": "泛黄的剧照",
     "scene": "scene_2024",
-    "description": "一叠泛黄的黑白照片。照片里是年轻时的陈守义在各地演出皮影戏的场景——西安、华山、洛阳、北京。",
+    "description": "一叠泛黄的黑白照片。照片里是年轻时的陈守义在各地演出皮影戏的场景。",
     "unlock_method": "explore",
     "unlock_hint": "看看墙上的剧照",
     "memory_text": "陈守义年轻时走遍了半个中国，每到一个地方就演一场。他说那时候觉得，皮影戏能传遍全世界。",
@@ -56,7 +96,47 @@
     "description": "一段模糊的记忆。2019年，陈守义在社区活动中心演了最后一场皮影戏。台下只有3个观众，其中两个在看手机。",
     "unlock_method": "trust",
     "unlock_hint": "让陈守义信任你，他会提起最后的演出",
-    "memory_text": "演完最后一场，陈守义收起戏台，一个人坐在社区活动中心哭了很久。从那以后，他再也没碰过皮影。",
+    "memory_text": "演完最后一场，陈守义收起戏台，一个人坐在社区活动中心哭了很久。",
+    "collected": false
+  },
+  "award_trophy_fragment": {
+    "id": "award_trophy_fragment",
+    "name": "水晶奖杯",
+    "scene": "scene_2050",
+    "description": "一座水晶奖杯，底座刻着'中国非物质文化遗产传承杰出贡献奖'。光芒透过水晶折射出彩虹般的光晕。",
+    "unlock_method": "explore",
+    "unlock_hint": "看看颁奖台上的奖杯",
+    "memory_text": "小雨说，这座奖杯是替爷爷领的。她把奖杯放在爷爷的病房里，爷爷摸着奖杯笑了，说：'小雨出息了。'",
+    "collected": false
+  },
+  "old_photos_wall_fragment": {
+    "id": "old_photos_wall_fragment",
+    "name": "时光照片墙",
+    "scene": "scene_2050",
+    "description": "大剧院走廊的照片墙上，挂着从1972年到2050年的照片：年轻的陈守义在西安演出、中年的他在深圳火车站、老年他在出租屋刻皮影……",
+    "unlock_method": "dialogue",
+    "unlock_hint": "问问小雨照片墙上有什么故事",
+    "memory_text": "小雨说，这些照片她找了二十年。有些是她翻遍旧箱子找到的，有些是AI修复的。每一张都是爷爷的一段人生。",
+    "collected": false
+  },
+  "hologram_stage_fragment": {
+    "id": "hologram_stage_fragment",
+    "name": "全息皮影表演",
+    "scene": "scene_2050",
+    "description": "全息投影正在表演三英战吕布——用的是陈守义年轻时的影像数据。光影栩栩如生，仿佛他从未离开过戏台。",
+    "unlock_method": "dialogue",
+    "unlock_hint": "和小雨聊聊全息皮影戏的技术",
+    "memory_text": "小雨用爷爷的记忆数据重建了他年轻时的皮影表演。她说技术不能替代真实记忆，但可以让传承继续。",
+    "collected": false
+  },
+  "audience_reactions_fragment": {
+    "id": "audience_reactions_fragment",
+    "name": "观众的泪水",
+    "scene": "scene_2050",
+    "description": "观众席上，一位白发老人悄悄擦眼泪。他手里拿着一个旧皮影人偶，和屏幕上的陈守义年轻时一模一样。",
+    "unlock_method": "explore",
+    "unlock_hint": "看看观众席里有没有特别的人",
+    "memory_text": "那位老人是陈守义1970年那场300人演出中唯一记住他的观众。他等了50年，终于又看到了皮影戏。",
     "collected": false
   },
   "fragment_family_photo": {
@@ -66,7 +146,7 @@
     "description": "一张泛黄的全家福。照片里，年轻的陈守义抱着一个小女孩，旁边站着他的妻子。小女孩笑得很开心。",
     "unlock_method": "dialogue",
     "unlock_hint": "问问小雨她小时候和爷爷的故事",
-    "memory_text": "小雨说，爷爷以前每年春节都会给她演一场皮影戏。她最喜欢的是西游记里的孙悟空。后来爷爷病了，就再也没演过了。",
+    "memory_text": "小雨说，爷爷以前每年春节都会给她演一场皮影戏。她最喜欢的是西游记里的孙悟空。",
     "collected": false
   },
   "fragment_certificate": {
@@ -76,7 +156,7 @@
     "description": "一份国家非遗传承人证书，上面写着「皮影戏（西安皮影）代表性传承人 陈守义」。证书边角已经磨损。",
     "unlock_method": "explore",
     "unlock_hint": "看看实验室角落的档案柜",
-    "memory_text": "2045年，陈守义被评为国家级非遗传承人。但那时候他已经教不出徒弟了——年轻人都走了，没人愿意学。",
+    "memory_text": "2045年，陈守义被评为国家级非遗传承人。但那时候他已经教不出徒弟了。",
     "collected": false
   },
   "fragment_last_puppet": {
@@ -86,7 +166,7 @@
     "description": "一个精致的孙悟空皮影人偶，金箍棒上刻着一行小字：「送给小雨，爷爷永远爱你。」",
     "unlock_method": "trust",
     "unlock_hint": "小雨会在完全信任你时提起这个人偶",
-    "memory_text": "这是陈守义最后一个皮影人偶。他生病前刻的，本来想在小雨生日时送给她。但他忘了自己把它放在哪里了。",
+    "memory_text": "这是陈守义最后一个皮影人偶。他生病前刻的，本来想在小雨生日时送给她。",
     "collected": false
   }
 }

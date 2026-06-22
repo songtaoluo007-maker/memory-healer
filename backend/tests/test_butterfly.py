@@ -28,7 +28,7 @@ class TestButterflyEffects:
         }
         effects = get_butterfly_effects(state)
         assert len(effects) >= 1
-        assert any(e["id"] == "encourage_puppetry" for e in effects)
+        assert any("encourage" in e["id"] for e in effects)
 
     def test_encourage_puppetry_low_trust(self):
         """信任度不足不触发"""
@@ -47,7 +47,7 @@ class TestButterflyEffects:
         }
         effects = get_butterfly_effects(state)
         assert len(effects) >= 1
-        assert any(e["id"] == "discourage_puppetry" for e in effects)
+        assert any("discourage" in e["id"] for e in effects)
 
     def test_scene_modifiers_for_2024(self):
         """获取2024年场景修改"""

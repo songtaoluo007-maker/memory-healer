@@ -23,12 +23,28 @@ const curtainStyle = computed(() => {
       bg: 'linear-gradient(180deg, #8B4513 0%, #D2691E 50%, #8B4513 100%)',
     }
   }
+  if (props.sceneId.includes('1990')) {
+    return {
+      color1: '#8B7355',
+      color2: '#D2B48C',
+      pattern: '站台光影',
+      bg: 'linear-gradient(180deg, #8B7355 0%, #D2B48C 50%, #8B7355 100%)',
+    }
+  }
   if (props.sceneId.includes('2024')) {
     return {
       color1: '#1a1a3e',
       color2: '#2a2a5e',
       pattern: '城市霓虹',
       bg: 'linear-gradient(180deg, #1a1a3e 0%, #2a2a5e 50%, #1a1a3e 100%)',
+    }
+  }
+  if (props.sceneId.includes('2050')) {
+    return {
+      color1: '#2F2F2F',
+      color2: '#4a4a2a',
+      pattern: '金色灯光',
+      bg: 'linear-gradient(180deg, #2F2F2F 0%, #4a4a2a 50%, #2F2F2F 100%)',
     }
   }
   return {
@@ -58,7 +74,7 @@ watch(() => props.active, (newVal) => {
 <template>
   <div
     class="curtain-transition"
-    :class="[phase, `era-${sceneId.includes('1972') ? '1972' : sceneId.includes('2024') ? '2024' : '2089'}`]"
+    :class="[phase, `era-${sceneId.includes('1972') ? '1972' : sceneId.includes('1990') ? '1990' : sceneId.includes('2024') ? '2024' : sceneId.includes('2050') ? '2050' : '2089'}`]"
   >
     <!-- 左幕布 -->
     <div class="curtain curtain-left" :style="{ background: curtainStyle.bg }">
@@ -192,10 +208,22 @@ watch(() => props.active, (newVal) => {
     repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,215,0,0.05) 10px, rgba(255,215,0,0.05) 11px);
 }
 
+.era-1990 .curtain-texture {
+  opacity: 0.15;
+  background-image:
+    repeating-linear-gradient(90deg, transparent, transparent 15px, rgba(210,180,140,0.05) 15px, rgba(210,180,140,0.05) 16px);
+}
+
 .era-2024 .curtain-texture {
   opacity: 0.1;
   background-image:
     repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(100,150,255,0.05) 40px, rgba(100,150,255,0.05) 41px);
+}
+
+.era-2050 .curtain-texture {
+  opacity: 0.18;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 5px, rgba(255,215,0,0.04) 5px, rgba(255,215,0,0.04) 6px);
 }
 
 .era-2089 .curtain-texture {
