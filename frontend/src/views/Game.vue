@@ -8,6 +8,7 @@ import SceneIllustration from '../components/SceneIllustration.vue'
 import MemoryProgress from '../components/MemoryProgress.vue'
 import NpcAvatar from '../components/NpcAvatar.vue'
 import HotspotOverlay from '../components/HotspotOverlay.vue'
+import SceneTransition from '../components/SceneTransition.vue'
 import { useHotspots } from '../composables/useHotspots'
 import type { Hotspot } from '../composables/useHotspots'
 import type { Scene, NpcSummary, Fragment, ChatMessage, EndingType } from '../types/game'
@@ -467,9 +468,7 @@ watch(() => gameState.value?.current_scene, (newScene) => {
     </div>
 
     <!-- 场景切换动画 -->
-    <div class="scene-transition" :class="{ active: sceneTransitioning }">
-      <div class="transition-text">记忆流转...</div>
-    </div>
+    <SceneTransition :active="sceneTransitioning" :scene-id="gameState?.current_scene || ''" />
 
     <!-- 碎片弹窗 -->
     <div class="popup-overlay" v-if="showFragmentPopup" @click.self="showFragmentPopup = false">
@@ -603,31 +602,7 @@ watch(() => gameState.value?.current_scene, (newScene) => {
   cursor: not-allowed;
 }
 
-/* 场景切换动画 */
-.scene-transition {
-  position: fixed;
-  inset: 0;
-  background: #000;
-  z-index: 80;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.5s ease;
-}
 
-.scene-transition.active {
-  opacity: 1;
-  pointer-events: all;
-}
-
-.transition-text {
-  font-size: 20px;
-  color: rgba(200, 210, 255, 0.6);
-  letter-spacing: 4px;
-  animation: pulse 1.5s ease-in-out infinite;
-}
 
 /* 主游戏区域 */
 .main-area {

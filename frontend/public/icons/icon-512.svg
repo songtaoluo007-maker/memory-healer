@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0a1a"/>
+      <stop offset="100%" stop-color="#1a1a3e"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <!-- 背景 -->
+  <rect width="512" height="512" rx="80" fill="url(#bg)"/>
+  <!-- 皮影戏幕布 -->
+  <rect x="80" y="100" width="352" height="280" rx="8" fill="none" stroke="url(#gold)" stroke-width="4"/>
+  <!-- 皮影人物轮廓 -->
+  <g transform="translate(256, 240)" fill="url(#gold)" opacity="0.9">
+    <!-- 头部 -->
+    <circle cx="0" cy="-60" r="30"/>
+    <!-- 身体 -->
+    <path d="M-20,-30 L-25,40 L-10,40 L0,0 L10,40 L25,40 L20,-30 Z"/>
+    <!-- 手臂 -->
+    <path d="M-20,-20 L-60,10 L-55,15 L-18,-12 Z"/>
+    <path d="M20,-20 L60,10 L55,15 L18,-12 Z"/>
+    <!-- 腿 -->
+    <path d="M-10,40 L-20,90 L-12,92 L-5,45 Z"/>
+    <path d="M10,40 L20,90 L12,92 L5,45 Z"/>
+  </g>
+  <!-- 记忆碎片光点 -->
+  <circle cx="150" cy="150" r="4" fill="#60a5fa" opacity="0.8"/>
+  <circle cx="360" cy="180" r="3" fill="#60a5fa" opacity="0.6"/>
+  <circle cx="200" cy="350" r="5" fill="#a78bfa" opacity="0.7"/>
+  <circle cx="380" cy="320" r="3" fill="#a78bfa" opacity="0.5"/>
+  <circle cx="300" cy="130" r="4" fill="#f59e0b" opacity="0.6"/>
+  <!-- 标题 -->
+  <text x="256" y="440" text-anchor="middle" font-family="serif" font-size="48" font-weight="bold" fill="#e0e0ff" letter-spacing="8">拾忆</text>
+  <text x="256" y="475" text-anchor="middle" font-family="serif" font-size="16" fill="rgba(200,210,255,0.5)" letter-spacing="4">记忆修复师</text>
+</svg>
