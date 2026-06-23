@@ -5,6 +5,7 @@ import { useTypewriter } from '../composables/useTypewriter'
 import { useAudio } from '../composables/useAudio'
 import { chatWithNpcStream, getSceneDetail, advanceNarrative, saveGame, recordChoice } from '../api'
 import { useHotspots } from '../composables/useHotspots'
+import { useQuests } from '../composables/useQuests'
 import { useI18n } from '../composables/useI18n'
 import type { Hotspot } from '../composables/useHotspots'
 import type { Scene, NpcSummary, Fragment, ChatMessage, EndingType } from '../types/game'
@@ -19,6 +20,8 @@ const MemoryPanel = defineAsyncComponent(() => import('../components/MemoryPanel
 const ShadowLighting = defineAsyncComponent(() => import('../components/ShadowLighting.vue'))
 const InkParticles = defineAsyncComponent(() => import('../components/InkParticles.vue'))
 const ParallaxBg = defineAsyncComponent(() => import('../components/ParallaxBg.vue'))
+const QuestTracker = defineAsyncComponent(() => import('../components/QuestTracker.vue'))
+const QuestPanel = defineAsyncComponent(() => import('../components/QuestPanel.vue'))
 
 const emit = defineEmits<{
   ending: [type: EndingType]
@@ -51,6 +54,18 @@ const { t, lang, toggleLang } = useI18n()
 // 热区探索（初始场景，loadScene时会更新）
 const currentSceneId = computed(() => gameState.value?.current_scene || 'scene_1972')
 const { hotspots, exploredIds, exploreHotspot, explorationProgress } = useHotspots(currentSceneId)
+
+// 任务系统
+const collectedFragments = computed(() => gameState.value?.collected_fragments || [])
+const revealedFragments = computed(() => gameState.value?.revealed_fragments || [])
+const npcTrustRef = computed(() => gameState.value?.npc_trust || {})
+const dialogueHistoryRef = computed(() => gameState.value?.dialogue_history || [])
+const {
+  currentMainQuest, currentSideQuests, allActiveQuests,
+  completedQuestCount, totalQuestCount,
+  currentHint, currentAct, actTitle,
+} = useQuests(collectedFragments, revealedFragments, npcTrustRef, currentSceneId, dialogueHistoryRef)
+const showQuestPanel = ref(false)
 
 // 记忆档案面板
 const showMemoryPanel = ref(false)
@@ -532,6 +547,26 @@ watch(() => gameState.value?.current_scene, (newScene) => {
       :collected-count="gameState.collected_fragments?.length || 0"
       :total-fragments="Object.keys(gameState.fragment_states || {}).length"
       @close="showMemoryPanel = false"
+    />
+
+    <!-- 任务追踪条 -->
+    <QuestTracker
+      :main-quest="currentMainQuest"
+      :current-hint="currentHint"
+      :act-title="actTitle"
+      @open-panel="showQuestPanel = true"
+    />
+
+    <!-- 任务面板 -->
+    <QuestPanel
+      v-if="showQuestPanel"
+      :main-quest="currentMainQuest"
+      :side-quests="currentSideQuests"
+      :current-hint="currentHint"
+      :act-title="actTitle"
+      :completed-count="completedQuestCount"
+      :total-count="totalQuestCount"
+      @close="showQuestPanel = false"
     />
   </div>
 </template>
