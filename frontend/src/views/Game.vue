@@ -16,6 +16,9 @@ const NpcAvatar = defineAsyncComponent(() => import('../components/NpcAvatar.vue
 const HotspotOverlay = defineAsyncComponent(() => import('../components/HotspotOverlay.vue'))
 const SceneTransition = defineAsyncComponent(() => import('../components/SceneTransition.vue'))
 const MemoryPanel = defineAsyncComponent(() => import('../components/MemoryPanel.vue'))
+const ShadowLighting = defineAsyncComponent(() => import('../components/ShadowLighting.vue'))
+const InkParticles = defineAsyncComponent(() => import('../components/InkParticles.vue'))
+const ParallaxBg = defineAsyncComponent(() => import('../components/ParallaxBg.vue'))
 
 const emit = defineEmits<{
   ending: [type: EndingType]
@@ -351,10 +354,16 @@ watch(() => gameState.value?.current_scene, (newScene) => {
       </div>
     </Transition>
 
-    <!-- 全屏背景图 -->
+    <!-- 全屏背景图 + 视差 + 光影 -->
     <div class="bg-layer">
-      <SceneIllustration :scene-id="gameState.current_scene" />
+      <ParallaxBg :scene-id="gameState.current_scene">
+        <template #layer-0>
+          <SceneIllustration :scene-id="gameState.current_scene" />
+        </template>
+      </ParallaxBg>
       <div class="bg-vignette"></div>
+      <ShadowLighting :scene-id="gameState.current_scene" :intensity="0.6" />
+      <InkParticles :scene-id="gameState.current_scene" trigger="idle" />
     </div>
 
     <!-- 热区叠加层（在背景之上） -->
@@ -558,8 +567,11 @@ watch(() => gameState.value?.current_scene, (newScene) => {
 .bg-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,0.75) 100%);
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.9) 100%),
+    linear-gradient(180deg, rgba(0,0,0,0.3) 0%, transparent 15%, transparent 85%, rgba(0,0,0,0.5) 100%);
   pointer-events: none;
+  z-index: 1;
 }
 
 /* ===== 顶部栏 ===== */
@@ -572,10 +584,11 @@ watch(() => gameState.value?.current_scene, (newScene) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 24px;
-  background: linear-gradient(180deg, rgba(0,0,0,0.75) 0%, transparent 100%);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  padding: 14px 28px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(232, 180, 80, 0.06);
 }
 .scene-info {
   display: flex;
@@ -680,27 +693,36 @@ watch(() => gameState.value?.current_scene, (newScene) => {
   z-index: 50;
   bottom: 100px;
   left: 24px;
-  max-width: 480px;
-  max-height: 200px;
+  max-width: 500px;
+  max-height: 220px;
   overflow-y: auto;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(232, 180, 80, 0.15);
-  border-radius: 14px;
-  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(0,0,0,0.65) 0%, rgba(10,10,20,0.7) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(232, 180, 80, 0.12);
+  border-radius: 16px;
+  padding: 18px 24px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.3s ease;
+  box-shadow:
+    0 4px 30px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(232, 180, 80, 0.06);
 }
 .narrative-float:hover {
-  background: rgba(0,0,0,0.7);
+  background: linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(10,10,20,0.8) 100%);
+  border-color: rgba(232, 180, 80, 0.2);
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.4),
+    0 0 20px rgba(232, 180, 80, 0.05),
+    inset 0 1px 0 rgba(232, 180, 80, 0.1);
 }
 .narrative-text {
   font-size: 15px;
-  line-height: 1.9;
+  line-height: 2;
   color: #f0e8d0;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
   font-family: 'Noto Serif SC', serif;
+  letter-spacing: 0.5px;
 }
 .cursor {
   animation: blink 0.8s infinite;
@@ -715,34 +737,44 @@ watch(() => gameState.value?.current_scene, (newScene) => {
 .npc-dock {
   position: fixed;
   z-index: 60;
-  bottom: 24px;
+  bottom: 28px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 12px;
+  gap: 14px;
+  padding: 8px 16px;
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 50px;
+  border: 1px solid rgba(255,255,255,0.06);
 }
 .npc-chip {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.5);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 40px;
-  padding: 6px 14px 6px 6px;
+  padding: 6px 16px 6px 6px;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .npc-chip:hover {
   background: rgba(232, 180, 80, 0.2);
   border-color: rgba(232, 180, 80, 0.3);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
 }
 .npc-chip.active {
   background: rgba(232, 180, 80, 0.25);
-  border-color: #e8b450;
-  box-shadow: 0 0 20px rgba(232, 180, 80, 0.2);
+  border-color: rgba(232, 180, 80, 0.6);
+  box-shadow:
+    0 0 24px rgba(232, 180, 80, 0.2),
+    0 8px 32px rgba(0,0,0,0.3);
+  transform: translateY(-2px);
 }
 .npc-chip-info {
   display: flex;
@@ -763,11 +795,11 @@ watch(() => gameState.value?.current_scene, (newScene) => {
 .dialogue-float {
   position: fixed;
   z-index: 80;
-  right: -420px;
-  top: 60px;
-  bottom: 24px;
-  width: 400px;
-  transition: right 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  right: -440px;
+  top: 70px;
+  bottom: 28px;
+  width: 420px;
+  transition: right 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .dialogue-float.open {
   right: 24px;
@@ -776,13 +808,16 @@ watch(() => gameState.value?.current_scene, (newScene) => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: rgba(10, 10, 18, 0.78);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  border: 1px solid rgba(232, 180, 80, 0.12);
-  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(10, 10, 18, 0.82) 0%, rgba(15, 12, 20, 0.88) 100%);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid rgba(232, 180, 80, 0.1);
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  box-shadow:
+    0 8px 50px rgba(0,0,0,0.5),
+    0 0 1px rgba(232, 180, 80, 0.1),
+    inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .dialogue-header {
   display: flex;
@@ -949,21 +984,47 @@ watch(() => gameState.value?.current_scene, (newScene) => {
 .popup-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0,0,0,0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 200;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  animation: popupFadeIn 0.3s ease;
+}
+@keyframes popupFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 .fragment-popup {
-  background: linear-gradient(135deg, #1a1a2e, #2a2a4e);
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(42, 42, 78, 0.95) 100%);
   border: 1px solid rgba(232,180,80,0.2);
-  border-radius: 16px;
-  padding: 40px;
+  border-radius: 20px;
+  padding: 48px;
   text-align: center;
-  max-width: 420px;
-  box-shadow: 0 0 60px rgba(232,180,80,0.15);
+  max-width: 440px;
+  box-shadow:
+    0 0 80px rgba(232,180,80,0.12),
+    0 0 120px rgba(232,180,80,0.06),
+    0 20px 60px rgba(0,0,0,0.5);
+  animation: popupScaleIn 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  overflow: hidden;
+}
+.fragment-popup::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background: conic-gradient(from 0deg, transparent, rgba(232,180,80,0.08), transparent, rgba(232,180,80,0.05), transparent);
+  animation: popupRotate 8s linear infinite;
+  pointer-events: none;
+}
+@keyframes popupRotate {
+  to { transform: rotate(360deg); }
+}
+@keyframes popupScaleIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 .popup-icon { font-size: 48px; margin-bottom: 12px; }
 .fragment-popup h3 { color: rgba(232,180,80,0.6); font-size: 14px; margin: 0 0 8px; }
@@ -1207,36 +1268,79 @@ watch(() => gameState.value?.current_scene, (newScene) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 10, 26, 0.9);
-  backdrop-filter: blur(8px);
+  background: rgba(10, 10, 26, 0.95);
+  backdrop-filter: blur(12px);
 }
 .loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(232, 180, 80, 0.2);
+  width: 48px;
+  height: 48px;
+  border: 2px solid rgba(232, 180, 80, 0.15);
   border-top-color: #e8b450;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 20px rgba(232, 180, 80, 0.1);
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 .loading-text {
   color: #e8b450;
-  font-size: 14px;
+  font-size: 15px;
   font-family: 'Noto Serif SC', serif;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
+  animation: loadingPulse 2s ease-in-out infinite;
+}
+@keyframes loadingPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 
 /* 淡入淡出过渡 */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity 0.4s ease;
 }
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* ===== 电影级全局动画 ===== */
+
+/* 场景切换时的墨幕效果 */
+@keyframes inkWash {
+  0% { clip-path: circle(0% at 50% 50%); }
+  50% { clip-path: circle(70% at 50% 50%); }
+  100% { clip-path: circle(100% at 50% 50%); }
+}
+
+/* 碎片弹窗光晕 */
+.fragment-popup .popup-icon {
+  animation: fragmentGlow 3s ease-in-out infinite;
+}
+@keyframes fragmentGlow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(232,180,80,0.3)); }
+  50% { filter: drop-shadow(0 0 20px rgba(232,180,80,0.6)); }
+}
+
+/* 聊天消息进场动画 */
+.chat-msg {
+  animation: msgSlideIn 0.3s ease-out;
+}
+@keyframes msgSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 发送按钮脉冲 */
+.send-btn:not(:disabled):hover {
+  animation: sendPulse 0.6s ease;
+}
+@keyframes sendPulse {
+  0% { box-shadow: 0 0 0 0 rgba(232, 180, 80, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(232, 180, 80, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(232, 180, 80, 0); }
 }
 
 </style>

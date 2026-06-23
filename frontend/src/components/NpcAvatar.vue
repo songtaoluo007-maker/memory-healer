@@ -142,10 +142,38 @@ const getEmotion = (e?: string) => emotionMap[e || 'neutral'] || emotionMap.neut
   flex-shrink: 0;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
   transition: transform 0.2s ease;
+  animation: npcBreathe 4s ease-in-out infinite;
 }
 
 .npc-avatar:hover {
-  transform: scale(1.05);
+  transform: scale(1.08);
+  box-shadow: 0 4px 20px rgba(232, 180, 80, 0.3);
+}
+
+/* 呼吸动画 */
+@keyframes npcBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+/* 眨眼动画（通过SVG内部opacity实现） */
+.npc-avatar svg ellipse[rx="3"] {
+  animation: npcBlink 5s ease-in-out infinite;
+}
+
+@keyframes npcBlink {
+  0%, 42%, 46%, 100% { transform: scaleY(1); }
+  44% { transform: scaleY(0.1); }
+}
+
+/* 选中状态光环 */
+.npc-avatar::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid rgba(232, 180, 80, 0);
+  transition: border-color 0.3s;
 }
 
 svg {
