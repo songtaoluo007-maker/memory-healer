@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -20,6 +21,7 @@ from backend.api.dialogue import router as dialogue_router
 from backend.api.scene import router as scene_router
 from backend.api.save import router as save_router
 from backend.api.auth import router as auth_router
+from backend.api.tts import router as tts_router
 from backend.config import settings
 
 
@@ -123,6 +125,12 @@ app.include_router(dialogue_router)
 app.include_router(scene_router)
 app.include_router(save_router)
 app.include_router(auth_router)
+app.include_router(tts_router)
+
+# 静态文件服务（TTS音频等）
+static_dir = Path(__file__).parent / "static"
+static_dir.mkdir(exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 
 @app.get("/api/health", tags=["health"])

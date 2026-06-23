@@ -1,185 +1,116 @@
 /**
- * NPC语音系统 — 基于浏览器SpeechSynthesis API
- * 每个NPC有独立的声线特征
+ * NPC语音系统 — 基于后端Edge TTS (微软神经网络语音)
+ * 比浏览器SpeechSynthesis自然得多，支持SSML感情控制
  */
 import { ref } from 'vue'
-
-// NPC语音配置
-interface VoiceConfig {
-  name: string           // 优先使用的语音名称关键词
-  pitch: number          // 0.1-2.0
-  rate: number           // 0.1-10.0
-  volume: number         // 0-1
-  gender: 'male' | 'female' | 'elder'
-}
-
-const npcVoiceConfigs: Record<string, VoiceConfig> = {
-  zhou: {
-    name: '',
-    pitch: 0.7,      // 低沉
-    rate: 0.75,       // 缓慢
-    volume: 0.9,
-    gender: 'elder',
-  },
-  xiaoyu: {
-    name: '',
-    pitch: 1.4,       // 高亮
-    rate: 1.0,        // 正常
-    volume: 0.85,
-    gender: 'female',
-  },
-  wang: {
-    name: '',
-    pitch: 1.0,
-    rate: 0.9,
-    volume: 0.85,
-    gender: 'female',
-  },
-  zhao: {
-    name: '',
-    pitch: 0.65,      // 很低
-    rate: 1.05,       // 略快
-    volume: 0.95,
-    gender: 'male',
-  },
-  li: {
-    name: '',
-    pitch: 0.85,
-    rate: 0.8,        // 沉稳
-    volume: 0.9,
-    gender: 'male',
-  },
-  liu: {
-    name: '',
-    pitch: 1.1,
-    rate: 1.1,        // 语速快（记者）
-    volume: 0.85,
-    gender: 'female',
-  },
-  chen: {
-    name: '',
-    pitch: 0.55,      // 极低沉
-    rate: 0.6,        // 很慢
-    volume: 0.8,
-    gender: 'elder',
-  },
-}
 
 // 全局状态
 const voiceEnabled = ref(true)
 const currentNpcId = ref<string | null>(null)
-let currentUtterance: SpeechSynthesisUtterance | null = null
+const isPlaying = ref(false)
+let currentAudio: HTMLAudioElement | null = null
 
-// 缓存中文语音
-let zhVoices: SpeechSynthesisVoice[] = []
-let voicesLoaded = false
+// TTS缓存（避免重复请求）
+const ttsCache = new Map<string, string>()
 
-function loadVoices() {
-  if (voicesLoaded) return
-  const allVoices = speechSynthesis.getVoices()
-  zhVoices = allVoices.filter(v =>
-    v.lang.startsWith('zh') ||
-    v.lang.startsWith('cmn') ||
-    v.name.includes('Chinese') ||
-    v.name.includes('中文')
-  )
-  voicesLoaded = zhVoices.length > 0
-}
-
-// 尝试加载语音（Chrome异步加载）
-if (typeof speechSynthesis !== 'undefined') {
-  speechSynthesis.onvoiceschanged = loadVoices
-  loadVoices()
-}
+// API base
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 /**
- * 选择最佳匹配的中文语音
- */
-function selectVoice(config: VoiceConfig): SpeechSynthesisVoice | null {
-  if (zhVoices.length === 0) return null
-
-  // 按性别筛选
-  const genderKeywords: Record<string, string[]> = {
-    male: ['male', '男', 'hui', 'liang'],
-    female: ['female', '女', 'xiaoxiao', 'xiaomo', 'yaoyao'],
-    elder: ['male', '男', 'hui'],
-  }
-
-  const keywords = genderKeywords[config.gender] || []
-
-  // 先按关键词匹配
-  for (const kw of keywords) {
-    const match = zhVoices.find(v => v.name.toLowerCase().includes(kw))
-    if (match) return match
-  }
-
-  // 退而求其次，用第一个中文语音
-  return zhVoices[0] || null
-}
-
-/**
- * 清洗文本 — 去除JSON残留、特殊字符
+ * 清洗文本
  */
 function cleanText(text: string): string {
   return text
-    .replace(/\{[^}]*\}/g, '')           // 去JSON块
-    .replace(/\[[^\]]*\]/g, '')          // 去方括号标签
-    .replace(/[{}"\[\]]/g, '')           // 去残留符号
-    .replace(/\s+/g, ' ')               // 压缩空白
-    .replace(/。{2,}/g, '。')            // 去重复句号
+    .replace(/\{[^}]*\}/g, '')
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/[{}"\[\]]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/。{2,}/g, '。')
     .trim()
-    .substring(0, 300)                   // 限制长度
+    .substring(0, 300)
+}
+
+/**
+ * 停止当前播放
+ */
+function stop() {
+  if (currentAudio) {
+    currentAudio.pause()
+    currentAudio.src = ''
+    currentAudio = null
+  }
+  currentNpcId.value = null
+  isPlaying.value = false
 }
 
 /**
  * 播放NPC语音
  */
-function speak(text: string, npcId: string) {
+async function speak(text: string, npcId: string) {
   if (!voiceEnabled.value) return
-  if (typeof speechSynthesis === 'undefined') return
 
-  // 停止当前朗读
+  // 停止当前播放
   stop()
 
   const cleaned = cleanText(text)
   if (!cleaned || cleaned.length < 2) return
 
-  const config = npcVoiceConfigs[npcId] || npcVoiceConfigs.zhou
+  const cacheKey = `${npcId}:${cleaned}`
 
-  const utterance = new SpeechSynthesisUtterance(cleaned)
-  const voice = selectVoice(config)
+  // 检查缓存
+  let audioUrl = ttsCache.get(cacheKey)
 
-  if (voice) utterance.voice = voice
-  utterance.pitch = config.pitch
-  utterance.rate = config.rate
-  utterance.volume = config.volume
-  utterance.lang = 'zh-CN'
+  if (!audioUrl) {
+    // 调用后端TTS API
+    try {
+      const res = await fetch(`${API_BASE}/api/tts/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleaned, npc_id: npcId }),
+      })
 
-  currentNpcId.value = npcId
-  currentUtterance = utterance
+      if (!res.ok) {
+        console.warn('[TTS] 生成失败:', res.status)
+        return
+      }
 
-  utterance.onend = () => {
+      const data = await res.json()
+      audioUrl = `${API_BASE}${data.audio_url}`
+      ttsCache.set(cacheKey, audioUrl)
+    } catch (err) {
+      console.warn('[TTS] 请求失败:', err)
+      return
+    }
+  }
+
+  // 播放音频
+  try {
+    currentNpcId.value = npcId
+    isPlaying.value = true
+
+    const audio = new Audio(audioUrl)
+    currentAudio = audio
+
+    audio.onended = () => {
+      currentNpcId.value = null
+      isPlaying.value = false
+      currentAudio = null
+    }
+
+    audio.onerror = () => {
+      currentNpcId.value = null
+      isPlaying.value = false
+      currentAudio = null
+      // 从缓存移除失败的URL
+      ttsCache.delete(cacheKey)
+    }
+
+    await audio.play()
+  } catch (err) {
+    console.warn('[TTS] 播放失败:', err)
     currentNpcId.value = null
-    currentUtterance = null
+    isPlaying.value = false
   }
-
-  utterance.onerror = () => {
-    currentNpcId.value = null
-    currentUtterance = null
-  }
-
-  speechSynthesis.speak(utterance)
-}
-
-/**
- * 停止朗读
- */
-function stop() {
-  if (speechSynthesis.speaking) {
-    speechSynthesis.cancel()
-  }
-  currentNpcId.value = null
-  currentUtterance = null
 }
 
 /**
@@ -193,19 +124,28 @@ function toggleVoice() {
 }
 
 /**
- * 检查浏览器是否支持语音合成
+ * 检查是否支持
  */
 function isSupported(): boolean {
-  return typeof speechSynthesis !== 'undefined'
+  return typeof Audio !== 'undefined'
+}
+
+/**
+ * 清理缓存（释放内存）
+ */
+function clearCache() {
+  ttsCache.clear()
 }
 
 export function useNpcVoice() {
   return {
     voiceEnabled,
     currentNpcId,
+    isPlaying,
     speak,
     stop,
     toggleVoice,
     isSupported,
+    clearCache,
   }
 }

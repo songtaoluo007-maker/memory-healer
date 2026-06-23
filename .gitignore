@@ -48,3 +48,6 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# TTS音频缓存
+backend/static/tts/
