@@ -160,6 +160,27 @@ defineProps<{
 
     <!-- 暮色光晕 -->
     <ellipse cx="400" cy="100" rx="300" ry="100" fill="#ff9a56" opacity="0.15" />
+
+    <!-- 工具箱 (热区: tool_box@350,350) -->
+    <g>
+      <rect x="330" y="345" width="40" height="25" rx="3" fill="#6b4226" stroke="#8b6914" stroke-width="1" />
+      <rect x="340" y="340" width="20" height="8" rx="2" fill="#8b6914" />
+      <circle cx="350" cy="358" r="3" fill="#ffd700" opacity="0.6" />
+    </g>
+
+    <!-- 长凳 (热区: bench@500,370) -->
+    <g>
+      <rect x="470" y="365" width="60" height="8" rx="2" fill="#6b4226" />
+      <rect x="475" y="373" width="4" height="12" fill="#5c3a1a" />
+      <rect x="521" y="373" width="4" height="12" fill="#5c3a1a" />
+    </g>
+
+    <!-- 老照片 (热区: old_photo@690,200) -->
+    <g>
+      <rect x="678" y="190" width="24" height="30" rx="1" fill="#d4a574" stroke="#8b6914" stroke-width="0.8" />
+      <rect x="682" y="194" width="16" height="22" rx="0.5" fill="#e8d5b0" />
+      <circle cx="690" cy="202" r="4" fill="#8b6914" opacity="0.5" />
+    </g>
   </svg>
 
   <!-- 2024年 深圳城中村 -->
@@ -283,6 +304,40 @@ defineProps<{
 
     <!-- 夜空中的光污染 -->
     <ellipse cx="400" cy="50" rx="350" ry="80" fill="#e94560" opacity="0.05" />
+
+    <!-- 药瓶 (热区: desk_medicine@280,270) -->
+    <g>
+      <rect x="265" y="265" width="12" height="18" rx="2" fill="#4a6a4a" opacity="0.8" />
+      <rect x="268" y="262" width="6" height="5" rx="1" fill="#6a8a6a" />
+      <rect x="280" y="268" width="10" height="15" rx="2" fill="#8b4513" opacity="0.7" />
+      <rect x="283" y="265" width="4" height="5" rx="1" fill="#a06030" />
+    </g>
+
+    <!-- 照片墙 (热区: photo_wall@150,240) -->
+    <g>
+      <rect x="130" y="220" width="40" height="30" rx="2" fill="#3a2a1a" />
+      <rect x="134" y="224" width="32" height="22" rx="1" fill="#d4a574" />
+      <rect x="140" y="228" width="8" height="10" rx="1" fill="#e8c4a0" opacity="0.6" />
+      <rect x="152" y="230" width="10" height="8" rx="1" fill="#ffe4b5" opacity="0.5" />
+    </g>
+
+    <!-- 茶杯 (热区: teacup@450,300) -->
+    <g>
+      <ellipse cx="450" cy="300" rx="8" ry="4" fill="#f5f5dc" />
+      <rect x="442" y="290" width="16" height="10" rx="2" fill="#f5f5dc" />
+      <path d="M458 292 Q464 295 458 300" fill="none" stroke="#f5f5dc" stroke-width="1.5" />
+      <!-- 热气 -->
+      <path d="M447 286 Q449 280 451 286" fill="none" stroke="#fff" stroke-width="0.5" opacity="0.4">
+        <animate attributeName="opacity" values="0.2;0.5;0.2" dur="2s" repeatCount="indefinite" />
+      </path>
+    </g>
+
+    <!-- 信箱 (热区: letter_box@550,320) -->
+    <g>
+      <rect x="538" y="310" width="24" height="18" rx="2" fill="#5a4a3a" />
+      <rect x="542" y="314" width="16" height="2" rx="0.5" fill="#8b6914" />
+      <rect x="545" y="318" width="10" height="6" rx="0.5" fill="#ffe4b5" opacity="0.6" />
+    </g>
   </svg>
 
   <!-- 2089年 拾忆实验室 -->
@@ -441,6 +496,30 @@ defineProps<{
 
     <!-- 环境光 -->
     <ellipse cx="400" cy="200" rx="250" ry="150" fill="#4fc3f7" opacity="0.05" />
+
+    <!-- 记忆存储舱 (热区: memory_tank@660,340) -->
+    <g>
+      <rect x="640" y="310" width="40" height="60" rx="8" fill="#1a2a4e" stroke="#4fc3f7" stroke-width="1" opacity="0.8" />
+      <rect x="648" y="318" width="24" height="44" rx="4" fill="#0a1a3e" />
+      <g fill="#4fc3f7" opacity="0.4">
+        <circle cx="660" cy="330" r="2">
+          <animate attributeName="cy" values="330;325;330" dur="3s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="655" cy="345" r="1.5">
+          <animate attributeName="cy" values="345;340;345" dur="2.5s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="665" cy="355" r="2">
+          <animate attributeName="cy" values="355;348;355" dur="3.5s" repeatCount="indefinite" />
+        </circle>
+      </g>
+    </g>
+
+    <!-- 相框 (热区: photo_frame@250,320) -->
+    <g>
+      <rect x="238" y="308" width="24" height="30" rx="2" fill="#3a4a6e" stroke="#5a7aae" stroke-width="0.8" />
+      <rect x="242" y="312" width="16" height="22" rx="1" fill="#e8d5b0" opacity="0.6" />
+      <circle cx="250" cy="320" r="4" fill="#8b6914" opacity="0.4" />
+    </g>
   </svg>
 
 
@@ -523,6 +602,30 @@ defineProps<{
         <animate attributeName="cy" values="150;130;150" dur="5s" repeatCount="indefinite" />
       </circle>
     </g>
+
+    <!-- 照片墙 (热区: old_photos_wall@250,200) -->
+    <g>
+      <rect x="220" y="170" width="60" height="50" rx="4" fill="#2a2a5e" stroke="#5a5a8e" stroke-width="0.8" />
+      <rect x="226" y="176" width="16" height="12" rx="1" fill="#d4a574" opacity="0.7" />
+      <rect x="246" y="176" width="16" height="12" rx="1" fill="#e8d5b0" opacity="0.6" />
+      <rect x="226" y="192" width="16" height="12" rx="1" fill="#ffe4b5" opacity="0.5" />
+      <rect x="246" y="192" width="16" height="12" rx="1" fill="#d4a574" opacity="0.6" />
+      <rect x="266" y="176" width="10" height="28" rx="1" fill="#e8c4a0" opacity="0.5" />
+    </g>
+
+    <!-- 全息舞台 (热区: hologram_stage@550,250) -->
+    <g>
+      <rect x="520" y="230" width="60" height="40" rx="6" fill="none" stroke="#4fc3f7" stroke-width="1" opacity="0.5">
+        <animate attributeName="opacity" values="0.3;0.6;0.3" dur="3s" repeatCount="indefinite" />
+      </rect>
+      <!-- 皮影剪影 -->
+      <g fill="#4fc3f7" opacity="0.4">
+        <ellipse cx="540" cy="248" rx="4" ry="6" />
+        <rect x="538" y="254" width="4" height="10" rx="1" />
+        <ellipse cx="560" cy="246" rx="4" ry="6" />
+        <rect x="558" y="252" width="4" height="10" rx="1" />
+      </g>
+    </g>
   </svg>
 
   <!-- 1990年 深圳火车站 -->
@@ -582,6 +685,37 @@ defineProps<{
     <!-- 条幅 -->
     <rect x="250" y="270" width="300" height="8" rx="2" fill="#cc0000" opacity="0.7" />
     <text x="400" y="277" text-anchor="middle" fill="#ffd700" font-size="6" font-family="sans-serif">时间就是金钱 效率就是生命</text>
+
+    <!-- 火车票 (热区: train_ticket@350,350) -->
+    <g>
+      <rect x="335" y="345" width="30" height="18" rx="2" fill="#f5f5dc" transform="rotate(-8 350 354)" />
+      <line x1="340" y1="350" x2="360" y2="350" stroke="#cc3300" stroke-width="0.5" />
+      <text x="350" y="358" text-anchor="middle" fill="#333" font-size="4">西安→深圳</text>
+    </g>
+
+    <!-- 皮影木箱 (热区: puppet_trunk@600,380) -->
+    <g>
+      <rect x="580" y="370" width="40" height="25" rx="3" fill="#6b4226" stroke="#8b6914" stroke-width="1" />
+      <rect x="588" y="366" width="24" height="6" rx="2" fill="#8b6914" />
+      <circle cx="600" cy="382" r="2" fill="#ffd700" opacity="0.5" />
+      <!-- 皮影人偶探出 -->
+      <ellipse cx="610" cy="368" rx="3" ry="5" fill="#2a1a0a" opacity="0.6" />
+    </g>
+
+    <!-- 告别信 (热区: farewell_letter@150,380) -->
+    <g>
+      <rect x="140" y="375" width="20" height="14" rx="1" fill="#f5f0e0" transform="rotate(-5 150 382)" />
+      <line x1="144" y1="380" x2="156" y2="380" stroke="#8b6914" stroke-width="0.3" />
+      <line x1="144" y1="383" x2="152" y2="383" stroke="#8b6914" stroke-width="0.3" />
+    </g>
+
+    <!-- 陌生人 (热区: stranger@700,380) -->
+    <g>
+      <ellipse cx="700" cy="375" rx="6" ry="10" fill="#4a4a5e" />
+      <rect x="696" y="385" width="8" height="14" rx="2" fill="#5a5a6e" />
+      <!-- 夹克 -->
+      <rect x="694" y="386" width="12" height="8" rx="1" fill="#6b5b45" />
+    </g>
   </svg>
 
   <!-- 默认场景 -->
