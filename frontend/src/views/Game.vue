@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useGameState } from '../composables/useGameState'
 import { useTypewriter } from '../composables/useTypewriter'
 import { useAudio } from '../composables/useAudio'
