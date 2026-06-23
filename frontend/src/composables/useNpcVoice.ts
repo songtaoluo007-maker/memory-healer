@@ -24,6 +24,7 @@ function cleanText(text: string): string {
     .replace(/\{[^}]*\}/g, '')
     .replace(/\[[^\]]*\]/g, '')
     .replace(/[{}"\[\]]/g, '')
+    .replace(/[a-zA-Z_]{10,}/g, '')       // 去长英文单词（代码残留）
     .replace(/\s+/g, ' ')
     .replace(/。{2,}/g, '。')
     .trim()

@@ -253,18 +253,23 @@ def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
         # 解析JSON提取回复
         reply_text, fragment_revealed, trust_change, npc_mood, inner_thought = _parse_json_response(full_content)
 
-        # 兜底：如果解析失败，尝试用正则从原始内容提取对话文本
-        if not reply_text or any(kw in reply_text for kw in ['ragment', 'rust_delta', 'otion', 'ner_thought']):
-            # 最后手段：取第一个引号对内的内容
+        # 兜底：如果解析失败，用正则只从reply/content/message字段提取
+        if not reply_text or any(kw in reply_text for kw in ['ragment', 'rust_delta', 'otion', 'ner_thought', '"reply"', '"content"', '"message"']):
             import re as _re
-            m = _re.search(r'"(?:reply|content|message)"\s*:\s*"((?:[^"\\]|\\.)*)"', full_content)
-            if m:
-                reply_text = m.group(1).replace('\\"', '"').replace('\\n', '\n').strip()
-            else:
-                # 取第一个{到第一个}之间的"xxx"值
-                m2 = _re.search(r'"([^"]{5,})"', full_content)
+            # 只匹配reply/content/message字段的值
+            for _field in ['reply', 'content', 'message']:
+                m = _re.search(rf'"{_field}"\s*:\s*"((?:[^"\\]|\\.)*)"', full_content)
+                if m:
+                    candidate = m.group(1).replace('\\"', '"').replace('\\n', '\n').strip()
+                    # 过滤掉看起来像JSON键名的内容
+                    if len(candidate) > 3 and not candidate.isascii():
+                        reply_text = candidate
+                        break
+            # 最终兜底：取中文句子
+            if not reply_text:
+                m2 = _re.search(r'[\u4e00-\u9fff][^{}"]{5,}[。！？]', full_content)
                 if m2:
-                    reply_text = m2.group(1)
+                    reply_text = m2.group(0)
 
         if not reply_text:
             reply_text = "..."
