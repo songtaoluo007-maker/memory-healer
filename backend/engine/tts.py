@@ -87,6 +87,13 @@ DEFAULT_VOICE = {
 def _clean_text(text: str) -> str:
     """清洗文本，去除JSON残留和特殊字符"""
     import re
+    # 如果文本包含JSON结构，先提取reply/content/message字段的值
+    if '{' in text and '"' in text:
+        for field in ['reply', 'content', 'message']:
+            m = re.search(rf'"{field}"\s*:\s*"((?:[^"\\]|\\.)*)"', text)
+            if m:
+                text = m.group(1).replace('\\"', '"').replace('\\n', '\n')
+                break
     text = re.sub(r'\{[^}]*\}', '', text)
     text = re.sub(r'\[[^\]]*\]', '', text)
     text = re.sub(r'[{}"\[\]]', '', text)
@@ -108,6 +115,13 @@ async def generate_tts(text: str, npc_id: str) -> str | None:
     """
     cleaned = _clean_text(text)
     if not cleaned or len(cleaned) < 2:
+        return None
+
+    # 最终校验：如果还包含JSON键名，不生成
+    json_keys = ['reply', 'content', 'message', 'fragment', 'emotion', 'trust_delta', 'inner_thought']
+    lower = cleaned.lower()
+    if any(f'"{k}"' in lower for k in json_keys):
+        print(f"[TTS] 拒绝朗读（含JSON键名）: {cleaned[:80]}")
         return None
 
     filename = _make_filename(cleaned, npc_id)
