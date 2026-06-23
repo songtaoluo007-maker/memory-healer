@@ -29,22 +29,22 @@ const fragmentLinks: Array<{ from: string; to: string; label: string }> = [
   { from: 'puppet_box', to: 'hologram', label: '时光回响' },
 ]
 
-// 碎片位置布局（按年代分层）
+// 碎片位置布局（按年代分层，增加间距避免文字重叠）
 const fragmentPositions: Record<string, { x: number; y: number; scene: string }> = {
   // 1972年 (左)
   puppet_stage: { x: 80, y: 80, scene: 'scene_1972' },
-  carving_knife: { x: 80, y: 180, scene: 'scene_1972' },
-  opera_three_kingdoms: { x: 80, y: 280, scene: 'scene_1972' },
-  alley_memory: { x: 180, y: 130, scene: 'scene_1972' },
+  carving_knife: { x: 80, y: 200, scene: 'scene_1972' },
+  opera_three_kingdoms: { x: 80, y: 320, scene: 'scene_1972' },
+  alley_memory: { x: 190, y: 140, scene: 'scene_1972' },
   // 2024年 (中)
-  old_photos: { x: 320, y: 80, scene: 'scene_2024' },
-  repair_tools: { x: 320, y: 180, scene: 'scene_2024' },
-  puppet_box: { x: 320, y: 280, scene: 'scene_2024' },
-  xiaoyu_letter: { x: 420, y: 130, scene: 'scene_2024' },
+  old_photos: { x: 340, y: 80, scene: 'scene_2024' },
+  repair_tools: { x: 340, y: 200, scene: 'scene_2024' },
+  puppet_box: { x: 340, y: 320, scene: 'scene_2024' },
+  xiaoyu_letter: { x: 450, y: 140, scene: 'scene_2024' },
   // 2089年 (右)
-  memory_data: { x: 560, y: 80, scene: 'scene_2089' },
-  quantum_state: { x: 560, y: 180, scene: 'scene_2089' },
-  hologram: { x: 560, y: 280, scene: 'scene_2089' },
+  memory_data: { x: 570, y: 80, scene: 'scene_2089' },
+  quantum_state: { x: 570, y: 200, scene: 'scene_2089' },
+  hologram: { x: 570, y: 320, scene: 'scene_2089' },
 }
 
 // 年代标签
@@ -111,7 +111,7 @@ const stats = computed(() => {
       </div>
     </div>
 
-    <svg viewBox="0 0 680 360" class="graph-svg">
+    <svg viewBox="0 0 680 400" class="graph-svg">
       <defs>
         <!-- 发光滤镜 -->
         <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
@@ -138,9 +138,9 @@ const stats = computed(() => {
       </defs>
 
       <!-- 年代背景 -->
-      <rect x="20" y="30" width="200" height="300" rx="8" fill="url(#grad-1972)" />
-      <rect x="260" y="30" width="200" height="300" rx="8" fill="url(#grad-2024)" />
-      <rect x="500" y="30" width="160" height="300" rx="8" fill="url(#grad-2089)" />
+      <rect x="20" y="30" width="220" height="340" rx="8" fill="url(#grad-1972)" />
+      <rect x="270" y="30" width="220" height="340" rx="8" fill="url(#grad-2024)" />
+      <rect x="520" y="30" width="140" height="340" rx="8" fill="url(#grad-2089)" />
 
       <!-- 年代标签 -->
       <text x="120" y="55" text-anchor="middle" font-size="14" :fill="sceneLabels.scene_1972.color" font-weight="bold">1972 西安</text>
@@ -159,13 +159,13 @@ const stats = computed(() => {
           :stroke-dasharray="link.locked ? '5,5' : 'none'"
           :opacity="link.locked ? 0.4 : 0.8"
         />
-        <!-- 链接标签 -->
+        <!-- 链接标签（偏移避免重叠） -->
         <text
-          :x="(link.fromPos.x + link.toPos.x) / 2"
-          :y="(link.fromPos.y + link.toPos.y) / 2 - 8"
+          :x="(link.fromPos.x + link.toPos.x) / 2 + (link.fromPos.y === link.toPos.y ? 0 : 12)"
+          :y="(link.fromPos.y + link.toPos.y) / 2 - 12"
           text-anchor="middle"
-          font-size="10"
-          :fill="link.active ? '#4ade80' : 'rgba(150,150,150,0.5)'"
+          font-size="9"
+          :fill="link.active ? '#4ade80' : 'rgba(150,150,150,0.4)'"
         >
           {{ link.label }}
         </text>
@@ -196,15 +196,15 @@ const stats = computed(() => {
           {{ node.collected ? '✦' : node.revealed ? '◯' : '?' }}
         </text>
 
-        <!-- 节点名称 -->
+        <!-- 节点名称（用缩略名，避免重叠） -->
         <text
           :x="node.x"
-          :y="node.y + 38"
+          :y="node.y + 42"
           text-anchor="middle"
-          font-size="10"
+          font-size="9"
           :fill="node.collected ? '#e0e0ff' : 'rgba(150,150,150,0.5)'"
         >
-          {{ node.name.length > 6 ? node.name.substring(0, 6) + '..' : node.name }}
+          {{ node.name.length > 4 ? node.name.substring(0, 4) + '..' : node.name }}
         </text>
       </g>
     </svg>

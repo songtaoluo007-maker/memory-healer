@@ -25,8 +25,8 @@ const skip = () => {
     <!-- Phase 0: 黑屏 -->
     <div v-if="phase === 0" class="black-screen" />
 
-    <!-- Phase 1: 标题 -->
-    <div v-if="phase >= 1 && phase < 3" class="title-screen">
+    <!-- Phase 1: 标题（Phase 2 时上移淡出） -->
+    <div v-if="phase >= 1" class="title-screen" :class="{ 'title-move-up': phase >= 2 }">
       <div class="title-icon">🧠</div>
       <h1 class="title">拾 忆</h1>
       <p class="subtitle">Memory Healer</p>
@@ -96,9 +96,16 @@ const skip = () => {
 
 .title-screen {
   position: absolute;
-  top: 30%;
+  top: 35%;
   text-align: center;
   animation: fadeInUp 2s ease-out;
+  transition: all 1.2s ease-in-out;
+}
+
+.title-screen.title-move-up {
+  top: 10%;
+  opacity: 0.6;
+  transform: scale(0.85);
 }
 
 .title-icon {
@@ -125,7 +132,7 @@ const skip = () => {
 
 .story-text {
   position: absolute;
-  top: 35%;
+  top: 45%;
   text-align: center;
   padding: 0 40px;
 }
