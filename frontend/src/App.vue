@@ -9,11 +9,13 @@ const Intro = defineAsyncComponent(() => import('./views/Intro.vue'))
 const Game = defineAsyncComponent(() => import('./views/Game.vue'))
 const Ending = defineAsyncComponent(() => import('./views/Ending.vue'))
 const Saves = defineAsyncComponent(() => import('./views/Saves.vue'))
+const AuthDialog = defineAsyncComponent(() => import('./components/AuthDialog.vue'))
 
 type View = 'home' | 'intro' | 'game' | 'ending'
 
 const currentView = ref<View>('home')
 const showSaves = ref(false)
+const showAuth = ref(false)
 const endingType = ref<EndingType>('hope')
 const loadSlotId = ref<number | null>(null)
 const globalError = ref<string | null>(null)
@@ -22,10 +24,9 @@ const globalError = ref<string | null>(null)
 onErrorCaptured((err, instance, info) => {
   console.error('[拾忆错误]', err, info)
   globalError.value = err.message || '发生了未知错误'
-  return false // 阻止错误向上传播
+  return false
 })
 
-// Web Vitals 性能监控
 useWebVitals()
 
 const clearError = () => {
@@ -60,6 +61,8 @@ const restart = () => {
   loadSlotId.value = null
   currentView.value = 'home'
 }
+
+const showProfile = ref(false)
 </script>
 
 <template>
@@ -78,7 +81,7 @@ const restart = () => {
     <Intro v-if="currentView === 'intro'" @complete="introComplete" />
 
     <!-- 主菜单 -->
-    <Home v-if="currentView === 'home'" @start="startGame" @load="loadGame" />
+    <Home v-if="currentView === 'home'" @start="startGame" @load="loadGame" @auth="showAuth = true" />
 
     <!-- 游戏主界面 -->
     <Game v-if="currentView === 'game'" :load-slot-id="loadSlotId" @ending="onEnding" />
@@ -86,8 +89,11 @@ const restart = () => {
     <!-- 结局 -->
     <Ending v-if="currentView === 'ending'" :ending-type="endingType" @restart="restart" />
 
-    <!-- 存档管理弹窗 -->
+    <!-- 存档弹窗 -->
     <Saves v-if="showSaves" @load="loadFromSlot" @close="showSaves = false" />
+
+    <!-- 登录/注册 -->
+    <AuthDialog v-if="showAuth" @success="showAuth = false" @cancel="showAuth = false" />
   </div>
 </template>
 

@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from '../composables/useI18n'
 
 const emit = defineEmits<{
   start: []
   load: []
+  auth: []
 }>()
 
 const { t, lang, toggleLang } = useI18n()
 const showMenu = ref(true)
+
+// 从localStorage读取用户信息
+const userInfo = computed(() => {
+  const auth = localStorage.getItem('mh_auth')
+  if (!auth) return null
+  try { return JSON.parse(auth).user } catch { return null }
+})
 </script>
 
 <template>
@@ -39,12 +47,16 @@ const showMenu = ref(true)
           <span class="btn-icon">📂</span>
           读取存档
         </button>
+        <button class="btn btn-auth" @click="emit('auth')">
+          <span class="btn-icon">{{ userInfo ? '👤' : '🔑' }}</span>
+          {{ userInfo ? userInfo.nickname : '登录' }}
+        </button>
       </div>
 
       <div class="footer" role="contentinfo">
         <p>腾讯云黑客松 · AI叙事游戏</p>
         <p class="tech">Powered by DeepSeek · Vue 3 · FastAPI</p>
-        <p class="version">v1.0.0 · P12</p>
+        <p class="version">v1.0.0</p>
       </div>
     </div>
   </div>
@@ -134,7 +146,7 @@ const showMenu = ref(true)
 .menu {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   align-items: center;
 }
 
@@ -173,6 +185,20 @@ const showMenu = ref(true)
 .btn-secondary:hover {
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(100, 150, 255, 0.4);
+}
+
+.btn-auth {
+  background: rgba(201, 164, 74, 0.1);
+  color: rgba(201, 164, 74, 0.7);
+  border: 1px solid rgba(201, 164, 74, 0.2);
+  min-width: 200px;
+  font-size: 14px;
+}
+
+.btn-auth:hover {
+  background: rgba(201, 164, 74, 0.18);
+  color: #c9a44a;
+  border-color: rgba(201, 164, 74, 0.4);
 }
 
 .btn-icon {

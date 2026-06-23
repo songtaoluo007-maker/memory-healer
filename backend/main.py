@@ -19,6 +19,7 @@ from backend.database import init_db
 from backend.api.dialogue import router as dialogue_router
 from backend.api.scene import router as scene_router
 from backend.api.save import router as save_router
+from backend.api.auth import router as auth_router
 from backend.config import settings
 
 
@@ -121,6 +122,7 @@ async def log_requests(request: Request, call_next):
 app.include_router(dialogue_router)
 app.include_router(scene_router)
 app.include_router(save_router)
+app.include_router(auth_router)
 
 
 @app.get("/api/health", tags=["health"])

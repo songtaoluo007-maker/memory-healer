@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+/**
+ * 存档管理 — 10槽位存档/读档面板
+ * 皮影戏风格卷轴式
+ */
+import { ref, onMounted, computed } from 'vue'
 import { listSaves, deleteSave } from '../api'
 import { useI18n } from '../composables/useI18n'
 import type { SaveSlot } from '../types/game'
+
+const MAX_SLOTS = 10
 
 const emit = defineEmits<{
   load: [slotId: number]
@@ -14,6 +20,11 @@ const saves = ref<SaveSlot[]>([])
 const loading = ref(true)
 
 onMounted(async () => {
+  await refreshSaves()
+})
+
+async function refreshSaves() {
+  loading.value = true
   try {
     const res = await listSaves()
     saves.value = res.data.saves || []
@@ -22,6 +33,16 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+}
+
+// 合并所有10个槽位
+const allSlots = computed(() => {
+  const slots: Array<{ slot_id: number; slot: SaveSlot | null }> = []
+  for (let i = 0; i <= MAX_SLOTS; i++) {
+    const found = saves.value.find(s => s.slot_id === i) || null
+    slots.push({ slot_id: i, slot: found })
+  }
+  return slots
 })
 
 const loadSlot = (slotId: number) => {
@@ -39,9 +60,10 @@ const deleteSlot = async (slotId: number) => {
 }
 
 const formatTime = (seconds: number) => {
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${m}:${String(s).padStart(2, '0')}`
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  if (h > 0) return `${h}h${m}m`
+  return `${m}:${String(seconds % 60).padStart(2, '0')}`
 }
 
 const getSceneName = (sceneId: string) => {
@@ -49,48 +71,85 @@ const getSceneName = (sceneId: string) => {
     scene_1972: '1972 · 西安老巷',
     scene_2024: '2024 · 深圳城中村',
     scene_2089: '2089 · 拾忆实验室',
+    scene_1990: '1990 · 深圳火车站',
+    scene_2050: '2050 · 北京颁奖典礼',
   }
-  return names[sceneId] || sceneId
+  return names[sceneId] || sceneId || '未知'
+}
+
+const slotLabel = (slotId: number) => {
+  if (slotId === 0) return '自动存档'
+  return `存档位 ${slotId}`
 }
 </script>
 
 <template>
   <div class="save-overlay" @click.self="emit('close')" role="dialog" aria-label="存档管理" aria-modal="true">
-    <div class="save-panel">
-      <div class="save-header">
-        <h2>📂 存档管理</h2>
-        <button class="btn-close" @click="emit('close')">✕</button>
+    <div class="save-scroll">
+      <div class="scrl-top">
+        <div class="rod"></div>
+        <div class="orn">存</div>
+        <div class="rod"></div>
       </div>
 
-      <div class="save-list" v-if="!loading">
-        <div v-if="saves.length === 0" class="empty-saves">
-          <p>暂无存档</p>
-          <p class="hint">游戏过程中会自动创建存档</p>
+      <div class="save-body">
+        <h2 class="save-title">存档管理</h2>
+        <p class="save-sub">选择一个存档位读取</p>
+
+        <div v-if="loading" class="loading-state">
+          <div class="spinner" />
+          <p>加载中...</p>
         </div>
-        <div
-          v-for="save in saves"
-          :key="save.slot_id"
-          class="save-card"
-        >
-          <div class="save-info">
-            <div class="save-name">{{ save.slot_name }}</div>
-            <div class="save-meta">
-              <span class="save-scene">{{ getSceneName(save.scene_id) }}</span>
-              <span class="save-time">⏱ {{ formatTime(save.play_time) }}</span>
+
+        <div v-else class="slot-list">
+          <div
+            v-for="{ slot_id, slot } in allSlots"
+            :key="slot_id"
+            class="slot-card"
+            :class="{ filled: !!slot, auto: slot_id === 0 }"
+          >
+            <div class="slot-header">
+              <span class="slot-label">{{ slotLabel(slot_id) }}</span>
+              <span v-if="slot" class="slot-scene">{{ getSceneName(slot.scene_id) }}</span>
             </div>
-            <div class="save-date">{{ new Date(save.updated_at).toLocaleString('zh-CN') }}</div>
-          </div>
-          <div class="save-actions">
-            <button class="btn-load" @click="loadSlot(save.slot_id)">读取</button>
-            <button class="btn-delete" @click="deleteSlot(save.slot_id)">删除</button>
+
+            <div v-if="slot" class="slot-info">
+              <div class="slot-name">{{ slot.slot_name || '未命名存档' }}</div>
+              <div class="slot-meta">
+                <span>⏱ {{ formatTime(slot.play_time) }}</span>
+                <span>{{ new Date(slot.updated_at).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }}</span>
+              </div>
+            </div>
+
+            <div v-else class="slot-empty">
+              <span>空</span>
+            </div>
+
+            <div class="slot-actions">
+              <button
+                v-if="slot"
+                class="act-btn load-btn"
+                @click="loadSlot(slot_id)"
+              >
+                读取
+              </button>
+              <button
+                v-if="slot"
+                class="act-btn del-btn"
+                @click="deleteSlot(slot_id)"
+              >
+                删除
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div v-else class="loading-state">
-        <div class="spinner" />
-        <p>加载存档...</p>
+      <div class="scrl-top">
+        <div class="rod"></div>
       </div>
+
+      <button class="close-btn" @click="emit('close')">✕</button>
     </div>
   </div>
 </template>
@@ -99,138 +158,182 @@ const getSceneName = (sceneId: string) => {
 .save-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8);
+  z-index: 200;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
-  backdrop-filter: blur(6px);
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
 }
 
-.save-panel {
-  width: 520px;
-  max-height: 70vh;
-  background: linear-gradient(135deg, #1a1a3e, #2a2a5e);
-  border: 1px solid rgba(100, 150, 255, 0.25);
-  border-radius: 16px;
+.save-scroll {
+  width: 500px;
+  max-width: 94vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: linear-gradient(160deg, #120f1a, #1a1525);
+  border: 1px solid rgba(255,180,60,0.2);
+  border-radius: 14px;
+  position: relative;
+  animation: unfurl 0.4s ease;
+}
+
+@keyframes unfurl {
+  from { transform: scaleY(0.9); opacity: 0; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+
+.scrl-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+}
+
+.rod {
+  flex: 1;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #c9a44a, transparent);
+  border-radius: 2px;
+}
+
+.orn {
+  width: 28px; height: 28px;
+  border: 2px solid #c9a44a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffd700;
+  font-size: 12px;
+  font-family: 'Noto Serif SC', serif;
+}
+
+.save-body {
+  padding: 16px 20px 20px;
+}
+
+.save-title {
+  font-size: 20px;
+  color: #e0d8c8;
+  font-family: 'Noto Serif SC', serif;
+  margin: 0 0 4px;
+}
+
+.save-sub {
+  font-size: 13px;
+  color: #6a6070;
+  margin: 0 0 16px;
+}
+
+.slot-list {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-}
-
-.save-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(100, 150, 255, 0.15);
-}
-
-.save-header h2 {
-  margin: 0;
-  font-size: 20px;
-  color: #e0e0ff;
-}
-
-.btn-close {
-  background: none;
-  border: none;
-  color: rgba(150, 170, 220, 0.6);
-  font-size: 20px;
-  cursor: pointer;
-  padding: 4px;
-}
-
-.btn-close:hover {
-  color: #e0e0ff;
-}
-
-.save-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 20px;
-}
-
-.empty-saves {
-  text-align: center;
-  padding: 40px 0;
-  color: rgba(150, 170, 220, 0.5);
-}
-
-.empty-saves .hint {
-  font-size: 13px;
-  margin-top: 8px;
-  color: rgba(150, 170, 220, 0.3);
-}
-
-.save-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(100, 150, 255, 0.1);
-  margin-bottom: 10px;
-  transition: all 0.2s;
-}
-
-.save-card:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(100, 150, 255, 0.2);
-}
-
-.save-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: #e0e0ff;
-  margin-bottom: 4px;
-}
-
-.save-meta {
-  display: flex;
-  gap: 12px;
-  font-size: 12px;
-  color: rgba(150, 170, 220, 0.6);
-  margin-bottom: 2px;
-}
-
-.save-date {
-  font-size: 11px;
-  color: rgba(150, 170, 220, 0.35);
-}
-
-.save-actions {
-  display: flex;
   gap: 8px;
 }
 
-.btn-load, .btn-delete {
-  padding: 6px 16px;
-  border-radius: 6px;
-  border: none;
+.slot-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+
+.slot-card.filled {
+  border-color: rgba(255,180,60,0.15);
+  background: rgba(255,180,60,0.03);
+}
+
+.slot-card.auto {
+  border-style: dashed;
+}
+
+.slot-card:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,180,60,0.2);
+}
+
+.slot-header {
+  min-width: 70px;
+}
+
+.slot-label {
+  display: block;
+  font-size: 12px;
+  color: #c0b8d0;
+  font-weight: 600;
+}
+
+.slot-scene {
+  display: block;
+  font-size: 10px;
+  color: #6a6070;
+  margin-top: 2px;
+}
+
+.slot-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.slot-name {
   font-size: 13px;
+  color: #e0d8c8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slot-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: #6a6070;
+  margin-top: 2px;
+}
+
+.slot-empty {
+  flex: 1;
+  font-size: 12px;
+  color: #3a3040;
+}
+
+.slot-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.act-btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
   cursor: pointer;
   font-family: 'Noto Serif SC', serif;
   transition: all 0.2s;
 }
 
-.btn-load {
-  background: rgba(58, 95, 205, 0.4);
-  color: #e0e0ff;
+.load-btn {
+  background: rgba(201,164,74,0.2);
+  color: #c9a44a;
 }
 
-.btn-load:hover {
-  background: rgba(58, 95, 205, 0.6);
+.load-btn:hover {
+  background: rgba(201,164,74,0.3);
 }
 
-.btn-delete {
-  background: rgba(255, 80, 80, 0.15);
-  color: rgba(255, 120, 120, 0.7);
+.del-btn {
+  background: rgba(255,80,80,0.1);
+  color: rgba(255,120,120,0.6);
 }
 
-.btn-delete:hover {
-  background: rgba(255, 80, 80, 0.3);
+.del-btn:hover {
+  background: rgba(255,80,80,0.2);
   color: #ff7878;
 }
 
@@ -238,22 +341,39 @@ const getSceneName = (sceneId: string) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 60px 0;
-  color: rgba(150, 170, 220, 0.5);
+  padding: 40px 0;
+  color: #6a6070;
 }
 
 .spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid rgba(100, 150, 255, 0.2);
-  border-top-color: #60a5fa;
+  width: 28px; height: 28px;
+  border: 3px solid rgba(201,164,74,0.15);
+  border-top-color: #c9a44a;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 12px;
+  animation: spin 0.7s linear infinite;
+  margin-bottom: 10px;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 26px; height: 26px;
+  border: none;
+  background: rgba(255,255,255,0.04);
+  border-radius: 50%;
+  color: #6a6070;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: #e0d8c8;
 }
 </style>

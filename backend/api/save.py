@@ -1,23 +1,16 @@
-"""存档API"""
+"""存档API（用户隔离版）"""
 import json
 import hashlib
 import time
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, validator
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.save import SaveSlot
+from backend.models.user import User
+from backend.api.auth import get_current_user, require_user
 
 router = APIRouter(prefix="/api/save", tags=["save"])
-
-# 会话token存储（内存级，重启清除）
-_session_tokens: dict[int, str] = {}
-
-
-def _generate_token(slot_id: int, timestamp: int) -> str:
-    """生成会话token"""
-    raw = f"mh_save_{slot_id}_{timestamp}"
-    return hashlib.md5(raw.encode()).hexdigest()[:16]
 
 
 class SaveRequest(BaseModel):
@@ -26,7 +19,6 @@ class SaveRequest(BaseModel):
     game_state: dict
     scene_id: str = ""
     play_time: int = 0
-    session_token: str = ""
 
     @validator('slot_id')
     def validate_slot_id(cls, v):
@@ -48,19 +40,27 @@ class SaveRequest(BaseModel):
 
     @validator('play_time')
     def validate_play_time(cls, v):
-        if v < 0 or v > 86400:  # 最多24小时
+        if v < 0 or v > 86400:
             raise ValueError('游戏时间无效')
         return v
 
 
+def _user_query(db: Session, user_id: int | None, slot_id: int):
+    """根据user_id查询存档"""
+    q = db.query(SaveSlot).filter(SaveSlot.slot_id == slot_id)
+    if user_id is not None:
+        q = q.filter(SaveSlot.user_id == user_id)
+    else:
+        q = q.filter(SaveSlot.user_id.is_(None))
+    return q.first()
+
+
 @router.post("/save")
-def save_game(req: SaveRequest, db: Session = Depends(get_db)):
-    """保存游戏（需要会话token）"""
-    # 自动存档(slot_id=0)不需要token
-    if req.slot_id != 0:
-        expected = _session_tokens.get(req.slot_id)
-        if expected and req.session_token != expected:
-            raise HTTPException(status_code=403, detail="存档token无效")
+def save_game(req: SaveRequest, user: User | None = Depends(get_current_user), db: Session = Depends(get_db)):
+    """保存游戏"""
+    user_id = user.id if user else None
+    existing = _user_query(db, user_id, req.slot_id)
+
     if existing:
         existing.slot_name = req.slot_name
         existing.game_state = json.dumps(req.game_state, ensure_ascii=False)
@@ -68,6 +68,7 @@ def save_game(req: SaveRequest, db: Session = Depends(get_db)):
         existing.play_time = req.play_time
     else:
         slot = SaveSlot(
+            user_id=user_id,
             slot_id=req.slot_id,
             slot_name=req.slot_name,
             game_state=json.dumps(req.game_state, ensure_ascii=False),
@@ -79,23 +80,15 @@ def save_game(req: SaveRequest, db: Session = Depends(get_db)):
     return {"success": True}
 
 
-@router.get("/token/{slot_id}")
-def get_save_token(slot_id: int):
-    """获取存档会话token"""
-    timestamp = int(time.time() * 1000)
-    token = _generate_token(slot_id, timestamp)
-    _session_tokens[slot_id] = token
-    return {"token": token}
-
-
 class LoadRequest(BaseModel):
     slot_id: int
 
 
 @router.post("/load")
-def load_game(req: LoadRequest, db: Session = Depends(get_db)):
+def load_game(req: LoadRequest, user: User | None = Depends(get_current_user), db: Session = Depends(get_db)):
     """读取存档"""
-    slot = db.query(SaveSlot).filter(SaveSlot.slot_id == req.slot_id).first()
+    user_id = user.id if user else None
+    slot = _user_query(db, user_id, req.slot_id)
     if not slot:
         return {"error": "存档不存在"}
     return {
@@ -109,9 +102,15 @@ def load_game(req: LoadRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/list")
-def list_saves(db: Session = Depends(get_db)):
-    """获取所有存档"""
-    slots = db.query(SaveSlot).order_by(SaveSlot.slot_id).all()
+def list_saves(user: User | None = Depends(get_current_user), db: Session = Depends(get_db)):
+    """获取当前用户的所有存档"""
+    user_id = user.id if user else None
+    q = db.query(SaveSlot)
+    if user_id is not None:
+        q = q.filter(SaveSlot.user_id == user_id)
+    else:
+        q = q.filter(SaveSlot.user_id.is_(None))
+    slots = q.order_by(SaveSlot.slot_id).all()
     return {
         "saves": [
             {
@@ -127,9 +126,10 @@ def list_saves(db: Session = Depends(get_db)):
 
 
 @router.delete("/delete/{slot_id}")
-def delete_save(slot_id: int, db: Session = Depends(get_db)):
+def delete_save(slot_id: int, user: User | None = Depends(get_current_user), db: Session = Depends(get_db)):
     """删除存档"""
-    slot = db.query(SaveSlot).filter(SaveSlot.slot_id == slot_id).first()
+    user_id = user.id if user else None
+    slot = _user_query(db, user_id, slot_id)
     if slot:
         db.delete(slot)
         db.commit()

@@ -1,5 +1,5 @@
 """存档模型"""
-from sqlalchemy import Column, Integer, String, Text, DateTime
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from datetime import datetime, timezone
 from backend.database import Base
 
@@ -12,7 +12,8 @@ class SaveSlot(Base):
     __tablename__ = "save_slots"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    slot_id = Column(Integer, nullable=False, unique=True)  # 1-5
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # 用户关联
+    slot_id = Column(Integer, nullable=False)  # 1-10 (per user)
     slot_name = Column(String(100), default="")
     game_state = Column(Text, nullable=False)  # JSON
     scene_id = Column(String(50), default="")

@@ -13,11 +13,38 @@ const api = axios.create({
   timeout: 60000,
 })
 
-// 对话
+// 请求拦截器 — 自动附加JWT token
+api.interceptors.request.use((config) => {
+  const auth = localStorage.getItem('mh_auth')
+  if (auth) {
+    try {
+      const { token } = JSON.parse(auth)
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+    } catch {}
+  }
+  return config
+})
+
+// ── 认证 ──
+export const register = (username: string, password: string, nickname?: string) =>
+  api.post('/api/auth/register', { username, password, nickname })
+
+export const login = (username: string, password: string) =>
+  api.post('/api/auth/login', { username, password })
+
+export const getMe = () =>
+  api.get('/api/auth/me')
+
+export const updateProfile = (nickname?: string, avatar_url?: string) =>
+  api.put('/api/auth/profile', { nickname, avatar_url })
+
+// ── 对话 ──
 export const chatWithNpc = (data: DialogueRequest) =>
   api.post<DialogueResponse>('/api/dialogue/chat', data)
 
-// 场景
+// ── 场景 ──
 export const getSceneDetail = (sceneId: string, gameState: GameState) =>
   api.post<SceneDetail>('/api/scene/detail', { scene_id: sceneId, game_state: gameState })
 
@@ -27,7 +54,7 @@ export const advanceNarrative = (action: string, gameState: GameState) =>
 export const getInitialState = () =>
   api.get<GameState>('/api/scene/initial-state')
 
-// 存档
+// ── 存档 ──
 export const saveGame = (slotId: number, slotName: string, gameState: GameState, sceneId: string, playTime: number) =>
   api.post('/api/save/save', { slot_id: slotId, slot_name: slotName, game_state: gameState, scene_id: sceneId, play_time: playTime })
 
@@ -40,15 +67,15 @@ export const listSaves = () =>
 export const deleteSave = (slotId: number) =>
   api.delete(`/api/save/delete/${slotId}`)
 
-// 健康检查
+// ── 健康检查 ──
 export const healthCheck = () =>
   api.get<{ status: string; game: string; has_ai_key: boolean }>('/api/health')
 
-// 蝴蝶效应: 记录玩家选择
+// ── 蝴蝶效应: 记录玩家选择 ──
 export const recordChoice = (scene: string, choice: string, gameState: GameState) =>
   api.post('/api/dialogue/choice', { scene, choice, game_state: gameState })
 
-// SSE 流式对话（带重连）
+// ── SSE 流式对话（带重连）──
 export function chatWithNpcStream(
   data: DialogueRequest,
   onToken: (token: string) => void,
@@ -59,10 +86,20 @@ export function chatWithNpcStream(
   const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
   const controller = new AbortController()
 
+  // 获取token
+  let authToken = ''
+  const auth = localStorage.getItem('mh_auth')
+  if (auth) {
+    try { authToken = JSON.parse(auth).token || '' } catch {}
+  }
+
   const attempt = (retriesLeft: number) => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`
+
     fetch(`${baseURL}/api/dialogue/chat/stream`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(data),
       signal: controller.signal,
     }).then(async (res) => {
