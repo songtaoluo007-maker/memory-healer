@@ -6,6 +6,7 @@ import { useAudio } from '../composables/useAudio'
 import { chatWithNpcStream, getSceneDetail, advanceNarrative, saveGame, recordChoice } from '../api'
 import { useHotspots } from '../composables/useHotspots'
 import { useQuests } from '../composables/useQuests'
+import { useNpcVoice } from '../composables/useNpcVoice'
 import { useI18n } from '../composables/useI18n'
 import type { Hotspot } from '../composables/useHotspots'
 import type { Scene, NpcSummary, Fragment, ChatMessage, EndingType } from '../types/game'
@@ -68,6 +69,9 @@ const {
 } = useQuests(collectedFragments, revealedFragments, npcTrustRef, currentSceneId, dialogueHistoryRef)
 const showQuestPanel = ref(false)
 const showIntro = ref(true)  // 开场引导
+
+// NPC语音系统
+const { voiceEnabled, currentNpcId: speakingNpcId, speak: speakVoice, stop: stopVoice, toggleVoice } = useNpcVoice()
 
 // 记忆档案面板
 const showMemoryPanel = ref(false)
@@ -262,6 +266,8 @@ const sendMessage = async (text?: string) => {
         // 后端已保证reply干净，直接使用
         chatHistory.value[npcMsgIndex].content = data.reply
         addDialogue('npc', data.reply)
+        // NPC语音朗读
+        speakVoice(data.reply, selectedNpc.value!.id)
 
         if (data.trust_change !== 0) {
           updateTrust(selectedNpc.value!.id, data.trust_change)
@@ -427,6 +433,7 @@ watch(() => gameState.value?.current_scene, (newScene) => {
         <button class="lang-btn" @click="toggleLang" :title="lang === 'zh' ? 'Switch to English' : '切换到中文'" aria-label="语言切换">{{ lang === 'zh' ? 'EN' : '中' }}</button>
         <button class="icon-btn" @click="showMemoryPanel = true" title="记忆档案" aria-label="打开记忆档案">📜</button>
         <button class="icon-btn" @click="toggleMute" :title="isMuted ? '取消静音' : '静音'" :aria-label="isMuted ? '取消静音' : '静音'">{{ isMuted ? '🔇' : '🔊' }}</button>
+        <button class="icon-btn" :class="{ 'voice-active': voiceEnabled }" @click="toggleVoice" :title="voiceEnabled ? '关闭NPC语音' : '开启NPC语音'" :aria-label="voiceEnabled ? '关闭NPC语音' : '开启NPC语音'">{{ voiceEnabled ? '🗣️' : '🤐' }}</button>
         <div class="scene-nav" v-if="currentScene?.exits">
           <button
             v-for="(target, dir) in currentScene.exits"
@@ -701,6 +708,10 @@ watch(() => gameState.value?.current_scene, (newScene) => {
 .icon-btn:hover {
   background: rgba(232, 180, 80, 0.2);
   border-color: rgba(232, 180, 80, 0.4);
+}
+.icon-btn.voice-active {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: rgba(76, 175, 80, 0.4);
 }
 .scene-nav {
   display: flex;
