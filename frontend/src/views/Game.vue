@@ -140,6 +140,11 @@ const switchScene = async (targetScene: string) => {
   playSFX('scene_transition')
   sceneTransitioning.value = true
   gameState.value.current_scene = targetScene
+  // 记录已访问场景
+  if (!gameState.value.visited_scenes) gameState.value.visited_scenes = []
+  if (!gameState.value.visited_scenes.includes(targetScene)) {
+    gameState.value.visited_scenes.push(targetScene)
+  }
   selectedNpc.value = null
   chatHistory.value = []
   await autoSave()

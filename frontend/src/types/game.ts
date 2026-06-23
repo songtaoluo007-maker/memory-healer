@@ -61,6 +61,7 @@ export interface GameState {
   chapter: number
   ending: string | null
   butterfly_choices?: Record<string, string>
+  visited_scenes: string[]
 }
 
 export interface NpcSummary {

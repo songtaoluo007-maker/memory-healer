@@ -73,4 +73,5 @@ def create_initial_state() -> dict:
         "play_start_time": int(time.time() * 1000),
         "chapter": 1,
         "ending": None,
+        "visited_scenes": ["scene_1972"],
     }

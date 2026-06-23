@@ -70,6 +70,13 @@ export function useGameState() {
   const changeScene = (sceneId: string) => {
     if (!gameState.value) return
     gameState.value.current_scene = sceneId
+    // 记录已访问场景
+    if (!gameState.value.visited_scenes) {
+      gameState.value.visited_scenes = []
+    }
+    if (!gameState.value.visited_scenes.includes(sceneId)) {
+      gameState.value.visited_scenes.push(sceneId)
+    }
   }
 
   const collectedCount = computed(() => gameState.value?.collected_fragments.length || 0)
