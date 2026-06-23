@@ -236,26 +236,9 @@ const sendMessage = async (text?: string) => {
       },
       // onDone
       (data) => {
-        // 清理reply: 移除可能泄漏的JSON元数据
-        let cleanReply = data.reply || ''
-        // 如果reply包含JSON结构，只取第一个字段值
-        if (cleanReply.includes('"fragment"') || cleanReply.includes('"trust_delta"') || cleanReply.includes('"emotion"')) {
-          const match = cleanReply.match(/^\s*"?reply"?\s*:\s*"((?:[^"\\]|\\.)*)"/)
-          if (match) cleanReply = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n')
-          else {
-            // 尝试取第一个完整句子到JSON开始之前
-            const jsonStart = cleanReply.indexOf('{"')
-            if (jsonStart > 0) cleanReply = cleanReply.slice(0, jsonStart)
-            // 移除行尾的元数据标记
-            cleanReply = cleanReply.replace(/\s*[,"']\s*(fragment|trust_delta|emotion|inner_thought|rust_delta|otion|ner_thought).*$/s, '')
-          }
-        }
-        cleanReply = cleanReply.trim()
-        if (!cleanReply) cleanReply = data.reply || '[系统] 回复解析失败'
-
-        // 用后端解析后的干净文本替换流式拼接文本
-        chatHistory.value[npcMsgIndex].content = cleanReply
-        addDialogue('npc', cleanReply)
+        // 后端已保证reply干净，直接使用
+        chatHistory.value[npcMsgIndex].content = data.reply
+        addDialogue('npc', data.reply)
 
         if (data.trust_change !== 0) {
           updateTrust(selectedNpc.value!.id, data.trust_change)

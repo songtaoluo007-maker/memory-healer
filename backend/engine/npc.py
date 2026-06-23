@@ -243,70 +243,34 @@ def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
             stream=True,
         )
 
+        # 缓冲整个流，不做逐字符解析（AI返回的JSON格式不稳定）
         full_content = ""
-        reply_buffer = ""
-        # 状态机: 0=等待JSON 1=等待reply键 2=等待reply值引号 3=在reply值内 4=reply结束
-        state = 0
-        escape_next = False
-        # AI可能用reply/content/message等字段名
-        reply_keys = ['"reply"', '"content"', '"message"']
-        found_key = None
-
         for chunk in stream:
             delta = chunk.choices[0].delta
             if delta.content:
                 full_content += delta.content
-                for ch in delta.content:
-                    if escape_next:
-                        escape_next = False
-                        if state == 3:
-                            reply_buffer += ch
-                            yield {"type": "token", "content": ch}
-                        continue
-                    if ch == '\\':
-                        escape_next = True
-                        if state == 3:
-                            reply_buffer += ch
-                            yield {"type": "token", "content": ch}
-                        continue
-                    if state == 0:
-                        if ch == '{':
-                            state = 1
-                        continue
-                    if state == 1:
-                        # 查找任意reply键
-                        if not found_key:
-                            for key in reply_keys:
-                                idx = full_content.find(key)
-                                if idx >= 0:
-                                    after_key = full_content[idx + len(key):].lstrip()
-                                    if after_key.startswith(':'):
-                                        after_colon = after_key[1:].lstrip()
-                                        if after_colon.startswith('"'):
-                                            state = 3
-                                        elif after_colon:
-                                            state = 2
-                                        found_key = key
-                                        break
-                        continue
-                    if state == 2:
-                        if ch == '"':
-                            state = 3
-                        continue
-                    if state == 3:
-                        if ch == '"':
-                            state = 4
-                            continue
-                        reply_buffer += ch
-                        yield {"type": "token", "content": ch}
-                        continue
 
-        # 流结束，解析JSON元数据
+        # 解析JSON提取回复
         reply_text, fragment_revealed, trust_change, npc_mood, inner_thought = _parse_json_response(full_content)
 
-        # 优先用流式解析器已提取的干净reply_buffer
-        if reply_buffer:
-            reply_text = reply_buffer
+        # 兜底：如果解析失败，尝试用正则从原始内容提取对话文本
+        if not reply_text or any(kw in reply_text for kw in ['ragment', 'rust_delta', 'otion', 'ner_thought']):
+            # 最后手段：取第一个引号对内的内容
+            import re as _re
+            m = _re.search(r'"(?:reply|content|message)"\s*:\s*"((?:[^"\\]|\\.)*)"', full_content)
+            if m:
+                reply_text = m.group(1).replace('\\"', '"').replace('\\n', '\n').strip()
+            else:
+                # 取第一个{到第一个}之间的"xxx"值
+                m2 = _re.search(r'"([^"]{5,})"', full_content)
+                if m2:
+                    reply_text = m2.group(1)
+
+        if not reply_text:
+            reply_text = "..."
+
+        # 一次性发送完整回复（不用逐token流式，避免JSON元数据泄漏）
+        yield {"type": "token", "content": reply_text}
 
         # 情感状态机: 应用信任度乘数
         trust_multiplier = emotion_result["trust_multiplier"]
