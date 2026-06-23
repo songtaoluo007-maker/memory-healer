@@ -217,14 +217,60 @@ def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
         )
 
         full_content = ""
+        reply_buffer = ""
+        in_reply = False
+        json_started = False
+        escape_next = False
+
         for chunk in stream:
             delta = chunk.choices[0].delta
             if delta.content:
                 full_content += delta.content
-                yield {"type": "token", "content": delta.content}
+                # 流式提取reply字段内容
+                for ch in delta.content:
+                    if escape_next:
+                        escape_next = False
+                        if in_reply:
+                            reply_buffer += ch
+                            yield {"type": "token", "content": ch}
+                        continue
+                    if ch == '\\':
+                        escape_next = True
+                        if in_reply:
+                            reply_buffer += ch
+                            yield {"type": "token", "content": ch}
+                        continue
+                    if not json_started:
+                        if ch == '{':
+                            json_started = True
+                        continue
+                    if not in_reply:
+                        # 等待找到 "reply":" 字段
+                        if '"reply"' in full_content and ':' in full_content[full_content.index('"reply"'):]:
+                            # 检查是否到了reply值的开始引号
+                            reply_start = full_content.index('"reply"') + 7
+                            rest = full_content[reply_start:].lstrip()
+                            if rest.startswith(':'):
+                                rest = rest[1:].lstrip()
+                                if rest.startswith('"'):
+                                    in_reply = True
+                        continue
+                    else:
+                        # 在reply值内部
+                        if ch == '"':
+                            # 检查是否是reply值的结束引号（非转义）
+                            # 简单判断：遇到引号且后面是逗号或}
+                            in_reply = False
+                            continue
+                        reply_buffer += ch
+                        yield {"type": "token", "content": ch}
 
         # 流结束，解析JSON元数据
         reply_text, fragment_revealed, trust_change, npc_mood, inner_thought = _parse_json_response(full_content)
+
+        # 如果流式提取的reply文本与解析结果一致，用解析结果；否则用流式缓冲
+        if not reply_text:
+            reply_text = reply_buffer
 
         # 情感状态机: 应用信任度乘数
         trust_multiplier = emotion_result["trust_multiplier"]

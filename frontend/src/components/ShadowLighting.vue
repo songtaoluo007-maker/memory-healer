@@ -54,11 +54,11 @@ function drawFlame(ctx: CanvasRenderingContext2D, x: number, y: number, size: nu
   ctx.translate(x + sway, y)
 
   // 外层光晕
-  const glowRadius = size * (60 + flicker * 30)
+  const glowRadius = size * (100 + flicker * 50)
   const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, glowRadius)
-  glow.addColorStop(0, `rgba(255, 200, 80, ${0.12 * (props.intensity || 0.6)})`)
-  glow.addColorStop(0.3, `rgba(255, 160, 40, ${0.06 * (props.intensity || 0.6)})`)
-  glow.addColorStop(0.7, `rgba(255, 100, 20, ${0.02 * (props.intensity || 0.6)})`)
+  glow.addColorStop(0, `rgba(255, 200, 80, ${0.2 * (props.intensity || 0.6)})`)
+  glow.addColorStop(0.2, `rgba(255, 180, 60, ${0.12 * (props.intensity || 0.6)})`)
+  glow.addColorStop(0.5, `rgba(255, 120, 30, ${0.05 * (props.intensity || 0.6)})`)
   glow.addColorStop(1, 'transparent')
   ctx.fillStyle = glow
   ctx.fillRect(-glowRadius, -glowRadius, glowRadius * 2, glowRadius * 2)
@@ -134,7 +134,7 @@ function drawSilhouette(ctx: CanvasRenderingContext2D, x: number, y: number, sca
   ctx.lineTo(30, -15 + Math.cos(t * 1.3) * 3)
   ctx.lineTo(35, 0 + Math.cos(t * 1.6) * 2)
 
-  ctx.fillStyle = 'rgba(20, 15, 10, 0.35)'
+  ctx.fillStyle = 'rgba(20, 15, 10, 0.55)'
   ctx.fill()
 
   // 关节连接线（皮影特色）
@@ -191,8 +191,8 @@ function render() {
   const lightX = w * 0.5 + Math.sin(t * 0.7) * w * 0.1
   const lightY = h * 0.3 + Math.cos(t * 0.5) * h * 0.05
   const lightGrad = ctx.createRadialGradient(lightX, lightY, 0, lightX, lightY, w * 0.4)
-  lightGrad.addColorStop(0, `rgba(255, 220, 150, ${0.04 * (props.intensity || 0.6)})`)
-  lightGrad.addColorStop(0.5, `rgba(255, 180, 100, ${0.02 * (props.intensity || 0.6)})`)
+  lightGrad.addColorStop(0, `rgba(255, 220, 150, ${0.08 * (props.intensity || 0.6)})`)
+  lightGrad.addColorStop(0.5, `rgba(255, 180, 100, ${0.04 * (props.intensity || 0.6)})`)
   lightGrad.addColorStop(1, 'transparent')
   ctx.fillStyle = lightGrad
   ctx.fillRect(0, 0, w, h)
@@ -243,6 +243,6 @@ watch(() => props.sceneId, () => {
   height: 100%;
   pointer-events: none;
   mix-blend-mode: screen;
-  opacity: 0.8;
+  opacity: 1;
 }
 </style>

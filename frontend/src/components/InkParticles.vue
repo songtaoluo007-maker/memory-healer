@@ -104,10 +104,10 @@ function spawnFloatParticle(w: number, h: number) {
   particles.push({
     x: Math.random() * w,
     y: h + 10,
-    vx: (Math.random() - 0.5) * 0.5,
-    vy: -0.3 - Math.random() * 0.5,
-    size: 1 + Math.random() * 3,
-    alpha: 0.1 + Math.random() * 0.2,
+    vx: (Math.random() - 0.5) * 0.8,
+    vy: -0.5 - Math.random() * 0.8,
+    size: 2 + Math.random() * 5,
+    alpha: 0.2 + Math.random() * 0.3,
     decay: 0,
     color: colors[Math.floor(Math.random() * colors.length)],
     type: 'float',
@@ -175,7 +175,7 @@ function render() {
   ctx.clearRect(0, 0, w, h)
 
   // 环境粒子生成
-  if (props.trigger === 'idle' && Math.random() < 0.03) {
+  if (props.trigger === 'idle' && Math.random() < 0.08) {
     spawnFloatParticle(w, h)
   }
 
@@ -282,7 +282,7 @@ watch(() => props.sceneId, () => {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  mix-blend-mode: multiply;
-  opacity: 0.6;
+  mix-blend-mode: screen;
+  opacity: 0.85;
 }
 </style>

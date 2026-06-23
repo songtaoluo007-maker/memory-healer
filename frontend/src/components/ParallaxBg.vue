@@ -133,11 +133,11 @@ const ambient = computed(() => ambientColors[props.sceneId] || ambientColors.sce
 
 .spark {
   position: absolute;
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 220, 150, 0.6), transparent);
-  box-shadow: 0 0 8px rgba(255, 200, 100, 0.3);
+  background: radial-gradient(circle, rgba(255, 220, 150, 0.9), rgba(255, 180, 80, 0.4));
+  box-shadow: 0 0 12px rgba(255, 200, 100, 0.5), 0 0 24px rgba(255, 180, 80, 0.2);
   animation: sparkFloat ease-in-out infinite;
   opacity: 0;
 }
