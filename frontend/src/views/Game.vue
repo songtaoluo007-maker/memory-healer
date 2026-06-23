@@ -330,16 +330,35 @@ watch(() => gameState.value?.collected_fragments?.length, (newVal) => {
   } else if (newVal) {
     // 每收集一个碎片自动存档
     autoSave()
-    // 检查是否触发结局（场景切换到最后一幕且收集了足够碎片）
+    // 检查是否触发结局
     const percent = totalFragments.value > 0 ? (newVal / totalFragments.value) * 100 : 0
-    if (gameState.value?.current_scene === 'scene_2089' && percent >= 40) {
-      narrativeText.value = '记忆修复程序启动……碎片正在聚合……'
-      typeStart(narrativeText.value)
-      const endingType = percent >= 80 ? 'hope' : 'bittersweet'
-      setTimeout(() => {
-        playSFX(endingType === 'hope' ? 'ending_hope' : 'ending_bittersweet')
-        emit('ending', endingType)
-      }, 5000)
+    const hasAllScenes = ['scene_1972', 'scene_1990', 'scene_2024', 'scene_2050', 'scene_2089']
+      .every(s => (gameState.value?.visited_scenes || []).includes(s))
+
+    if (gameState.value?.current_scene === 'scene_2089') {
+      if (percent >= 90 && hasAllScenes) {
+        // 传承结局：碎片≥90%且访问过全部5个场景
+        narrativeText.value = '跨越五个时代的记忆正在聚合……这不只是修复，是传承。'
+        typeStart(narrativeText.value)
+        setTimeout(() => {
+          playSFX('ending_hope')
+          emit('ending', 'legacy')
+        }, 5000)
+      } else if (percent >= 80) {
+        narrativeText.value = '记忆修复程序启动……碎片正在聚合……'
+        typeStart(narrativeText.value)
+        setTimeout(() => {
+          playSFX('ending_hope')
+          emit('ending', 'hope')
+        }, 5000)
+      } else if (percent >= 40) {
+        narrativeText.value = '记忆碎片聚合了一部分……有些画面还是模糊的……'
+        typeStart(narrativeText.value)
+        setTimeout(() => {
+          playSFX('ending_bittersweet')
+          emit('ending', 'bittersweet')
+        }, 5000)
+      }
     }
   }
 })

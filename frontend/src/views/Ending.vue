@@ -183,6 +183,19 @@ const shareEnding = () => {
   background: linear-gradient(180deg, #000 0%, #0a0a1a 50%, #000 100%);
 }
 
+.ending-legacy .particle {
+  background: rgba(255, 200, 50, 0.5);
+}
+
+.ending-legacy .ending-title {
+  color: #ffd700;
+  text-shadow: 0 0 40px rgba(255, 200, 50, 0.5);
+}
+
+.ending-legacy .stat-value {
+  color: #ffd700;
+}
+
 .particles {
   position: fixed;
   inset: 0;
@@ -347,5 +360,33 @@ const shareEnding = () => {
   background: rgba(58, 205, 95, 0.4);
   border-color: rgba(100, 255, 150, 0.5);
   transform: translateY(-2px);
+}
+/* 响应式：移动端 */
+@media (max-width: 768px) {
+  .ending-content {
+    padding: 24px 16px;
+  }
+  .ending-title {
+    font-size: 28px;
+    letter-spacing: 4px;
+  }
+  .ending-icon {
+    font-size: 48px;
+  }
+  .story-paragraph {
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .ending-stats {
+    gap: 24px;
+  }
+  .stat-value {
+    font-size: 22px;
+  }
+  .btn-restart, .btn-share {
+    padding: 12px 24px;
+    font-size: 14px;
+    margin: 4px;
+  }
 }
 </style>
