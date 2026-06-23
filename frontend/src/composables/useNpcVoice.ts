@@ -64,6 +64,8 @@ async function speak(text: string, npcId: string) {
   stop()
 
   const cleaned = cleanText(text)
+  console.log('[TTS] raw:', text?.substring(0, 150))
+  console.log('[TTS] cleaned:', cleaned?.substring(0, 150))
   if (!cleaned || cleaned.length < 2) return
 
   const cacheKey = `${npcId}:${cleaned}`

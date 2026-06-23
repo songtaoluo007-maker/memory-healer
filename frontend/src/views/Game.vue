@@ -267,6 +267,7 @@ const sendMessage = async (text?: string) => {
         chatHistory.value[npcMsgIndex].content = data.reply
         addDialogue('npc', data.reply)
         // NPC语音朗读
+        console.log('[TTS] data.reply:', data.reply?.substring(0, 200))
         speakVoice(data.reply, selectedNpc.value!.id)
 
         if (data.trust_change !== 0) {

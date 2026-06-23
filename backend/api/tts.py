@@ -17,7 +17,12 @@ def generate_voice(req: TTSRequest):
     if not req.text or not req.npc_id:
         raise HTTPException(status_code=400, detail="缺少text或npc_id")
 
-    print(f"[TTS] npc={req.npc_id}, text={req.text[:100]}")
+    # 写日志文件
+    import os
+    log_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "tts_log.txt")
+    with open(log_path, "a", encoding="utf-8") as f:
+        f.write(f"[{req.npc_id}] {req.text[:300]}\n")
+
     path = generate_tts_sync(req.text, req.npc_id)
     if not path:
         raise HTTPException(status_code=500, detail="语音生成失败")

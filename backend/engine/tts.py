@@ -25,52 +25,38 @@ os.makedirs(TTS_DIR, exist_ok=True)
 NPC_VOICES = {
     "zhou": {
         "voice": "zh-CN-YunjianNeural",
-        "rate": "-15%",       # 缓慢（老人）
-        "pitch": "-10%",      # 低沉
-        "style": "sad",       # 沧桑感
-        "styledegree": "1.5",
+        "rate": "-15%",
+        "pitch": "-10Hz",
     },
     "xiaoyu": {
         "voice": "zh-CN-XiaoxiaoNeural",
-        "rate": "+5%",        # 略快（年轻）
-        "pitch": "+5%",       # 明亮
-        "style": "cheerful",  # 活泼
-        "styledegree": "1.2",
+        "rate": "+5%",
+        "pitch": "+5Hz",
     },
     "wang": {
         "voice": "zh-CN-shaanxi-XiaoniNeural",
-        "rate": "-5%",        # 略慢
-        "pitch": "+0%",
-        "style": "friendly",  # 热心
-        "styledegree": "1.0",
+        "rate": "-5%",
+        "pitch": "+0Hz",
     },
     "zhao": {
         "voice": "zh-CN-YunyangNeural",
         "rate": "+0%",
-        "pitch": "-15%",      # 低沉粗犷
-        "style": "angry",     # 粗犷
-        "styledegree": "1.0",
+        "pitch": "-15Hz",
     },
     "li": {
         "voice": "zh-CN-YunxiNeural",
-        "rate": "-10%",       # 沉稳
-        "pitch": "-5%",
-        "style": "serious",   # 严肃
-        "styledegree": "1.0",
+        "rate": "-10%",
+        "pitch": "-5Hz",
     },
     "liu": {
         "voice": "zh-CN-XiaoyiNeural",
-        "rate": "+10%",       # 语速快（记者）
-        "pitch": "+0%",
-        "style": "chat",      # 健谈
-        "styledegree": "1.0",
+        "rate": "+10%",
+        "pitch": "+0Hz",
     },
     "chen": {
         "voice": "zh-CN-YunjianNeural",
-        "rate": "-25%",       # 很慢（高龄）
-        "pitch": "-20%",      # 很低
-        "style": "sad",       # 虚弱
-        "styledegree": "2.0",
+        "rate": "-25%",
+        "pitch": "-20Hz",
     },
 }
 
@@ -78,9 +64,7 @@ NPC_VOICES = {
 DEFAULT_VOICE = {
     "voice": "zh-CN-YunxiNeural",
     "rate": "+0%",
-    "pitch": "+0%",
-    "style": "chat",
-    "styledegree": "1.0",
+    "pitch": "+0Hz",
 }
 
 
@@ -133,22 +117,14 @@ async def generate_tts(text: str, npc_id: str) -> str | None:
 
     config = NPC_VOICES.get(npc_id, DEFAULT_VOICE)
 
-    # 构建SSML
-    ssml = f"""
-    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis"
-           xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="zh-CN">
-        <voice name="{config['voice']}">
-            <mstts:express-as style="{config['style']}" styledegree="{config['styledegree']}">
-                <prosody rate="{config['rate']}" pitch="{config['pitch']}">
-                    {cleaned}
-                </prosody>
-            </mstts:express-as>
-        </voice>
-    </speak>
-    """
-
+    # 直接用纯文本 + Communicate参数（不用SSML，避免标签被当文本朗读）
     try:
-        communicate = edge_tts.Communicate(ssml, voice=config["voice"])
+        communicate = edge_tts.Communicate(
+            cleaned,
+            voice=config["voice"],
+            rate=config["rate"],
+            pitch=config["pitch"]
+        )
         await communicate.save(filepath)
         return f"tts/{filename}"
     except Exception as e:
