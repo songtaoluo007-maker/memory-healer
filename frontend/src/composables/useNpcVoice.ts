@@ -20,6 +20,16 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
  * 清洗文本
  */
 function cleanText(text: string): string {
+  // 先检测是否是JSON/代码，如果是则不朗读
+  const jsonKeys = ['reply', 'content', 'message', 'fragment', 'emotion', 'trust_delta', 'inner_thought', 'suggested_reaction']
+  const lower = text.toLowerCase()
+  if (jsonKeys.some(k => lower.includes(`"${k}"`))) {
+    // 包含JSON键名，尝试提取reply字段值
+    const m = text.match(/"(?:reply|content|message)"\s*:\s*"([^"]+)"/)
+    if (m) text = m[1]
+    else return ''  // 无法提取，不朗读
+  }
+
   return text
     .replace(/\{[^}]*\}/g, '')
     .replace(/\[[^\]]*\]/g, '')

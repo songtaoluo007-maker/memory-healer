@@ -253,23 +253,43 @@ def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
         # 解析JSON提取回复
         reply_text, fragment_revealed, trust_change, npc_mood, inner_thought = _parse_json_response(full_content)
 
-        # 兜底：如果解析失败，用正则只从reply/content/message字段提取
-        if not reply_text or any(kw in reply_text for kw in ['ragment', 'rust_delta', 'otion', 'ner_thought', '"reply"', '"content"', '"message"']):
+        # 最终校验：确保reply_text是纯文本，不是JSON/代码
+        def _is_clean(text: str) -> bool:
+            """检查文本是否是干净的对话内容"""
+            if not text or len(text) < 2:
+                return False
+            # 包含JSON结构字符
+            if any(c in text for c in ['{', '}', '"', ':', ',']):
+                # 可能是JSON，检查是否包含中文
+                cn_ratio = sum(1 for c in text if '\u4e00' <= c <= '\u9fff') / max(len(text), 1)
+                if cn_ratio < 0.3:  # 中文字符占比低于30%，可能是代码
+                    return False
+            # 包含常见JSON键名
+            json_keys = ['reply', 'content', 'message', 'fragment', 'emotion', 'trust_delta', 'inner_thought', 'suggested_reaction']
+            lower = text.lower()
+            if any(f'"{k}"' in lower for k in json_keys):
+                return False
+            return True
+
+        if not _is_clean(reply_text):
+            # 解析失败，从原始内容中提取中文对话
             import re as _re
-            # 只匹配reply/content/message字段的值
+            # 1. 尝试从JSON的reply/content/message字段提取
             for _field in ['reply', 'content', 'message']:
                 m = _re.search(rf'"{_field}"\s*:\s*"((?:[^"\\]|\\.)*)"', full_content)
                 if m:
                     candidate = m.group(1).replace('\\"', '"').replace('\\n', '\n').strip()
-                    # 过滤掉看起来像JSON键名的内容
-                    if len(candidate) > 3 and not candidate.isascii():
+                    if _is_clean(candidate) and len(candidate) > 2:
                         reply_text = candidate
                         break
-            # 最终兜底：取中文句子
-            if not reply_text:
-                m2 = _re.search(r'[\u4e00-\u9fff][^{}"]{5,}[。！？]', full_content)
+            # 2. 提取第一个中文句子
+            if not _is_clean(reply_text):
+                m2 = _re.search(r'[\u4e00-\u9fff][^{}"]*[。！？…]', full_content)
                 if m2:
                     reply_text = m2.group(0)
+            # 3. 最终兜底
+            if not _is_clean(reply_text):
+                reply_text = '……'
 
         if not reply_text:
             reply_text = "..."
