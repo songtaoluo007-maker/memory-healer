@@ -74,11 +74,13 @@ class TestParseJsonResponse:
         assert trust == 0
 
     def test_partial_json(self):
-        """不完整JSON"""
+        """不完整JSON — 应该能从正则提取reply"""
         content = '{"reply": "你好", "fragment":'
         reply, frag, trust, mood, inner = _parse_json_response(content)
-        # 应该降级到普通文本
-        assert reply == content
+        # 正则降级应该能提取reply
+        assert reply == "你好"
+        assert frag is None
+        assert trust == 0
 
 
 class TestEdgeCases:

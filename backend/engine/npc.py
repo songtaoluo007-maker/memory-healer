@@ -49,6 +49,13 @@ def _parse_json_response(content: str) -> tuple:
         emotion = data.get("emotion", "neutral")
         inner_thought = data.get("inner_thought", "")
 
+        # 如果reply为空但有原始内容，尝试从content提取
+        if not reply and "reply" not in data:
+            # AI可能返回了非标准JSON，用正则提取
+            m = re.search(r'"reply"\s*:\s*"((?:[^"\\]|\\.)*)"', cleaned)
+            if m:
+                reply = m.group(1).replace('\\"', '"').replace('\\n', '\n').strip()
+
         # 校验emotion枚举
         valid_emotions = {"neutral", "happy", "sad", "thinking", "touched", "nostalgic", "worried"}
         if emotion not in valid_emotions:
@@ -64,7 +71,22 @@ def _parse_json_response(content: str) -> tuple:
     except (json.JSONDecodeError, KeyError, TypeError):
         pass
 
-    # 降级：尝试旧版标签解析（兼容过渡期）
+    # 降级：用正则提取reply字段
+    m = re.search(r'"reply"\s*:\s*"((?:[^"\\]|\\.)*)"', cleaned)
+    if m:
+        reply = m.group(1).replace('\\"', '"').replace('\\n', '\n').strip()
+        # 继续提取其他字段
+        frag_match = re.search(r'"fragment"\s*:\s*"?([^",}]+)', cleaned)
+        fragment = frag_match.group(1).strip() if frag_match and frag_match.group(1) != 'null' else None
+        trust_match = re.search(r'"trust_delta"\s*:\s*(-?\d+)', cleaned)
+        trust_change = int(trust_match.group(1)) if trust_match else 0
+        emotion_match = re.search(r'"emotion"\s*:\s*"(\w+)"', cleaned)
+        emotion = emotion_match.group(1) if emotion_match else "neutral"
+        thought_match = re.search(r'"inner_thought"\s*:\s*"((?:[^"\\]|\\.)*)"', cleaned)
+        inner_thought = thought_match.group(1) if thought_match else ""
+        return reply, fragment, trust_change, emotion, inner_thought
+
+    # 最终降级：旧版标签解析
     return _parse_legacy_tags(content)
 
 
@@ -218,52 +240,57 @@ def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
 
         full_content = ""
         reply_buffer = ""
-        in_reply = False
-        json_started = False
+        # 状态机: 0=等待JSON 1=等待reply键 2=等待reply值引号 3=在reply值内 4=reply结束
+        state = 0
         escape_next = False
 
         for chunk in stream:
             delta = chunk.choices[0].delta
             if delta.content:
                 full_content += delta.content
-                # 流式提取reply字段内容
                 for ch in delta.content:
                     if escape_next:
                         escape_next = False
-                        if in_reply:
+                        if state == 3:
                             reply_buffer += ch
                             yield {"type": "token", "content": ch}
                         continue
                     if ch == '\\':
                         escape_next = True
-                        if in_reply:
+                        if state == 3:
                             reply_buffer += ch
                             yield {"type": "token", "content": ch}
                         continue
-                    if not json_started:
+                    if state == 0:
                         if ch == '{':
-                            json_started = True
+                            state = 1
                         continue
-                    if not in_reply:
-                        # 等待找到 "reply":" 字段
-                        if '"reply"' in full_content and ':' in full_content[full_content.index('"reply"'):]:
-                            # 检查是否到了reply值的开始引号
-                            reply_start = full_content.index('"reply"') + 7
-                            rest = full_content[reply_start:].lstrip()
-                            if rest.startswith(':'):
-                                rest = rest[1:].lstrip()
-                                if rest.startswith('"'):
-                                    in_reply = True
+                    if state == 1:
+                        # 累积内容直到找到 "reply" 键
+                        idx = full_content.find('"reply"')
+                        if idx >= 0:
+                            after_key = full_content[idx + 7:].lstrip()
+                            if after_key.startswith(':'):
+                                after_colon = after_key[1:].lstrip()
+                                if after_colon.startswith('"'):
+                                    state = 3
+                                elif after_colon:
+                                    state = 2  # 等待值引号
                         continue
-                    else:
-                        # 在reply值内部
+                    if state == 2:
+                        # 等待reply值的开始引号
                         if ch == '"':
-                            # 检查是否是reply值的结束引号（非转义）
-                            # 简单判断：遇到引号且后面是逗号或}
-                            in_reply = False
+                            state = 3
+                        continue
+                    if state == 3:
+                        if ch == '"':
+                            # reply值的结束引号
+                            state = 4
                             continue
                         reply_buffer += ch
                         yield {"type": "token", "content": ch}
+                        continue
+                    # state == 4: reply已结束，忽略剩余JSON
 
         # 流结束，解析JSON元数据
         reply_text, fragment_revealed, trust_change, npc_mood, inner_thought = _parse_json_response(full_content)
