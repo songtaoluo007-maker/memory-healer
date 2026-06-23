@@ -51,3 +51,4 @@ htmlcov/
 
 # TTS音频缓存
 backend/static/tts/
+backend/static/tts_test.mp3
