@@ -38,7 +38,7 @@ const handleClick = (hotspot: Hotspot) => {
 <template>
   <svg
     class="hotspot-overlay"
-    viewBox="0 0 800 600"
+    viewBox="0 0 800 500"
     preserveAspectRatio="xMidYMid meet"
     role="img"
     :aria-label="t('a11y.hotspot')"

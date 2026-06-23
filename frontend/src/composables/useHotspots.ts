@@ -1,6 +1,6 @@
 /**
  * 热区探索系统
- * 在SceneIllustration叠加可点击热区，点击后触发探索对话/碎片发现
+ * 在SceneIllustration叠加可点击热区,点击后触发探索对话/碎片发现
  */
 
 import { ref, computed, type Ref } from 'vue'
@@ -12,7 +12,7 @@ export interface Hotspot {
   radius: number
   fragment_id: string | null
   hint: string
-  npc_id?: string  // 关联NPC，点击时可能触发NPC对话
+  npc_id?: string  // 关联NPC,点击时可能触发NPC对话
   color?: string   // 热区光圈颜色
   scene: string
 }
@@ -22,41 +22,41 @@ const allHotspots: Record<string, Hotspot[]> = {
   scene_1972: [
     {
       id: 'tool_box',
-      x: 340, y: 310, radius: 25,
+      x: 350, y: 350, radius: 22,
       fragment_id: 'fragment_grandpa_knife',
-      hint: '戏台旁的工具箱，里面好像有什么东西……',
+      hint: '戏台旁的工具箱,里面好像有什么东西......',
       scene: 'scene_1972',
       color: '#f59e0b',
     },
     {
       id: 'window',
-      x: 110, y: 280, radius: 20,
+      x: 110, y: 290, radius: 22,
       fragment_id: null,
-      hint: '纸窗里透出暖光，能听到巷子里传来的秦腔声。',
+      hint: '纸窗里透出暖光,能听到巷子里传来的秦腔声。',
       scene: 'scene_1972',
       color: '#f59e0b',
     },
     {
       id: 'shadow_screen',
-      x: 400, y: 170, radius: 30,
+      x: 400, y: 330, radius: 28,
       fragment_id: 'fragment_shadow_puppet',
-      hint: '皮影戏幕布！上面还残留着"三英战吕布"的影子。',
+      hint: '皮影戏幕布!上面还残留着"三英战吕布"的影子。',
       scene: 'scene_1972',
       color: '#f59e0b',
     },
     {
       id: 'bench',
-      x: 580, y: 340, radius: 22,
+      x: 500, y: 370, radius: 20,
       fragment_id: null,
-      hint: '一条旧长凳，坐上去还能感受到余温。有人刚离开？',
+      hint: '一条旧长凳,坐上去还能感受到余温。有人刚离开?',
       scene: 'scene_1972',
       color: '#f59e0b',
     },
     {
       id: 'old_photo',
-      x: 660, y: 250, radius: 18,
+      x: 690, y: 200, radius: 18,
       fragment_id: 'fragment_childhood_photo',
-      hint: '墙上挂着一张泛黄的照片……',
+      hint: '墙上挂着一张泛黄的照片......',
       npc_id: 'chen_shouyi_young',
       scene: 'scene_1972',
       color: '#f59e0b',
@@ -65,42 +65,42 @@ const allHotspots: Record<string, Hotspot[]> = {
   scene_2024: [
     {
       id: 'desk_medicine',
-      x: 260, y: 290, radius: 22,
+      x: 280, y: 270, radius: 22,
       fragment_id: 'fragment_medicine_label',
-      hint: '桌上散落着几瓶药，标签上的字已经模糊了……',
+      hint: '桌上散落着几瓶药,标签上的字已经模糊了......',
       scene: 'scene_2024',
       color: '#60a5fa',
     },
     {
       id: 'photo_wall',
-      x: 140, y: 240, radius: 28,
+      x: 150, y: 240, radius: 25,
       fragment_id: 'fragment_wedding_photo',
-      hint: '墙上挂满了照片，有一张婚纱照格外显眼。',
+      hint: '墙上挂满了照片,有一张婚纱照格外显眼。',
       scene: 'scene_2024',
       color: '#60a5fa',
     },
     {
       id: 'teacup',
-      x: 440, y: 310, radius: 18,
+      x: 450, y: 300, radius: 18,
       fragment_id: null,
-      hint: '一杯温热的茶，茶水还在微微冒着热气。',
+      hint: '一杯温热的茶,茶水还在微微冒着热气。',
       npc_id: 'chen_shouyi_old',
       scene: 'scene_2024',
       color: '#60a5fa',
     },
     {
       id: 'neon_window',
-      x: 680, y: 190, radius: 25,
+      x: 310, y: 260, radius: 22,
       fragment_id: null,
-      hint: '窗外是深圳的霓虹灯海，远处传来城中村的嘈杂声。',
+      hint: '窗外是深圳的霓虹灯海,远处传来城中村的嘈杂声。',
       scene: 'scene_2024',
       color: '#60a5fa',
     },
     {
       id: 'letter_box',
-      x: 560, y: 280, radius: 20,
+      x: 550, y: 320, radius: 20,
       fragment_id: 'fragment_xiaoyu_letter',
-      hint: '抽屉里好像有一封信……',
+      hint: '抽屉里好像有一封信......',
       npc_id: 'xiaoyu',
       scene: 'scene_2024',
       color: '#60a5fa',
@@ -109,33 +109,33 @@ const allHotspots: Record<string, Hotspot[]> = {
   scene_2089: [
     {
       id: 'hologram',
-      x: 400, y: 190, radius: 35,
+      x: 400, y: 200, radius: 30,
       fragment_id: 'fragment_shadow_puppet',
-      hint: '全息投影仪，正在播放一段模糊的皮影戏影像……',
+      hint: '全息投影仪,正在播放一段模糊的皮影戏影像......',
       scene: 'scene_2089',
       color: '#a78bfa',
     },
     {
       id: 'neural_device',
-      x: 220, y: 270, radius: 22,
+      x: 400, y: 350, radius: 22,
       fragment_id: 'fragment_su_family_letter',
-      hint: '神经修复仪的控制面板，上面显示着记忆碎片数据。',
+      hint: '神经修复仪的控制面板,上面显示着记忆碎片数据。',
       scene: 'scene_2089',
       color: '#a78bfa',
     },
     {
       id: 'memory_tank',
-      x: 580, y: 250, radius: 28,
+      x: 660, y: 340, radius: 25,
       fragment_id: null,
-      hint: '记忆存储舱，里面漂浮着光点般的记忆碎片。',
+      hint: '记忆存储舱,里面漂浮着光点般的记忆碎片。',
       scene: 'scene_2089',
       color: '#a78bfa',
     },
     {
       id: 'photo_frame',
-      x: 680, y: 320, radius: 18,
+      x: 250, y: 320, radius: 18,
       fragment_id: 'fragment_childhood_photo',
-      hint: '桌上放着一个相框，照片已经褪色了……',
+      hint: '控制台上放着一个相框,照片已经褪色了......',
       scene: 'scene_2089',
       color: '#a78bfa',
     },
@@ -143,41 +143,41 @@ const allHotspots: Record<string, Hotspot[]> = {
   scene_1990: [
     {
       id: 'train_ticket',
-      x: 350, y: 200, radius: 25,
+      x: 350, y: 350, radius: 22,
       fragment_id: 'train_ticket_fragment',
-      hint: '一张皱巴巴的硬座票，西安到深圳，42元。',
+      hint: '一张皱巴巴的硬座票,西安到深圳,42元。',
       scene: 'scene_1990',
       color: '#d97706',
     },
     {
       id: 'puppet_trunk',
-      x: 600, y: 350, radius: 30,
+      x: 600, y: 380, radius: 25,
       fragment_id: 'puppet_trunk_fragment',
-      hint: '装满皮影道具的旧木箱，里面好像有个穿西装的皮影……',
+      hint: '装满皮影道具的旧木箱,里面好像有个穿西装的皮影......',
       scene: 'scene_1990',
       color: '#d97706',
     },
     {
       id: 'farewell_letter',
-      x: 150, y: 280, radius: 20,
+      x: 150, y: 380, radius: 20,
       fragment_id: 'farewell_letter_fragment',
-      hint: '一封信从口袋里露出一角，收信人是“师父”。',
+      hint: '一封信从口袋里露出一角,收信人是"师父"。',
       scene: 'scene_1990',
       color: '#d97706',
     },
     {
       id: 'station_clock',
-      x: 400, y: 80, radius: 25,
+      x: 400, y: 150, radius: 22,
       fragment_id: 'station_clock_fragment',
-      hint: '巨大的圆形时钟，指针指向下午3:47。',
+      hint: '巨大的圆形时钟,指针指向下午3:47。',
       scene: 'scene_1990',
       color: '#d97706',
     },
     {
       id: 'stranger',
-      x: 700, y: 200, radius: 20,
+      x: 700, y: 380, radius: 18,
       fragment_id: null,
-      hint: '一个穿夹克的年轻人正在张望，看起来也是来深圳的。',
+      hint: '一个穿夹克的年轻人正在张望,看起来也是来深圳的。',
       npc_id: 'stranger_1990',
       scene: 'scene_1990',
       color: '#d97706',
@@ -186,7 +186,7 @@ const allHotspots: Record<string, Hotspot[]> = {
   scene_2050: [
     {
       id: 'award_trophy',
-      x: 400, y: 150, radius: 30,
+      x: 400, y: 310, radius: 25,
       fragment_id: 'award_trophy_fragment',
       hint: '水晶奖杯折射着七彩光芒，底座刻着“非遗传承杰出贡献奖”。',
       scene: 'scene_2050',
@@ -194,7 +194,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'old_photos_wall',
-      x: 200, y: 200, radius: 25,
+      x: 250, y: 200, radius: 22,
       fragment_id: 'old_photos_wall_fragment',
       hint: '照片墙上挂满了跨越半个世纪的照片。',
       scene: 'scene_2050',
@@ -202,7 +202,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'hologram_stage',
-      x: 600, y: 300, radius: 35,
+      x: 550, y: 250, radius: 30,
       fragment_id: 'hologram_stage_fragment',
       hint: '全息投影正在表演皮影戏——三英战吕布！',
       scene: 'scene_2050',
@@ -210,7 +210,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'audience_reactions',
-      x: 300, y: 400, radius: 25,
+      x: 400, y: 400, radius: 22,
       fragment_id: 'audience_reactions_fragment',
       hint: '观众席中一位白发老人悄悄擦眼泪，手里拿着旧皮影。',
       scene: 'scene_2050',
