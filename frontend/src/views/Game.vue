@@ -22,6 +22,7 @@ const InkParticles = defineAsyncComponent(() => import('../components/InkParticl
 const ParallaxBg = defineAsyncComponent(() => import('../components/ParallaxBg.vue'))
 const QuestTracker = defineAsyncComponent(() => import('../components/QuestTracker.vue'))
 const QuestPanel = defineAsyncComponent(() => import('../components/QuestPanel.vue'))
+const GameIntro = defineAsyncComponent(() => import('../components/GameIntro.vue'))
 
 const emit = defineEmits<{
   ending: [type: EndingType]
@@ -66,6 +67,7 @@ const {
   currentHint, currentAct, actTitle,
 } = useQuests(collectedFragments, revealedFragments, npcTrustRef, currentSceneId, dialogueHistoryRef)
 const showQuestPanel = ref(false)
+const showIntro = ref(true)  // 开场引导
 
 // 记忆档案面板
 const showMemoryPanel = ref(false)
@@ -568,6 +570,9 @@ watch(() => gameState.value?.current_scene, (newScene) => {
       :total-count="totalQuestCount"
       @close="showQuestPanel = false"
     />
+
+    <!-- 开场引导 -->
+    <GameIntro v-if="showIntro" @start="showIntro = false" />
   </div>
 </template>
 
