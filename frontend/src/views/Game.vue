@@ -49,7 +49,8 @@ const { playBGM, playSFX, isMuted, toggleMute } = useAudio()
 const { t, lang, toggleLang } = useI18n()
 
 // 热区探索（初始场景，loadScene时会更新）
-const { hotspots, exploredIds, exploreHotspot, explorationProgress } = useHotspots(gameState.value?.current_scene || 'scene_1972')
+const currentSceneId = computed(() => gameState.value?.current_scene || 'scene_1972')
+const { hotspots, exploredIds, exploreHotspot, explorationProgress } = useHotspots(currentSceneId)
 
 // 记忆档案面板
 const showMemoryPanel = ref(false)

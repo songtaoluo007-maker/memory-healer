@@ -3,7 +3,7 @@
  * 在SceneIllustration叠加可点击热区，点击后触发探索对话/碎片发现
  */
 
-import { ref, computed } from 'vue'
+import { ref, computed, type Ref } from 'vue'
 
 export interface Hotspot {
   id: string
@@ -219,11 +219,12 @@ const allHotspots: Record<string, Hotspot[]> = {
   ],
 }
 
-export function useHotspots(sceneId: string) {
+export function useHotspots(sceneId: string | Ref<string>) {
   const exploredIds = ref<Set<string>>(new Set())
   const activeHotspot = ref<Hotspot | null>(null)
 
-  const hotspots = computed(() => allHotspots[sceneId] || [])
+  const sceneIdRef = computed(() => typeof sceneId === 'string' ? sceneId : sceneId.value)
+  const hotspots = computed(() => allHotspots[sceneIdRef.value] || [])
 
   const unexploredHotspots = computed(() =>
     hotspots.value.filter(h => !exploredIds.value.has(h.id))
