@@ -66,13 +66,15 @@ def build_npc_prompt(npc: dict, scene: dict, game_state: dict, player_input: str
 4. 如果信任度足够且相关碎片未透露，自然地引出记忆碎片
 5. 展示而非告知：用细节描写情感，不要直接说"我很悲伤"
 
-## 输出格式（严格JSON，不要输出任何其他内容）
-{{
-  "reply": "你的对话内容（纯文本，80字以内，不要包含任何标签或元数据）",
-  "fragment": "fragment_id（如果揭露了碎片）或 null（如果没揭露）",
-  "trust_delta": 0,
-  "emotion": "neutral/happy/sad/thinking/touched/nostalgic/worried",
-  "inner_thought": "角色此刻的内心独白（不展示给玩家，用于上下文记忆，20字以内）"
-}}
+## 输出格式（严格JSON，不要输出任何其他内容，不要用markdown代码块包裹）
+你必须只输出一个JSON对象，使用以下字段名（不要改变字段名）：
+- "reply": 你的对话内容（纯中文文本，80字以内）
+- "fragment": 碎片ID（字符串）或 null
+- "trust_delta": 信任度变化（整数，-20到20）
+- "emotion": 心情（neutral/happy/sad/thinking/touched/nostalgic/worried之一）
+- "inner_thought": 内心独白（20字以内，不展示给玩家）
+
+示例输出：
+{{"reply": "你好啊！我是陈守义。", "fragment": null, "trust_delta": 5, "emotion": "happy", "inner_thought": "有人来了"}}
 
 玩家说: {player_input}"""

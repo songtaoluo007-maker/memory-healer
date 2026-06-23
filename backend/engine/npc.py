@@ -43,7 +43,12 @@ def _parse_json_response(content: str) -> tuple:
     # 尝试JSON解析
     try:
         data = json.loads(cleaned)
+        # AI可能用reply/content/message字段
         reply = data.get("reply", "").strip()
+        if not reply:
+            reply = data.get("content", "").strip()
+        if not reply:
+            reply = data.get("message", "").strip()
         fragment = data.get("fragment")
         trust_delta = data.get("trust_delta", 0)
         emotion = data.get("emotion", "neutral")
@@ -71,23 +76,23 @@ def _parse_json_response(content: str) -> tuple:
     except (json.JSONDecodeError, KeyError, TypeError):
         pass
 
-    # 降级：用正则提取reply字段
-    m = re.search(r'"reply"\s*:\s*"((?:[^"\\]|\\.)*)"', cleaned)
-    if m:
-        reply = m.group(1).replace('\\"', '"').replace('\\n', '\n').strip()
-        # 继续提取其他字段
-        frag_match = re.search(r'"fragment"\s*:\s*"?([^",}]+)', cleaned)
-        fragment = frag_match.group(1).strip() if frag_match and frag_match.group(1) != 'null' else None
-        trust_match = re.search(r'"trust_delta"\s*:\s*(-?\d+)', cleaned)
-        trust_change = int(trust_match.group(1)) if trust_match else 0
-        emotion_match = re.search(r'"emotion"\s*:\s*"(\w+)"', cleaned)
-        emotion = emotion_match.group(1) if emotion_match else "neutral"
-        thought_match = re.search(r'"inner_thought"\s*:\s*"((?:[^"\\]|\\.)*)"', cleaned)
-        inner_thought = thought_match.group(1) if thought_match else ""
-        return reply, fragment, trust_change, emotion, inner_thought
+    # 降级：用正则提取reply字段（支持reply/content/message）
+    for field in ['reply', 'content', 'message']:
+        m = re.search(rf'"{field}"\s*:\s*"((?:[^"\\]|\\.)*)"', cleaned)
+        if m:
+            reply = m.group(1).replace('\\"', '"').replace('\\n', '\n').strip()
+            frag_match = re.search(r'"fragment"\s*:\s*"?([^",}]+)', cleaned)
+            fragment = frag_match.group(1).strip() if frag_match and frag_match.group(1) != 'null' else None
+            trust_match = re.search(r'"trust_delta"\s*:\s*(-?\d+)', cleaned)
+            trust_change = int(trust_match.group(1)) if trust_match else 0
+            emotion_match = re.search(r'"emotion"\s*:\s*"(\w+)"', cleaned)
+            emotion = emotion_match.group(1) if emotion_match else "neutral"
+            thought_match = re.search(r'"inner_thought"\s*:\s*"((?:[^"\\]|\\.)*)"', cleaned)
+            inner_thought = thought_match.group(1) if thought_match else ""
+            return reply, fragment, trust_change, emotion, inner_thought
 
     # 最终降级：旧版标签解析
-    return _parse_legacy_tags(content)
+    return _parse_legacy_tags(cleaned)
 
 
 def _parse_legacy_tags(content: str) -> tuple:
@@ -243,6 +248,9 @@ def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
         # 状态机: 0=等待JSON 1=等待reply键 2=等待reply值引号 3=在reply值内 4=reply结束
         state = 0
         escape_next = False
+        # AI可能用reply/content/message等字段名
+        reply_keys = ['"reply"', '"content"', '"message"']
+        found_key = None
 
         for chunk in stream:
             delta = chunk.choices[0].delta
@@ -266,37 +274,38 @@ def chat_with_npc_stream(npc_id: str, player_input: str, game_state: dict):
                             state = 1
                         continue
                     if state == 1:
-                        # 累积内容直到找到 "reply" 键
-                        idx = full_content.find('"reply"')
-                        if idx >= 0:
-                            after_key = full_content[idx + 7:].lstrip()
-                            if after_key.startswith(':'):
-                                after_colon = after_key[1:].lstrip()
-                                if after_colon.startswith('"'):
-                                    state = 3
-                                elif after_colon:
-                                    state = 2  # 等待值引号
+                        # 查找任意reply键
+                        if not found_key:
+                            for key in reply_keys:
+                                idx = full_content.find(key)
+                                if idx >= 0:
+                                    after_key = full_content[idx + len(key):].lstrip()
+                                    if after_key.startswith(':'):
+                                        after_colon = after_key[1:].lstrip()
+                                        if after_colon.startswith('"'):
+                                            state = 3
+                                        elif after_colon:
+                                            state = 2
+                                        found_key = key
+                                        break
                         continue
                     if state == 2:
-                        # 等待reply值的开始引号
                         if ch == '"':
                             state = 3
                         continue
                     if state == 3:
                         if ch == '"':
-                            # reply值的结束引号
                             state = 4
                             continue
                         reply_buffer += ch
                         yield {"type": "token", "content": ch}
                         continue
-                    # state == 4: reply已结束，忽略剩余JSON
 
         # 流结束，解析JSON元数据
         reply_text, fragment_revealed, trust_change, npc_mood, inner_thought = _parse_json_response(full_content)
 
-        # 如果流式提取的reply文本与解析结果一致，用解析结果；否则用流式缓冲
-        if not reply_text:
+        # 优先用流式解析器已提取的干净reply_buffer
+        if reply_buffer:
             reply_text = reply_buffer
 
         # 情感状态机: 应用信任度乘数
