@@ -165,10 +165,11 @@ const shareEnding = () => {
   background: #000;
   z-index: 300;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   font-family: 'Noto Serif SC', serif;
   overflow-y: auto;
+  padding: 60px 20px;
 }
 
 .ending-hope {
@@ -225,6 +226,7 @@ const shareEnding = () => {
   text-align: center;
   opacity: 0;
   transition: opacity 1.5s ease;
+  margin: 0 auto;
 }
 
 .ending-content.visible {
