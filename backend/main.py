@@ -22,6 +22,7 @@ from backend.api.save import router as save_router
 from backend.api.auth import router as auth_router
 from backend.api.tts import router as tts_router
 from backend.api.ending import router as ending_router
+from backend.api.butterfly import router as butterfly_router
 from backend.config import settings
 
 
@@ -127,6 +128,7 @@ app.include_router(save_router)
 app.include_router(auth_router)
 app.include_router(tts_router)
 app.include_router(ending_router)
+app.include_router(butterfly_router)
 
 
 @app.get("/api/health", tags=["health"])

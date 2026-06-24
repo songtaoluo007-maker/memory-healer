@@ -15,6 +15,7 @@ const MemoryProgress = defineAsyncComponent(() => import('../components/MemoryPr
 const NpcAvatar = defineAsyncComponent(() => import('../components/NpcAvatar.vue'))
 const HotspotOverlay = defineAsyncComponent(() => import('../components/HotspotOverlay.vue'))
 const SceneTransition = defineAsyncComponent(() => import('../components/SceneTransition.vue'))
+const ButterflyPanel = defineAsyncComponent(() => import('../components/ButterflyPanel.vue'))
 const MemoryPanel = defineAsyncComponent(() => import('../components/MemoryPanel.vue'))
 const ShadowLighting = defineAsyncComponent(() => import('../components/ShadowLighting.vue'))
 const InkParticles = defineAsyncComponent(() => import('../components/InkParticles.vue'))
@@ -53,6 +54,7 @@ const { hotspots, exploredIds, exploreHotspot, explorationProgress } = useHotspo
 
 // 记忆档案面板
 const showMemoryPanel = ref(false)
+const showButterfly = ref(false)
 
 const chatHistory = ref<ChatMessage[]>([])
 const chatContainer = ref<HTMLElement | null>(null)
@@ -417,6 +419,7 @@ watch(() => gameState.value?.current_scene, async (newScene) => {
           >{{ dir === 'back' ? '◂ 返回' : '前进 ▸' }}</button>
         </div>
         <div class="fragment-counter" @click="showInventory = !showInventory">🧩 {{ collectedCount }}/{{ totalFragments }}</div>
+        <div class="butterfly-btn" @click="showButterfly = !showButterfly">🦋 蝴蝶效应</div>
         <span class="explore-badge" v-if="explorationProgress < 100">探索 {{ explorationProgress }}%</span>
         <span class="explore-badge done" v-else>✦ 已完全探索</span>
       </div>
@@ -561,6 +564,10 @@ watch(() => gameState.value?.current_scene, async (newScene) => {
       :total-fragments="Object.keys(gameState.fragment_states || {}).length"
       @close="showMemoryPanel = false"
     />
+    <!-- 蝴蝶效应面板 -->
+    <div class="butterfly-overlay" v-if="showButterfly" @click.self="showButterfly = false">
+      <ButterflyPanel :game-state="gameState" />
+    </div>
   </div>
 </template>
 
@@ -1440,4 +1447,34 @@ watch(() => gameState.value?.current_scene, async (newScene) => {
   100% { box-shadow: 0 0 0 0 rgba(232, 180, 80, 0); }
 }
 
+
+.butterfly-btn {
+  font-size: 12px;
+  color: rgba(180, 160, 255, 0.8);
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+.butterfly-btn:hover {
+  background: rgba(180, 160, 255, 0.15);
+}
+.butterfly-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.butterfly-overlay .butterfly-panel {
+  background: rgba(10, 10, 30, 0.95);
+  border: 1px solid rgba(100, 150, 255, 0.2);
+  border-radius: 16px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
 </style>
