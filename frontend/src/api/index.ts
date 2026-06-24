@@ -13,6 +13,27 @@ const api = axios.create({
   timeout: 60000,
 })
 
+// 请求拦截器：自动附加Authorization token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('mh_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// 响应拦截器：401自动清除登录状态
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem('mh_token')
+      localStorage.removeItem('mh_user')
+    }
+    return Promise.reject(err)
+  },
+)
+
 // 对话
 export const chatWithNpc = (data: DialogueRequest) =>
   api.post<DialogueResponse>('/api/dialogue/chat', data)
@@ -67,9 +88,13 @@ export function chatWithNpcStream(
   const controller = new AbortController()
 
   const attempt = (retriesLeft: number) => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    const token = localStorage.getItem('mh_token')
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
     fetch(`${baseURL}/api/dialogue/chat/stream`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(data),
       signal: controller.signal,
     }).then(async (res) => {

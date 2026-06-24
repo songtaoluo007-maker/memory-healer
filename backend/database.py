@@ -25,4 +25,13 @@ def get_db():
 def init_db():
     from backend.models import save as _save
     from backend.models import user as _user
+    from backend.models import token as _token
     Base.metadata.create_all(bind=engine)
+
+    # SQLite迁移：给save_slots加user_id列（如果缺失）
+    import sqlalchemy
+    with engine.connect() as conn:
+        cols = [r[1] for r in conn.execute(sqlalchemy.text("PRAGMA table_info(save_slots)")).fetchall()]
+        if 'user_id' not in cols:
+            conn.execute(sqlalchemy.text("ALTER TABLE save_slots ADD COLUMN user_id INTEGER DEFAULT 0"))
+            conn.commit()
