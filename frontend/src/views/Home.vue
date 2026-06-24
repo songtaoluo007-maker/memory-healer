@@ -11,27 +11,47 @@ const emit = defineEmits<{
 const { t, lang, toggleLang } = useI18n()
 const showMenu = ref(true)
 const showLogin = ref(false)
+const loginRedirect = ref(false) // 登录后是否自动开始游戏
 const currentUser = ref<{ token: string; user_id: number; username: string; nickname: string } | null>(null)
 
 onMounted(() => {
-  // 检查本地存储的登录状态
   const saved = localStorage.getItem('mh_user')
   if (saved) {
-    try {
-      currentUser.value = JSON.parse(saved)
-    } catch {}
+    try { currentUser.value = JSON.parse(saved) } catch {}
   }
 })
 
 const handleLogin = (user: { token: string; user_id: number; username: string; nickname: string }) => {
   currentUser.value = user
   showLogin.value = false
+  if (loginRedirect.value) {
+    loginRedirect.value = false
+    emit('start')
+  }
 }
 
 const handleLogout = () => {
   localStorage.removeItem('mh_token')
   localStorage.removeItem('mh_user')
   currentUser.value = null
+}
+
+const handleStart = () => {
+  if (!currentUser.value) {
+    loginRedirect.value = true
+    showLogin.value = true
+    return
+  }
+  emit('start')
+}
+
+const handleLoad = () => {
+  if (!currentUser.value) {
+    loginRedirect.value = false
+    showLogin.value = true
+    return
+  }
+  emit('load')
 }
 </script>
 
@@ -47,7 +67,17 @@ const handleLogout = () => {
 
     <div class="content">
       <div class="logo-area">
-        <div class="logo-icon">🧠</div>
+        <div class="logo-icon">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+            <circle cx="32" cy="28" r="20" stroke="rgba(100,180,255,0.4)" stroke-width="1.5" fill="none" />
+            <circle cx="32" cy="28" r="12" stroke="rgba(100,150,255,0.3)" stroke-width="1" fill="none" />
+            <circle cx="32" cy="28" r="4" fill="rgba(100,180,255,0.5)" />
+            <path d="M26 48 Q32 56 38 48" stroke="rgba(100,180,255,0.4)" stroke-width="1.5" fill="none" stroke-linecap="round" />
+            <circle cx="24" cy="22" r="2" fill="rgba(232,180,80,0.4)" />
+            <circle cx="40" cy="22" r="2" fill="rgba(100,200,150,0.4)" />
+            <circle cx="32" cy="18" r="1.5" fill="rgba(200,150,255,0.4)" />
+          </svg>
+        </div>
         <h1 class="title">拾 忆</h1>
         <p class="subtitle">Memory Healer</p>
         <div class="divider" />
@@ -55,28 +85,40 @@ const handleLogout = () => {
       </div>
 
       <div class="menu" v-if="showMenu">
-        <button class="btn btn-primary" @click="emit('start')" aria-label="开始新的记忆修复之旅">
-          <span class="btn-icon">▶</span>
+        <button class="btn btn-primary" @click="handleStart" aria-label="开始新的记忆修复之旅">
+          <svg class="btn-icon" width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <polygon points="4,2 16,9 4,16" fill="currentColor" />
+          </svg>
           开始新的记忆修复
         </button>
-        <button class="btn btn-secondary" @click="emit('load')" aria-label="读取之前的存档">
-          <span class="btn-icon">📂</span>
+        <button class="btn btn-secondary" @click="handleLoad" aria-label="读取之前的存档">
+          <svg class="btn-icon" width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <rect x="2" y="4" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.5" fill="none" />
+            <path d="M2 7h14" stroke="currentColor" stroke-width="1" opacity="0.5" />
+            <rect x="4" y="9" width="4" height="2" rx="0.5" fill="currentColor" opacity="0.6" />
+          </svg>
           读取存档
         </button>
-      </div>
 
-      <!-- 用户状态 -->
-      <div class="user-section">
+        <div class="menu-divider" />
+
         <template v-if="currentUser">
           <div class="user-info">
-            <span class="user-avatar">?</span>
+            <svg class="user-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.2" fill="none" />
+              <path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round" />
+            </svg>
             <span class="user-name">{{ currentUser.nickname || currentUser.username }}</span>
             <button class="btn-logout" @click="handleLogout" title="退出登录">退出</button>
           </div>
         </template>
         <template v-else>
-          <button class="btn btn-login" @click="showLogin = true">
-            <span class="btn-icon">?</span>
+          <button class="btn btn-login" @click="loginRedirect = false; showLogin = true">
+            <svg class="btn-icon" width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <rect x="3" y="8" width="12" height="8" rx="2" stroke="currentColor" stroke-width="1.3" fill="none" />
+              <circle cx="9" cy="5" r="3" stroke="currentColor" stroke-width="1.3" fill="none" />
+              <circle cx="9" cy="5" r="1" fill="currentColor" opacity="0.5" />
+            </svg>
             登录 / 注册
           </button>
         </template>
@@ -85,14 +127,12 @@ const handleLogout = () => {
       <div class="footer" role="contentinfo">
         <p>腾讯云黑客松 · AI叙事游戏</p>
         <p class="tech">Powered by DeepSeek · Vue 3 · FastAPI</p>
-        <p class="version">v1.0.0 · P18</p>
       </div>
     </div>
 
     <LoginModal v-if="showLogin" @login="handleLogin" @close="showLogin = false" />
   </div>
 </template>
-
 <style scoped>
 .home {
   width: 100vw;
@@ -135,14 +175,13 @@ const handleLogout = () => {
 }
 
 .logo-icon {
-  font-size: 64px;
   margin-bottom: 16px;
   animation: pulse 3s ease-in-out infinite;
 }
 
 @keyframes pulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  50% { transform: scale(1.08); }
 }
 
 .title {
@@ -174,10 +213,11 @@ const handleLogout = () => {
   margin-bottom: 48px;
 }
 
+/* ── 按钮组 ── */
 .menu {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   align-items: center;
 }
 
@@ -191,9 +231,13 @@ const handleLogout = () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
   min-width: 260px;
   justify-content: center;
+}
+
+.btn-icon {
+  flex-shrink: 0;
 }
 
 .btn-primary {
@@ -201,51 +245,29 @@ const handleLogout = () => {
   color: white;
   box-shadow: 0 4px 20px rgba(58, 95, 205, 0.4);
 }
-
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 30px rgba(58, 95, 205, 0.6);
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(200, 210, 255, 0.8);
-  border: 1px solid rgba(100, 150, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(200, 210, 255, 0.75);
+  border: 1px solid rgba(100, 150, 255, 0.15);
 }
-
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(100, 150, 255, 0.4);
-}
-
-.btn-icon {
-  font-size: 18px;
-}
-
-.footer {
-  margin-top: 60px;
-  color: rgba(150, 170, 220, 0.4);
-  font-size: 13px;
-}
-
-.tech {
-  font-size: 11px;
-  margin-top: 4px;
-}
-
-.version {
-  font-size: 10px;
-  margin-top: 8px;
-  opacity: 0.3;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(100, 150, 255, 0.35);
+  transform: translateY(-1px);
 }
 
 .btn-login {
   background: rgba(255, 255, 255, 0.04);
   color: rgba(200, 210, 255, 0.5);
-  border: 1px solid rgba(100, 150, 255, 0.12);
-  padding: 10px 32px;
-  font-size: 14px;
-  min-width: 200px;
+  border: 1px solid rgba(100, 150, 255, 0.1);
+  padding: 12px 36px;
+  font-size: 15px;
+  min-width: 240px;
 }
 .btn-login:hover {
   background: rgba(255, 255, 255, 0.08);
@@ -254,26 +276,32 @@ const handleLogout = () => {
   transform: translateY(-1px);
 }
 
-.user-section {
-  margin-top: 20px;
+/* ── 菜单分隔线 ── */
+.menu-divider {
+  width: 40px;
+  height: 1px;
+  background: rgba(100, 150, 255, 0.12);
+  margin: 4px 0;
 }
 
+/* ── 用户信息条 ── */
 .user-info {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 8px 20px;
+  gap: 8px;
+  padding: 8px 18px;
   border-radius: 20px;
   background: rgba(100, 150, 255, 0.06);
   border: 1px solid rgba(100, 150, 255, 0.1);
+  color: rgba(200, 210, 255, 0.7);
   font-size: 14px;
 }
-.user-avatar {
-  font-size: 18px;
+.user-icon {
+  flex-shrink: 0;
+  color: rgba(100, 180, 255, 0.5);
 }
-.user-info .user-name {
-  color: rgba(200, 210, 255, 0.8);
+.user-name {
+  color: rgba(200, 210, 255, 0.85);
 }
 .btn-logout {
   background: none;
@@ -289,5 +317,17 @@ const handleLogout = () => {
 .btn-logout:hover {
   color: rgba(255, 120, 120, 0.8);
   background: rgba(255, 80, 80, 0.1);
+}
+
+/* ── 页脚 ── */
+.footer {
+  margin-top: 56px;
+  color: rgba(150, 170, 220, 0.35);
+  font-size: 13px;
+}
+.tech {
+  font-size: 11px;
+  margin-top: 4px;
+  opacity: 0.7;
 }
 </style>
