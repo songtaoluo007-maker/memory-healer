@@ -224,7 +224,7 @@ const sendMessage = async (text?: string) => {
 
   // 添加 NPC 占位消息
   const npcMsgIndex = chatHistory.value.length
-  chatHistory.value.push({ role: 'npc', content: '', npcName: selectedNpc.value.name })
+  chatHistory.value.push({ role: 'npc', content: '', npcName: selectedNpc.value.name, npcId: selectedNpc.value.id, emotion: 'neutral' })
 
   try {
     // 优先用 SSE 流式
@@ -239,6 +239,7 @@ const sendMessage = async (text?: string) => {
       (data) => {
         // 后端已保证reply干净，直接使用
         chatHistory.value[npcMsgIndex].content = data.reply
+        chatHistory.value[npcMsgIndex].emotion = data.npc_mood || 'neutral'
         addDialogue('npc', data.reply)
 
         // 播放NPC语音
@@ -440,6 +441,9 @@ watch(() => gameState.value?.current_scene, async (newScene) => {
         <NpcAvatar :npc-id="npc.id" :emotion="getTrustLevel(npc.id).label === '完全信任' ? 'happy' : 'neutral'" :size="36" />
         <div class="npc-chip-info">
           <span class="npc-chip-name">{{ npc.name }}</span>
+          <div class="trust-bar-container">
+            <div class="trust-bar" :style="{ width: (gameState?.npc_trust?.[npc.id] || 0) + '%', background: getTrustLevel(npc.id).color }" />
+          </div>
           <span class="npc-chip-trust" :style="{ color: getTrustLevel(npc.id).color }">{{ getTrustLevel(npc.id).label }}</span>
         </div>
       </div>
@@ -466,10 +470,14 @@ watch(() => gameState.value?.current_scene, async (newScene) => {
             class="chat-msg"
             :class="msg.role"
           >
-            <span class="msg-name" v-if="msg.role === 'npc'">{{ msg.npcName }}</span>
-            <span class="msg-name" v-else-if="msg.role === 'player'">你</span>
-            <span class="msg-name" v-else>系统</span>
-            <span class="msg-text">{{ msg.content }}</span>
+            <NpcAvatar v-if="msg.role === 'npc' && msg.npcId" :npc-id="msg.npcId" :emotion="msg.emotion || 'neutral'" :size="28" class="msg-avatar" />
+            <span class="msg-avatar-player" v-else-if="msg.role === 'player'">你</span>
+            <div class="msg-body">
+              <span class="msg-name" v-if="msg.role === 'npc'">{{ msg.npcName }}</span>
+              <span class="msg-name" v-else-if="msg.role === 'player'">你</span>
+              <span class="msg-name" v-else>系统</span>
+              <span class="msg-text">{{ msg.content }}</span>
+            </div>
           </div>
           <div v-if="chatLoading" class="chat-msg npc loading">
             <span class="msg-name">{{ selectedNpc?.name }}</span>
@@ -811,6 +819,18 @@ watch(() => gameState.value?.current_scene, async (newScene) => {
   font-size: 11px;
   opacity: 0.8;
 }
+.trust-bar-container {
+  width: 60px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.trust-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
 
 /* ===== 对话面板（右侧滑出） ===== */
 .dialogue-float {
@@ -889,19 +909,41 @@ watch(() => gameState.value?.current_scene, async (newScene) => {
 }
 .chat-msg {
   display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.chat-msg.npc { flex-direction: row; }
+.chat-msg.player { flex-direction: row-reverse; }
+.chat-msg.system { justify-content: center; }
+.msg-avatar {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.msg-avatar-player {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(100, 150, 255, 0.2);
+  border: 1px solid rgba(100, 150, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #a0b0ff;
+  flex-shrink: 0;
+}
+.msg-body {
+  display: flex;
   flex-direction: column;
   gap: 2px;
+  max-width: 80%;
 }
-.chat-msg.npc { align-items: flex-start; }
-.chat-msg.player { align-items: flex-end; }
-.chat-msg.system { align-items: center; }
 .msg-name {
   font-size: 11px;
   opacity: 0.6;
   padding: 0 4px;
 }
 .msg-text {
-  max-width: 85%;
   padding: 8px 14px;
   border-radius: 12px;
   font-size: 13px;

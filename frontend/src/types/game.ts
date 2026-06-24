@@ -117,6 +117,9 @@ export interface ChatMessage {
   role: 'player' | 'npc' | 'system'
   content: string
   npcName?: string
+  npcId?: string
+  emotion?: string
+  trustChange?: number
 }
 
 export type EndingType = 'hope' | 'bittersweet' | 'tragic' | 'legacy'
