@@ -16,6 +16,8 @@ const NpcAvatar = defineAsyncComponent(() => import('../components/NpcAvatar.vue
 const HotspotOverlay = defineAsyncComponent(() => import('../components/HotspotOverlay.vue'))
 const SceneTransition = defineAsyncComponent(() => import('../components/SceneTransition.vue'))
 const ButterflyPanel = defineAsyncComponent(() => import('../components/ButterflyPanel.vue'))
+const StoryLog = defineAsyncComponent(() => import('../components/StoryLog.vue'))
+const SceneTimeline = defineAsyncComponent(() => import('../components/SceneTimeline.vue'))
 const MemoryPanel = defineAsyncComponent(() => import('../components/MemoryPanel.vue'))
 const ShadowLighting = defineAsyncComponent(() => import('../components/ShadowLighting.vue'))
 const InkParticles = defineAsyncComponent(() => import('../components/InkParticles.vue'))
@@ -55,6 +57,8 @@ const { hotspots, exploredIds, exploreHotspot, explorationProgress } = useHotspo
 // 记忆档案面板
 const showMemoryPanel = ref(false)
 const showButterfly = ref(false)
+const showStoryLog = ref(false)
+const showTimeline = ref(false)
 
 const chatHistory = ref<ChatMessage[]>([])
 const chatContainer = ref<HTMLElement | null>(null)
@@ -420,6 +424,8 @@ watch(() => gameState.value?.current_scene, async (newScene) => {
         </div>
         <div class="fragment-counter" @click="showInventory = !showInventory">🧩 {{ collectedCount }}/{{ totalFragments }}</div>
         <div class="butterfly-btn" @click="showButterfly = !showButterfly">🦋 蝴蝶效应</div>
+        <div class="timeline-btn" @click="showTimeline = !showTimeline">🕰 时光地图</div>
+        <div class="log-btn" @click="showStoryLog = !showStoryLog">📜 日志</div>
         <span class="explore-badge" v-if="explorationProgress < 100">探索 {{ explorationProgress }}%</span>
         <span class="explore-badge done" v-else>✦ 已完全探索</span>
       </div>
@@ -564,6 +570,23 @@ watch(() => gameState.value?.current_scene, async (newScene) => {
       :total-fragments="Object.keys(gameState.fragment_states || {}).length"
       @close="showMemoryPanel = false"
     />
+    <!-- 剧情日志 -->
+    <StoryLog
+      v-if="showStoryLog"
+      :game-state="gameState"
+      :chat-history="chatHistory"
+      @close="showStoryLog = false"
+    />
+
+    <!-- 时光地图 -->
+    <SceneTimeline
+      v-if="showTimeline && gameState"
+      :current-scene="gameState.current_scene"
+      :visited-scenes="gameState.visited_scenes"
+      @navigate="switchScene"
+      @close="showTimeline = false"
+    />
+
     <!-- 蝴蝶效应面板 -->
     <div class="butterfly-overlay" v-if="showButterfly" @click.self="showButterfly = false">
       <ButterflyPanel :game-state="gameState" />
@@ -1476,5 +1499,25 @@ watch(() => gameState.value?.current_scene, async (newScene) => {
   width: 90%;
   max-height: 80vh;
   overflow-y: auto;
+}
+
+.timeline-btn, .log-btn {
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+.timeline-btn {
+  color: rgba(100, 200, 150, 0.8);
+}
+.timeline-btn:hover {
+  background: rgba(100, 200, 150, 0.15);
+}
+.log-btn {
+  color: rgba(255, 215, 100, 0.8);
+}
+.log-btn:hover {
+  background: rgba(255, 215, 100, 0.15);
 }
 </style>
