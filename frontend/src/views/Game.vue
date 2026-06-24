@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick, defineAsyncComponent } from 'vue'
+import { ref, onMounted, watch, defineAsyncComponent } from 'vue'
 import { useGameState } from '../composables/useGameState'
 import { useTypewriter } from '../composables/useTypewriter'
 import { useAudio } from '../composables/useAudio'
-import { chatWithNpcStream, getSceneDetail, advanceNarrative, saveGame, recordChoice, evaluateEnding } from '../api'
+import { useScene } from '../composables/useScene'
+import { saveGame, recordChoice, evaluateEnding } from '../api'
 import { useHotspots } from '../composables/useHotspots'
 import { useI18n } from '../composables/useI18n'
 import type { Hotspot } from '../composables/useHotspots'
-import type { Scene, NpcSummary, Fragment, ChatMessage, EndingType } from '../types/game'
+import type { EndingType } from '../types/game'
 
-// 懒加载重量级组件
+// 懒加载组件
 const SceneIllustration = defineAsyncComponent(() => import('../components/SceneIllustration.vue'))
 const MemoryProgress = defineAsyncComponent(() => import('../components/MemoryProgress.vue'))
 const NpcAvatar = defineAsyncComponent(() => import('../components/NpcAvatar.vue'))
@@ -22,102 +23,54 @@ const MemoryPanel = defineAsyncComponent(() => import('../components/MemoryPanel
 const ShadowLighting = defineAsyncComponent(() => import('../components/ShadowLighting.vue'))
 const InkParticles = defineAsyncComponent(() => import('../components/InkParticles.vue'))
 const ParallaxBg = defineAsyncComponent(() => import('../components/ParallaxBg.vue'))
+const ChatPanel = defineAsyncComponent(() => import('../components/ChatPanel.vue'))
 
-const emit = defineEmits<{
-  ending: [type: EndingType]
-}>()
+const emit = defineEmits<{ ending: [type: EndingType] }>()
+const props = defineProps<{ loadSlotId?: number | null }>()
 
-const props = defineProps<{
-  loadSlotId?: number | null
-}>()
-
+// 核心状态
 const { gameState, initGame, loadFromSlot, updateTrust, collectFragment, revealFragment, addDialogue, collectedCount, totalFragments } = useGameState()
-
-const currentScene = ref<Scene | null>(null)
-const currentNpcs = ref<NpcSummary[]>([])
-const sceneFragments = ref<Array<Fragment & { is_collected: boolean }>>([])
-const narrativeText = ref('')
-const playerInput = ref('')
-const presetOptions = ref<string[]>([])
-const selectedNpc = ref<NpcSummary | null>(null)
-const showFragmentPopup = ref(false)
-const popupFragment = ref<(Fragment & { just_collected?: boolean }) | null>(null)
-const chatLoading = ref(false)
-const showInventory = ref(false)
-
+const { currentScene, currentNpcs, sceneFragments, narrativeText, sceneTransitioning, loadScene: loadSceneData, switchScene: switchSceneBase } = useScene()
 const { displayText: typewriterText, isTyping, start: typeStart, skip: typeSkip } = useTypewriter(25)
-
-// 音频系统
 const { playBGM, playSFX, isMuted, toggleMute, speak, stopSpeak } = useAudio()
 const { t, lang, toggleLang } = useI18n()
-
-// 热区探索（初始场景，loadScene时会更新）
 const { hotspots, exploredIds, exploreHotspot, explorationProgress } = useHotspots(gameState.value?.current_scene || 'scene_1972')
 
-// 记忆档案面板
+// UI 状态
+const selectedNpc = ref<any>(null)
+const showFragmentPopup = ref(false)
+const popupFragment = ref<any>(null)
+const showInventory = ref(false)
 const showMemoryPanel = ref(false)
 const showButterfly = ref(false)
 const showStoryLog = ref(false)
 const showTimeline = ref(false)
+const chatPanelRef = ref<InstanceType<typeof ChatPanel> | null>(null)
 
-const chatHistory = ref<ChatMessage[]>([])
-const chatContainer = ref<HTMLElement | null>(null)
-
-// 场景切换
-const sceneTransitioning = ref(false)
-
-// 游戏时间（持久化到gameState，避免页面切换重置）
+// 游戏时间
 const getPlayTime = () => {
   if (!gameState.value) return 0
-  const startTime = gameState.value.play_start_time || Date.now()
-  return Math.floor((Date.now() - startTime) / 1000)
+  return Math.floor((Date.now() - (gameState.value.play_start_time || Date.now())) / 1000)
 }
 
 // 自动存档
 const autoSave = async () => {
   if (!gameState.value) return
-  try {
-    await saveGame(0, '自动存档', gameState.value, gameState.value.current_scene, getPlayTime())
-  } catch {}
+  try { await saveGame(0, '自动存档', gameState.value, gameState.value.current_scene, getPlayTime()) } catch {}
 }
 
-onMounted(async () => {
-  if (props.loadSlotId != null) {
-    await loadFromSlot(props.loadSlotId)
-  } else {
-    await initGame()
-  }
-  await loadScene()
-})
-
+// 加载场景（包装useScene）
 const loadScene = async () => {
   if (!gameState.value) return
   sceneTransitioning.value = true
   try {
-    const res = await getSceneDetail(gameState.value.current_scene, gameState.value)
-    currentScene.value = res.data.scene
-    currentNpcs.value = res.data.npcs
-    sceneFragments.value = res.data.fragments
-
-    // 叙事推进
-    const narrRes = await advanceNarrative('进入场景', gameState.value)
-    let sceneDesc = narrRes.data.scene_description
-
-    // 蝴蝶效应: 追加场景修改描述
-    const butterflyMods = res.data.butterfly_mods || []
-    if (butterflyMods.length > 0) {
-      sceneDesc += '\n\n' + butterflyMods.join('\n')
-    }
-
-    narrativeText.value = sceneDesc
-    presetOptions.value = narrRes.data.available_actions
-    typeStart(sceneDesc)
+    const desc = await loadSceneData(gameState.value)
+    if (desc) typeStart(desc)
   } catch {
     narrativeText.value = currentScene.value?.description || '场景加载中...'
     typeStart(narrativeText.value)
   } finally {
     setTimeout(() => { sceneTransitioning.value = false }, 600)
-    // 播放场景BGM
     playBGM(gameState.value.current_scene)
   }
 }
@@ -129,180 +82,82 @@ const switchScene = async (targetScene: string) => {
   sceneTransitioning.value = true
   gameState.value.current_scene = targetScene
   selectedNpc.value = null
-  chatHistory.value = []
+  chatPanelRef.value?.clearHistory()
   await autoSave()
   await loadScene()
 }
 
-const selectNpc = (npc: NpcSummary) => {
+// NPC选择
+const selectNpc = (npc: any) => {
   stopSpeak()
   selectedNpc.value = npc
-  playerInput.value = ''
   playSFX('dialogue_start')
 }
 
-// 热区探索处理
+// 热区探索
 const handleExplore = async (hotspot: Hotspot) => {
   playSFX('explore')
   const result = exploreHotspot(hotspot.id)
   if (!result) return
 
-  // 如果热区关联碎片，检查是否可以收集
   if (hotspot.fragment_id && gameState.value) {
     const fragStates = gameState.value.fragment_states
-    if (fragStates && fragStates[hotspot.fragment_id]) {
+    if (fragStates?.[hotspot.fragment_id]) {
       const fragState = fragStates[hotspot.fragment_id]
-      if (!fragState.revealed) {
-        revealFragment(hotspot.fragment_id)
-        fragState.revealed = true
-      }
-      // 热区发现的碎片直接收集
+      if (!fragState.revealed) { revealFragment(hotspot.fragment_id); fragState.revealed = true }
       if (!fragState.collected) {
         collectFragment(hotspot.fragment_id)
         playSFX('fragment_found')
-        popupFragment.value = {
-          id: hotspot.fragment_id,
-          name: fragState.name || hotspot.hint,
-          scene: hotspot.scene,
-          description: hotspot.hint,
-          unlock_method: '探索发现',
-          unlock_hint: '',
-          memory_text: '',
-          collected: true,
-          just_collected: true,
-        }
+        popupFragment.value = { id: hotspot.fragment_id, name: fragState.name || hotspot.hint, scene: hotspot.scene, description: hotspot.hint, unlock_method: '探索发现', unlock_hint: '', memory_text: '', collected: true, just_collected: true }
         showFragmentPopup.value = true
       }
     }
   }
 
-  // 如果关联NPC，自动选中
   if (hotspot.npc_id) {
-    const npc = currentNpcs.value.find(n => n.id === hotspot.npc_id)
+    const npc = currentNpcs.value.find((n: any) => n.id === hotspot.npc_id)
     if (npc) selectNpc(npc)
   }
 
-  // 显示探索描述
   narrativeText.value = hotspot.hint
   typeStart(hotspot.hint)
 }
 
-// 蝴蝶效应: 检测玩家对话中的关键选择
+// 蝴蝶效应: 检测关键选择
 const detectAndRecordChoice = (playerMsg: string, npcId: string) => {
   if (!gameState.value) return
   const scene = gameState.value.current_scene
-
-  // 1972年: 鼓励/劝阻皮影戏
   if (scene === 'scene_1972' && npcId === 'chen_shouyi_young') {
-    if (/坚持|继续|别放弃|加油|很好|厉害|手艺/.test(playerMsg)) {
-      recordChoice(scene, 'encourage_art', gameState.value)
-    } else if (/放弃|转行|没前途|别做了|算了/.test(playerMsg)) {
-      recordChoice(scene, 'discourage_art', gameState.value)
-    }
-    if (/小雨|孙女|家人/.test(playerMsg)) {
-      recordChoice(scene, 'mention_xiaoyu', gameState.value)
-    }
+    if (/坚持|继续|别放弃|加油|很好|厉害|手艺/.test(playerMsg)) recordChoice(scene, 'encourage_art', gameState.value)
+    else if (/放弃|转行|没前途|别做了|算了/.test(playerMsg)) recordChoice(scene, 'discourage_art', gameState.value)
+    if (/小雨|孙女|家人/.test(playerMsg)) recordChoice(scene, 'mention_xiaoyu', gameState.value)
   }
-
-  // 2024年: 帮助老人/找到信件
   if (scene === 'scene_2024') {
-    if (npcId === 'chen_shouyi_old' && /帮你|照顾|陪伴|不孤单|我在这里/.test(playerMsg)) {
-      recordChoice(scene, 'help_elderly', gameState.value)
-    }
-    if (npcId === 'xiaoyu' && /信|找到了|给你|爷爷的/.test(playerMsg)) {
-      recordChoice(scene, 'found_letter', gameState.value)
-    }
+    if (npcId === 'chen_shouyi_old' && /帮你|照顾|陪伴|不孤单|我在这里/.test(playerMsg)) recordChoice(scene, 'help_elderly', gameState.value)
+    if (npcId === 'xiaoyu' && /信|找到了|给你|爷爷的/.test(playerMsg)) recordChoice(scene, 'found_letter', gameState.value)
   }
 }
 
-const sendMessage = async (text?: string) => {
-  const msg = text || playerInput.value.trim()
-  if (!msg || !selectedNpc.value || !gameState.value || chatLoading.value) return
-
-  playerInput.value = ''
-  chatLoading.value = true
-
-  // 添加玩家消息
-  chatHistory.value.push({ role: 'player', content: msg })
+// ChatPanel 事件处理
+const onTrustChange = (npcId: string, change: number) => { updateTrust(npcId, change) }
+const onFragmentReveal = (fragmentId: string, fragmentData: any) => {
+  revealFragment(fragmentId)
+  const trust = gameState.value?.npc_trust?.[selectedNpc.value?.id] || 30
+  if (trust >= 60) {
+    collectFragment(fragmentId)
+    popupFragment.value = { ...fragmentData, just_collected: true }
+    playSFX('fragment_found')
+  } else {
+    popupFragment.value = { ...fragmentData, just_collected: false }
+  }
+  showFragmentPopup.value = true
+}
+const onChoiceDetected = (msg: string, npcId: string) => {
   addDialogue('player', msg)
-  detectAndRecordChoice(msg, selectedNpc.value.id)
-  scrollToBottom()
-
-  // 添加 NPC 占位消息
-  const npcMsgIndex = chatHistory.value.length
-  chatHistory.value.push({ role: 'npc', content: '', npcName: selectedNpc.value.name, npcId: selectedNpc.value.id, emotion: 'neutral' })
-
-  try {
-    // 优先用 SSE 流式
-    chatWithNpcStream(
-      { npc_id: selectedNpc.value.id, player_input: msg, game_state: gameState.value },
-      // onToken
-      (token) => {
-        chatHistory.value[npcMsgIndex].content += token
-        scrollToBottom()
-      },
-      // onDone
-      (data) => {
-        // 后端已保证reply干净，直接使用
-        chatHistory.value[npcMsgIndex].content = data.reply
-        chatHistory.value[npcMsgIndex].emotion = data.npc_mood || 'neutral'
-        addDialogue('npc', data.reply)
-
-        // 播放NPC语音
-        speak(data.reply, selectedNpc.value!.id)
-
-        if (data.trust_change !== 0) {
-          updateTrust(selectedNpc.value!.id, data.trust_change)
-          playSFX(data.trust_change > 0 ? 'trust_up' : 'trust_down')
-        }
-
-        if (data.fragment_revealed && data.fragment_data) {
-          revealFragment(data.fragment_revealed)
-          const trust = gameState.value!.npc_trust[selectedNpc.value!.id] || 30
-          if (trust >= 60) {
-            collectFragment(data.fragment_revealed)
-            popupFragment.value = { ...data.fragment_data, just_collected: true }
-            playSFX('fragment_found')
-          } else {
-            popupFragment.value = { ...data.fragment_data, just_collected: false }
-          }
-          showFragmentPopup.value = true
-        }
-
-        if (data.reply.includes('？') || data.reply.includes('?')) {
-          presetOptions.value = ['继续问', '换个话题', '告辞']
-        }
-
-        chatLoading.value = false
-        scrollToBottom()
-      },
-      // onError
-      (errMsg) => {
-        chatHistory.value[npcMsgIndex].content = `[${errMsg}]`
-        chatLoading.value = false
-        scrollToBottom()
-      },
-    )
-  } catch {
-    chatHistory.value.push({ role: 'system', content: '[连接中断，请重试]' })
-    chatLoading.value = false
-    scrollToBottom()
-  }
+  detectAndRecordChoice(msg, npcId)
 }
 
-const collectCurrentFragment = (fragmentId: string) => {
-  collectFragment(fragmentId)
-  showFragmentPopup.value = false
-}
-
-const scrollToBottom = () => {
-  nextTick(() => {
-    if (chatContainer.value) {
-      chatContainer.value.scrollTop = chatContainer.value.scrollHeight
-    }
-  })
-}
-
+const collectCurrentFragment = (fragmentId: string) => { collectFragment(fragmentId); showFragmentPopup.value = false }
 const getTrustLevel = (npcId: string) => {
   const trust = gameState.value?.npc_trust[npcId] || 30
   if (trust >= 80) return { label: '完全信任', color: '#4ade80' }
@@ -311,64 +166,50 @@ const getTrustLevel = (npcId: string) => {
   return { label: '警惕', color: '#f87171' }
 }
 
+// 结局监控
 watch(() => gameState.value?.collected_fragments?.length, async (newVal) => {
   if (!newVal || !gameState.value) return
-
-  // 每收集一个碎片自动存档
   autoSave()
-
-  // 在最后一幕时用后端评估结局
   if (gameState.value.current_scene === 'scene_2089') {
     try {
       const { data } = await evaluateEnding(gameState.value)
       const endingType = data.type as EndingType
-
       const endingTexts: Record<string, string> = {
         hope: '记忆修复程序启动……碎片正在聚合……那些消散的光影，重新聚合成完整的画面。',
         bittersweet: '记忆修复程序启动……部分碎片聚合了。虽然不完整，但温暖还在。',
         tragic: '记忆碎片太少了……修复程序难以启动……但也许还有希望。',
         legacy: '所有记忆碎片收集完毕，蝴蝶效应全部激活。跨越五个时代的记忆被完整修复——这不只是修复，是传承。',
       }
-
       narrativeText.value = endingTexts[endingType] || endingTexts.hope
       typeStart(narrativeText.value)
-
-      setTimeout(() => {
-        playSFX(`ending_${endingType}`)
-        emit('ending', endingType)
-      }, endingType === 'legacy' ? 6000 : 5000)
+      setTimeout(() => { playSFX(`ending_${endingType}`); emit('ending', endingType) }, endingType === 'legacy' ? 6000 : 5000)
     } catch {
-      // 降级：本地判断
       const percent = totalFragments.value > 0 ? (newVal / totalFragments.value) * 100 : 0
-      const endingType: EndingType = percent >= 80 ? 'hope' : percent >= 40 ? 'bittersweet' : 'tragic'
-      emit('ending', endingType)
+      emit('ending', percent >= 80 ? 'hope' : percent >= 40 ? 'bittersweet' : 'tragic')
     }
   } else if (newVal >= totalFragments.value && totalFragments.value > 0) {
-    // 非最后一幕但全部收集
     narrativeText.value = '所有记忆碎片已经收集完毕……去最后一幕完成修复吧。'
     typeStart(narrativeText.value)
   }
 })
 
-// 进入最后一幕时触发结局评估
 watch(() => gameState.value?.current_scene, async (newScene) => {
   if (newScene !== 'scene_2089' || !gameState.value) return
-  const collected = gameState.value.collected_fragments?.length || 0
-  if (collected === 0) return
-
+  if ((gameState.value.collected_fragments?.length || 0) === 0) return
   try {
     const { data } = await evaluateEnding(gameState.value)
-    const endingType = data.type as EndingType
-
-    if (endingType === 'tragic') {
+    if (data.type === 'tragic') {
       narrativeText.value = '记忆碎片太少了……修复程序难以启动……'
       typeStart(narrativeText.value)
-      setTimeout(() => {
-        playSFX('ending_tragic')
-        emit('ending', 'tragic')
-      }, 5000)
+      setTimeout(() => { playSFX('ending_tragic'); emit('ending', 'tragic') }, 5000)
     }
-  } catch { /* 降级忽略 */ }
+  } catch {}
+})
+
+onMounted(async () => {
+  if (props.loadSlotId != null) await loadFromSlot(props.loadSlotId)
+  else await initGame()
+  await loadScene()
 })
 </script>
 
@@ -459,6 +300,7 @@ watch(() => gameState.value?.current_scene, async (newScene) => {
     </div>
 
     <!-- 对话面板（右侧悬浮） -->
+    <!-- 对话面板（ChatPanel组件） -->
     <div class="dialogue-float" :class="{ open: selectedNpc }" role="dialog" aria-label="NPC对话面板" aria-modal="false">
       <div class="dialogue-glass">
         <div class="dialogue-header" v-if="selectedNpc">
@@ -468,58 +310,18 @@ watch(() => gameState.value?.current_scene, async (newScene) => {
         <div class="dialogue-header" v-else>
           <span>选择下方角色开始对话</span>
         </div>
-
-        <div class="chat-area" ref="chatContainer" role="log" aria-live="polite" aria-label="对话历史">
-          <div v-if="!selectedNpc" class="empty-chat">
-            <p>点击下方角色头像开始对话</p>
-          </div>
-          <div
-            v-for="(msg, i) in chatHistory"
-            :key="i"
-            class="chat-msg"
-            :class="msg.role"
-          >
-            <NpcAvatar v-if="msg.role === 'npc' && msg.npcId" :npc-id="msg.npcId" :emotion="msg.emotion || 'neutral'" :size="28" class="msg-avatar" />
-            <span class="msg-avatar-player" v-else-if="msg.role === 'player'">你</span>
-            <div class="msg-body">
-              <span class="msg-name" v-if="msg.role === 'npc'">{{ msg.npcName }}</span>
-              <span class="msg-name" v-else-if="msg.role === 'player'">你</span>
-              <span class="msg-name" v-else>系统</span>
-              <span class="msg-text">{{ msg.content }}</span>
-            </div>
-          </div>
-          <div v-if="chatLoading" class="chat-msg npc loading">
-            <span class="msg-name">{{ selectedNpc?.name }}</span>
-            <span class="msg-text typing-dots">思考中<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span>
-          </div>
-        </div>
-
-        <!-- 预设选项 -->
-        <div class="preset-options" v-if="selectedNpc && presetOptions.length">
-          <button
-            v-for="opt in presetOptions"
-            :key="opt"
-            class="preset-btn"
-            @click="playSFX('click'); sendMessage(opt)"
-            :disabled="chatLoading"
-          >{{ opt }}</button>
-        </div>
-
-        <!-- 输入框 -->
-        <div class="input-area" v-if="selectedNpc">
-          <input
-            v-model="playerInput"
-            class="chat-input"
-            placeholder="你想说什么..."
-            @keyup.enter="sendMessage()"
-            :disabled="chatLoading"
-          />
-          <button class="send-btn" @click="playSFX('click'); sendMessage()" :disabled="chatLoading || !playerInput.trim()" aria-label="发送消息">➤</button>
-        </div>
+        <ChatPanel
+          ref="chatPanelRef"
+          :selected-npc="selectedNpc"
+          :game-state="gameState"
+          :total-fragments="totalFragments"
+          @trust-change="onTrustChange"
+          @fragment-reveal="onFragmentReveal"
+          @choice-detected="onChoiceDetected"
+        />
       </div>
     </div>
-
-    <!-- 场景切换动画 -->
+<!-- 场景切换动画 -->
     <SceneTransition :active="sceneTransitioning" :scene-id="gameState?.current_scene || ''" />
 
     <!-- 碎片弹窗 -->
