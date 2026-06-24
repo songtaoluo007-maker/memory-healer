@@ -335,4 +335,22 @@ defineExpose({ chatHistory, clearHistory })
   background: rgba(100, 150, 255, 0.25);
 }
 .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .chat-messages { padding: 12px; gap: 10px; }
+  .msg-body { max-width: 85%; }
+  .msg-text { font-size: 14px; padding: 10px 14px; }
+  .preset-options { padding: 8px 12px; }
+  .preset-btn { padding: 8px 16px; font-size: 13px; min-height: 36px; }
+  .input-area { padding: 10px 12px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  .chat-input { font-size: 16px; padding: 12px 14px; } /* 16px防止iOS缩放 */
+  .send-btn { padding: 12px 20px; min-height: 44px; }
+}
+
+@media (max-width: 480px) {
+  .msg-text { font-size: 13px; }
+  .msg-avatar-player { width: 24px; height: 24px; font-size: 10px; }
+  .preset-btn { font-size: 12px; padding: 6px 12px; }
+}
 </style>

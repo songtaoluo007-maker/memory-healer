@@ -959,3 +959,50 @@
   border-color: rgba(232, 180, 80, 0.4) !important;
 }
 
+/* ── 移动端增强 ── */
+
+/* 安全区适配（刘海屏/底部横条） */
+.top-bar {
+  padding-top: max(14px, env(safe-area-inset-top));
+}
+.npc-dock {
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+/* 触控优化 */
+button, .icon-btn, .nav-btn, .npc-chip, .hotspot-group {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 最小触控区域 44px */
+.icon-btn, .nav-btn {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 移动端对话面板全屏 */
+@media (max-width: 768px) {
+  .chat-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    border-radius: 0;
+  }
+  .chat-input-area {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* 暗黑模式滚动条（移动端细滚动条） */
+@media (max-width: 480px) {
+  ::-webkit-scrollbar { width: 3px; }
+  .story-log-list, .butterfly-list, .timeline-list {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+

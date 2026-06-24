@@ -249,4 +249,18 @@ function getProgress(sceneId: string): string {
   background: rgba(100, 200, 150, 0.15);
   color: rgba(100, 200, 150, 0.7);
 }
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .scene-timeline { padding: 16px; max-height: 80vh; }
+  .scene-timeline h3 { font-size: 16px; }
+  .timeline-node { padding: 10px; }
+  .node-year { font-size: 18px; }
+}
+@media (max-width: 480px) {
+  .scene-timeline { padding: 12px; }
+  .timeline-node { padding: 8px; }
+  .node-name { font-size: 13px; }
+}
 </style>
+

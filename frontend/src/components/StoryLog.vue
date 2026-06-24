@@ -296,4 +296,18 @@ const filterOptions = [
 }
 .log-empty p { margin: 0; }
 .log-empty-hint { font-size: 13px; }
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .story-log { padding: 16px; max-height: 80vh; }
+  .story-log h3 { font-size: 16px; }
+  .log-filters { gap: 4px; }
+  .log-filter-btn { padding: 4px 10px; font-size: 12px; }
+  .log-item { padding: 10px; }
+}
+@media (max-width: 480px) {
+  .story-log { padding: 12px; }
+  .log-item { padding: 8px; font-size: 13px; }
+}
 </style>
+

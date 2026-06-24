@@ -199,4 +199,16 @@ defineExpose({ refresh: fetchStatus })
   padding: 2px 8px;
   border-radius: 4px;
 }
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .butterfly-panel { padding: 16px; max-height: 80vh; }
+  .butterfly-panel h3 { font-size: 16px; }
+  .rule-card { padding: 10px; }
+}
+@media (max-width: 480px) {
+  .butterfly-panel { padding: 12px; }
+  .rule-card { padding: 8px; font-size: 13px; }
+}
 </style>
+
