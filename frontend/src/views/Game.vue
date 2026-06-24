@@ -45,7 +45,7 @@ const showInventory = ref(false)
 const { displayText: typewriterText, isTyping, start: typeStart, skip: typeSkip } = useTypewriter(25)
 
 // 音频系统
-const { playBGM, playSFX, isMuted, toggleMute } = useAudio()
+const { playBGM, playSFX, isMuted, toggleMute, speak, stopSpeak } = useAudio()
 const { t, lang, toggleLang } = useI18n()
 
 // 热区探索（初始场景，loadScene时会更新）
@@ -129,6 +129,7 @@ const switchScene = async (targetScene: string) => {
 }
 
 const selectNpc = (npc: NpcSummary) => {
+  stopSpeak()
   selectedNpc.value = npc
   playerInput.value = ''
   playSFX('dialogue_start')
@@ -239,6 +240,9 @@ const sendMessage = async (text?: string) => {
         // 后端已保证reply干净，直接使用
         chatHistory.value[npcMsgIndex].content = data.reply
         addDialogue('npc', data.reply)
+
+        // 播放NPC语音
+        speak(data.reply, selectedNpc.value!.id)
 
         if (data.trust_change !== 0) {
           updateTrust(selectedNpc.value!.id, data.trust_change)

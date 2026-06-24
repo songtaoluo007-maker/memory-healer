@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useI18n } from '../composables/useI18n'
+import LoginModal from '../components/LoginModal.vue'
 
 const emit = defineEmits<{
   start: []
@@ -9,6 +10,29 @@ const emit = defineEmits<{
 
 const { t, lang, toggleLang } = useI18n()
 const showMenu = ref(true)
+const showLogin = ref(false)
+const currentUser = ref<{ token: string; user_id: number; username: string; nickname: string } | null>(null)
+
+onMounted(() => {
+  // 检查本地存储的登录状态
+  const saved = localStorage.getItem('mh_user')
+  if (saved) {
+    try {
+      currentUser.value = JSON.parse(saved)
+    } catch {}
+  }
+})
+
+const handleLogin = (user: { token: string; user_id: number; username: string; nickname: string }) => {
+  currentUser.value = user
+  showLogin.value = false
+}
+
+const handleLogout = () => {
+  localStorage.removeItem('mh_token')
+  localStorage.removeItem('mh_user')
+  currentUser.value = null
+}
 </script>
 
 <template>
@@ -41,12 +65,24 @@ const showMenu = ref(true)
         </button>
       </div>
 
+      <!-- 用户状态（融入菜单下方） -->
+      <div class="user-bar" v-if="currentUser">
+        <span class="user-icon">?</span>
+        <span class="user-name">{{ currentUser.nickname || currentUser.username }}</span>
+        <button class="user-action" @click="handleLogout">退出</button>
+      </div>
+      <div class="user-bar" v-else>
+        <button class="user-action" @click="showLogin = true">? 登录</button>
+      </div>
+
       <div class="footer" role="contentinfo">
         <p>腾讯云黑客松 · AI叙事游戏</p>
         <p class="tech">Powered by DeepSeek · Vue 3 · FastAPI</p>
-        <p class="version">v1.0.0 · P12</p>
+        <p class="version">v1.0.0 · P18</p>
       </div>
     </div>
+
+    <LoginModal v-if="showLogin" @login="handleLogin" @close="showLogin = false" />
   </div>
 </template>
 
@@ -194,5 +230,39 @@ const showMenu = ref(true)
   font-size: 10px;
   margin-top: 8px;
   opacity: 0.3;
+}
+
+.user-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 20px 0 0;
+  font-size: 13px;
+}
+
+.user-icon {
+  font-size: 16px;
+}
+
+.user-name {
+  color: rgba(200, 210, 255, 0.7);
+}
+
+.user-action {
+  background: none;
+  border: none;
+  color: rgba(150, 170, 220, 0.5);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'Noto Serif SC', serif;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.user-action:hover {
+  color: rgba(200, 210, 255, 0.9);
+  background: rgba(255, 255, 255, 0.06);
 }
 </style>

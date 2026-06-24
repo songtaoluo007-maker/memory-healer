@@ -12,6 +12,8 @@ export interface Scene {
   fragments: string[]
   exits?: Record<string, string>
   triggers?: Record<string, string>
+  transition_in?: string
+  transition_out?: string
 }
 
 export interface Npc {

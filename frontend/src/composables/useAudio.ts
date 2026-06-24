@@ -349,18 +349,98 @@ export function useAudio() {
     sfxVolume.value = Math.max(0, Math.min(1, v))
   }
 
+  // ── TTS 语音朗读（Edge TTS） ──
+  const isSpeaking = ref(false)
+  let currentAudio: HTMLAudioElement | null = null
+  let audioQueue: string[] = []
+  let isProcessingQueue = false
+
+  /**
+   * 播放NPC语音朗读
+   * 使用后端Edge TTS API，中文语音自然有情感
+   */
+  const speak = async (text: string, npcId: string) => {
+    if (isMuted.value) return
+
+    // 停止当前朗读
+    stopSpeak()
+
+    // 清理文本：移除多余标点和特殊字符
+    const cleanText = text.replace(/[【】\[\]{}]/g, '').replace(/\s+/g, ' ').trim()
+    if (!cleanText) return
+
+    try {
+      isSpeaking.value = true
+
+      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${baseURL}/api/tts/speak`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleanText, npc_id: npcId }),
+      })
+
+      if (!response.ok || isMuted.value) {
+        isSpeaking.value = false
+        return
+      }
+
+      const blob = await response.blob()
+      if (blob.size === 0) {
+        isSpeaking.value = false
+        return
+      }
+
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audio.volume = sfxVolume.value
+      currentAudio = audio
+
+      audio.onended = () => {
+        isSpeaking.value = false
+        currentAudio = null
+        URL.revokeObjectURL(url)
+      }
+
+      audio.onerror = () => {
+        isSpeaking.value = false
+        currentAudio = null
+        URL.revokeObjectURL(url)
+      }
+
+      await audio.play()
+    } catch {
+      isSpeaking.value = false
+    }
+  }
+
+  /**
+   * 停止语音朗读
+   */
+  const stopSpeak = () => {
+    if (currentAudio) {
+      currentAudio.pause()
+      currentAudio.src = ''
+      currentAudio = null
+    }
+    isSpeaking.value = false
+  }
+
   // 清理
   onUnmounted(() => {
     stopBGM()
+    stopSpeak()
   })
 
   return {
     isMuted,
     bgmVolume,
     sfxVolume,
+    isSpeaking,
     playBGM,
     stopBGM,
     playSFX,
+    speak,
+    stopSpeak,
     toggleMute,
     setBgmVolume,
     setSfxVolume,

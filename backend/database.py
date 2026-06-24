@@ -24,4 +24,5 @@ def get_db():
 
 def init_db():
     from backend.models import save as _save
+    from backend.models import user as _user
     Base.metadata.create_all(bind=engine)

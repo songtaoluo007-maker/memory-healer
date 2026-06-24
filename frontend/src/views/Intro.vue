@@ -96,9 +96,15 @@ const skip = () => {
 
 .title-screen {
   position: absolute;
-  top: 30%;
+  top: 18%;
   text-align: center;
   animation: fadeInUp 2s ease-out;
+}
+
+.phase-2 .title-screen {
+  top: 10%;
+  opacity: 0.4;
+  transition: all 1.5s ease;
 }
 
 .title-icon {
@@ -125,7 +131,7 @@ const skip = () => {
 
 .story-text {
   position: absolute;
-  top: 35%;
+  top: 42%;
   text-align: center;
   padding: 0 40px;
 }

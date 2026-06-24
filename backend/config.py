@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     BACKEND_HOST: str = "127.0.0.1"
     BACKEND_PORT: int = 8000
     LOG_LEVEL: str = "INFO"
-    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000"
+    CORS_ORIGINS: str = "*"
     API_PREFIX: str = "/api"
     DEBUG: bool = False
     ENVIRONMENT: str = "development"  # development | staging | production

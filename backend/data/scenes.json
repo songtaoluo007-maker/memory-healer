@@ -7,10 +7,22 @@
     "description": "黄昏的余晖洒在青石板路上，巷子深处传来皮影戏的锣鼓声。纸窗里透出暖黄色的光影，一个青年男子正在白色幕布后操纵着精致的皮影人偶。空气中弥漫着老槐花的香气。",
     "mood": "warm",
     "bgm": "traditional_chinese.mp3",
-    "npcs": ["chen_shouyi_young"],
-    "fragments": ["fragment_shadow_puppet", "fragment_grandpa_knife", "fragment_three_kings"],
-    "exits": {"forward": "scene_1990"},
-    "triggers": {"on_collect_all": "unlock_memory_1972"}
+    "npcs": [
+      "chen_shouyi_young"
+    ],
+    "fragments": [
+      "fragment_shadow_puppet",
+      "fragment_grandpa_knife",
+      "fragment_three_kings"
+    ],
+    "exits": {
+      "forward": "scene_1990"
+    },
+    "triggers": {
+      "on_collect_all": "unlock_memory_1972"
+    },
+    "transition_in": "记忆修复程序启动……你睁开眼，回到了1972年的西安老巷。",
+    "transition_out": "老巷的光影渐渐模糊，陈守义的身影远去。时光开始流转……"
   },
   "scene_1990": {
     "id": "scene_1990",
@@ -20,10 +32,25 @@
     "description": "绿皮火车轰鸣着进站，站台上挤满了背着蛇皮袋的年轻人。陈守义站在人群中，手里攥着一张去深圳的硬座票，背后是装满皮影道具的旧木箱。广播里循环播放着'深圳特区欢迎您'。",
     "mood": "hopeful",
     "bgm": "station_ambient.mp3",
-    "npcs": ["chen_shouyi_1990", "stranger_1990"],
-    "fragments": ["train_ticket_fragment", "puppet_trunk_fragment", "farewell_letter_fragment", "station_clock_fragment"],
-    "exits": {"back": "scene_1972", "forward": "scene_2024"},
-    "triggers": {"on_collect_all": "unlock_memory_1990"}
+    "npcs": [
+      "chen_shouyi_1990",
+      "stranger_1990"
+    ],
+    "fragments": [
+      "train_ticket_fragment",
+      "puppet_trunk_fragment",
+      "farewell_letter_fragment",
+      "station_clock_fragment"
+    ],
+    "exits": {
+      "back": "scene_1972",
+      "forward": "scene_2024"
+    },
+    "triggers": {
+      "on_collect_all": "unlock_memory_1990"
+    },
+    "transition_in": "时光流转，你来到了1990年的深圳火车站。站台上人潮涌动，一个年轻人正攥着车票犹豫不决。",
+    "transition_out": "火车汽笛声渐渐远去，深圳在飞速变化。又是三十年……"
   },
   "scene_2024": {
     "id": "scene_2024",
@@ -33,10 +60,23 @@
     "description": "逼仄的出租屋里，墙上贴满了皮影戏的剧照。一个头发花白的老人坐在窗前，手里拿着刻刀，却迟迟没有落下。窗外是深圳的高楼大厦，霓虹灯的光从窗帘缝隙透进来。桌上放着一封来自孙女的信。",
     "mood": "melancholy",
     "bgm": "city_ambient.mp3",
-    "npcs": ["chen_shouyi_old"],
-    "fragments": ["fragment_letter", "fragment_old_photos", "fragment_last_show"],
-    "exits": {"back": "scene_1990", "forward": "scene_2050"},
-    "triggers": {"on_collect_all": "unlock_memory_2024"}
+    "npcs": [
+      "chen_shouyi_old"
+    ],
+    "fragments": [
+      "fragment_letter",
+      "fragment_old_photos",
+      "fragment_last_show"
+    ],
+    "exits": {
+      "back": "scene_1990",
+      "forward": "scene_2050"
+    },
+    "triggers": {
+      "on_collect_all": "unlock_memory_2024"
+    },
+    "transition_in": "岁月如梭。深圳的城中村里，垂垂老矣的陈守义坐在轮椅上，记忆正在消散。",
+    "transition_out": "老人闭上了眼睛，但故事还没有结束。记忆的河流继续向前……"
   },
   "scene_2050": {
     "id": "scene_2050",
@@ -46,10 +86,25 @@
     "description": "'中国非物质文化遗产传承杰出贡献奖'颁奖典礼正在进行。大屏幕上播放着陈守义一生的皮影戏历程。小雨作为AI记忆修复项目的负责人，正在台上讲述爷爷的故事。灯光温暖而庄重。",
     "mood": "triumphant",
     "bgm": "symphony.mp3",
-    "npcs": ["xiaoyu_2050", "journalist_2050"],
-    "fragments": ["award_trophy_fragment", "old_photos_wall_fragment", "hologram_stage_fragment", "audience_reactions_fragment"],
-    "exits": {"back": "scene_2024", "forward": "scene_2089"},
-    "triggers": {"on_collect_all": "unlock_memory_2050"}
+    "npcs": [
+      "xiaoyu_2050",
+      "journalist_2050"
+    ],
+    "fragments": [
+      "award_trophy_fragment",
+      "old_photos_wall_fragment",
+      "hologram_stage_fragment",
+      "audience_reactions_fragment"
+    ],
+    "exits": {
+      "back": "scene_2024",
+      "forward": "scene_2089"
+    },
+    "triggers": {
+      "on_collect_all": "unlock_memory_2050"
+    },
+    "transition_in": "2050年，北京国家大剧院。小雨站在颁奖台上，讲述爷爷一生的故事。",
+    "transition_out": "掌声渐渐远去，记忆的最终章即将到来……"
   },
   "scene_2089": {
     "id": "scene_2089",
@@ -59,9 +114,21 @@
     "description": "全息投影在空中漂浮，淡蓝色的光粒子缓缓旋转。实验室中央是一张舒适的躺椅，周围环绕着神经接口设备。一个年轻女孩坐在控制台前，眼眶微红，手里攥着一张泛黄的全家福。",
     "mood": "bittersweet",
     "bgm": "ambient_future.mp3",
-    "npcs": ["xiaoyu"],
-    "fragments": ["fragment_family_photo", "fragment_certificate", "fragment_last_puppet"],
-    "exits": {"back": "scene_2050"},
-    "triggers": {"on_collect_all": "unlock_memory_2089"}
+    "npcs": [
+      "xiaoyu"
+    ],
+    "fragments": [
+      "fragment_family_photo",
+      "fragment_certificate",
+      "fragment_last_puppet"
+    ],
+    "exits": {
+      "back": "scene_2050"
+    },
+    "triggers": {
+      "on_collect_all": "unlock_memory_2089"
+    },
+    "transition_in": "2089年，拾忆实验室。一切记忆碎片都将在这里被修复。你是第一位记忆修复师。",
+    "transition_out": ""
   }
 }

@@ -9,8 +9,9 @@ const Intro = defineAsyncComponent(() => import('./views/Intro.vue'))
 const Game = defineAsyncComponent(() => import('./views/Game.vue'))
 const Ending = defineAsyncComponent(() => import('./views/Ending.vue'))
 const Saves = defineAsyncComponent(() => import('./views/Saves.vue'))
+const GameTutorial = defineAsyncComponent(() => import('./components/GameTutorial.vue'))
 
-type View = 'home' | 'intro' | 'game' | 'ending'
+type View = 'home' | 'intro' | 'tutorial' | 'game' | 'ending'
 
 const currentView = ref<View>('home')
 const showSaves = ref(false)
@@ -38,6 +39,15 @@ const startGame = () => {
 }
 
 const introComplete = () => {
+  // 首次游玩显示教程，否则直接进游戏
+  if (localStorage.getItem('mh_tutorial_done')) {
+    currentView.value = 'game'
+  } else {
+    currentView.value = 'tutorial'
+  }
+}
+
+const tutorialComplete = () => {
   currentView.value = 'game'
 }
 
@@ -79,6 +89,9 @@ const restart = () => {
 
     <!-- 主菜单 -->
     <Home v-if="currentView === 'home'" @start="startGame" @load="loadGame" />
+
+    <!-- 新手教程 -->
+    <GameTutorial v-if="currentView === 'tutorial'" @complete="tutorialComplete" />
 
     <!-- 游戏主界面 -->
     <Game v-if="currentView === 'game'" :load-slot-id="loadSlotId" @ending="onEnding" />
