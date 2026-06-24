@@ -108,8 +108,42 @@ defineProps<{
     <!-- 纸窗（透出暖光） -->
     <rect x="80" y="250" width="60" height="80" rx="2" fill="#3a2a1a" />
     <rect x="85" y="255" width="50" height="70" rx="1" fill="#ffe4b5" opacity="0.7" />
+    <!-- 窗棂 -->
+    <line x1="110" y1="255" x2="110" y2="325" stroke="#3a2a1a" stroke-width="1.5" />
+    <line x1="85" y1="290" x2="135" y2="290" stroke="#3a2a1a" stroke-width="1.5" />
     <rect x="160" y="250" width="60" height="80" rx="2" fill="#3a2a1a" />
     <rect x="165" y="255" width="50" height="70" rx="1" fill="#ffe4b5" opacity="0.7" />
+    <line x1="190" y1="255" x2="190" y2="325" stroke="#3a2a1a" stroke-width="1.5" />
+    <line x1="165" y1="290" x2="215" y2="290" stroke="#3a2a1a" stroke-width="1.5" />
+
+    <!-- 工具箱（戏台旁） -->
+    <g>
+      <rect x="320" y="395" width="35" height="22" rx="3" fill="#5c4a3a" />
+      <rect x="325" y="392" width="25" height="5" rx="2" fill="#6b5b45" />
+      <!-- 锁扣 -->
+      <rect x="335" y="400" width="8" height="4" rx="1" fill="#8b6914" />
+    </g>
+
+    <!-- 旧长凳 -->
+    <g>
+      <!-- 凳面 -->
+      <rect x="560" y="340" width="60" height="6" rx="2" fill="#6b5b45" />
+      <!-- 凳腿 -->
+      <rect x="565" y="346" width="4" height="20" fill="#5c4a3a" />
+      <rect x="611" y="346" width="4" height="20" fill="#5c4a3a" />
+      <!-- 横档 -->
+      <rect x="565" y="355" width="50" height="3" fill="#5c4a3a" />
+    </g>
+
+    <!-- 墙上老照片 -->
+    <g>
+      <!-- 相框 -->
+      <rect x="650" y="230" width="30" height="38" rx="2" fill="#3a2a1a" />
+      <rect x="653" y="233" width="24" height="32" rx="1" fill="#ffe4b5" opacity="0.5" />
+      <!-- 照片内容（泛黄人像） -->
+      <ellipse cx="665" cy="245" rx="6" ry="7" fill="#c4a060" opacity="0.6" />
+      <rect x="660" y="252" width="10" height="12" rx="2" fill="#c4a060" opacity="0.5" />
+    </g>
 
     <!-- 灯笼 -->
     <g filter="url(#glow)">
@@ -281,6 +315,66 @@ defineProps<{
       <rect x="15" y="-15" width="12" height="8" rx="2" fill="#3a3a4e" />
     </g>
 
+    <!-- 桌子和药瓶 -->
+    <g>
+      <!-- 桌子 -->
+      <rect x="230" y="290" width="60" height="40" rx="3" fill="#3a3a4e" />
+      <rect x="230" y="286" width="60" height="6" rx="2" fill="#4a4a5e" />
+      <!-- 药瓶 -->
+      <rect x="242" y="274" width="10" height="14" rx="3" fill="#e8e8e8" opacity="0.7" />
+      <rect x="242" y="272" width="10" height="4" rx="2" fill="#c0c0c0" opacity="0.7" />
+      <rect x="258" y="278" width="8" height="10" rx="2" fill="#d4d4d4" opacity="0.6" />
+      <!-- 药盒 -->
+      <rect x="270" y="280" width="14" height="8" rx="1" fill="#f5f5f5" opacity="0.5" />
+    </g>
+
+    <!-- 照片墙 -->
+    <g>
+      <!-- 照片1（婚纱照） -->
+      <rect x="120" y="220" width="25" height="30" rx="2" fill="#2a2a3e" stroke="#5a5a6e" stroke-width="0.5" />
+      <rect x="123" y="223" width="19" height="24" rx="1" fill="#ffe4b5" opacity="0.4" />
+      <!-- 照片2 -->
+      <rect x="150" y="225" width="20" height="25" rx="2" fill="#2a2a3e" stroke="#5a5a6e" stroke-width="0.5" />
+      <rect x="152" y="227" width="16" height="21" rx="1" fill="#c4a060" opacity="0.3" />
+      <!-- 照片3 -->
+      <rect x="135" y="258" width="18" height="22" rx="2" fill="#2a2a3e" stroke="#5a5a6e" stroke-width="0.5" />
+      <rect x="137" y="260" width="14" height="18" rx="1" fill="#ffe4b5" opacity="0.3" />
+    </g>
+
+    <!-- 茶杯 -->
+    <g>
+      <ellipse cx="445" cy="310" rx="8" ry="4" fill="#f5f0e0" opacity="0.7" />
+      <rect x="437" y="300" width="16" height="12" rx="2" fill="#f5f0e0" opacity="0.6" />
+      <!-- 杯把手 -->
+      <path d="M453 304 Q460 306 458 312" fill="none" stroke="#f5f0e0" stroke-width="1.5" opacity="0.5" />
+      <!-- 热气 -->
+      <path d="M442 298 Q444 292 441 286" fill="none" stroke="#fff" stroke-width="0.5" opacity="0.3">
+        <animate attributeName="d" values="M442 298 Q444 292 441 286;M442 298 Q440 290 443 284;M442 298 Q444 292 441 286" dur="3s" repeatCount="indefinite" />
+      </path>
+    </g>
+
+    <!-- 远处窗户（霓虹映照） -->
+    <g>
+      <rect x="668" y="175" width="40" height="35" rx="2" fill="#1a1a2e" />
+      <rect x="671" y="178" width="34" height="29" rx="1" fill="#2a1a3e" opacity="0.7" />
+      <!-- 窗内灯光 -->
+      <rect x="671" y="178" width="34" height="29" rx="1" fill="#e94560" opacity="0.08">
+        <animate attributeName="opacity" values="0.05;0.12;0.05" dur="3s" repeatCount="indefinite" />
+      </rect>
+    </g>
+
+    <!-- 信件/抽屉柜 -->
+    <g>
+      <rect x="540" y="275" width="40" height="45" rx="3" fill="#3a3a4e" />
+      <!-- 抽屉 -->
+      <rect x="544" y="278" width="32" height="12" rx="1" fill="#4a4a5e" />
+      <rect x="556" y="283" width="8" height="2" rx="1" fill="#8b6914" />
+      <rect x="544" y="294" width="32" height="12" rx="1" fill="#4a4a5e" />
+      <rect x="556" y="299" width="8" height="2" rx="1" fill="#8b6914" />
+      <!-- 露出的信封角 -->
+      <rect x="548" y="294" width="12" height="3" rx="0.5" fill="#f5f0e0" opacity="0.6" transform="rotate(-5 554 295)" />
+    </g>
+
     <!-- 夜空中的光污染 -->
     <ellipse cx="400" cy="50" rx="350" ry="80" fill="#e94560" opacity="0.05" />
   </svg>
@@ -383,6 +477,58 @@ defineProps<{
         <animate attributeName="r" values="8;10;8" dur="2s" repeatCount="indefinite" />
         <animate attributeName="opacity" values="0.4;0.7;0.4" dur="2s" repeatCount="indefinite" />
       </circle>
+    </g>
+
+    <!-- 神经修复仪 -->
+    <g>
+      <rect x="200" y="250" width="50" height="60" rx="6" fill="#1a2a4e" stroke="#2a4a7e" stroke-width="1" />
+      <!-- 控制面板屏幕 -->
+      <rect x="208" y="258" width="34" height="22" rx="3" fill="#0a1a3e" />
+      <!-- 数据显示 -->
+      <g fill="#4fc3f7" opacity="0.5">
+        <rect x="214" y="264" width="20" height="2" rx="1" />
+        <rect x="214" y="270" width="14" height="2" rx="1" />
+        <rect x="214" y="276" width="18" height="2" rx="1" />
+      </g>
+      <!-- 指示灯 -->
+      <circle cx="215" cy="296" r="2" fill="#4caf50">
+        <animate attributeName="opacity" values="0.4;0.9;0.4" dur="1.8s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="225" cy="296" r="2" fill="#4fc3f7">
+        <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2.2s" repeatCount="indefinite" />
+      </circle>
+      <!-- 连接线 -->
+      <line x1="225" y1="310" x2="225" y2="350" stroke="#2a4a7e" stroke-width="1" opacity="0.5" />
+    </g>
+
+    <!-- 记忆存储舱 -->
+    <g>
+      <ellipse cx="580" cy="270" rx="35" ry="50" fill="none" stroke="#2a4a7e" stroke-width="1" />
+      <ellipse cx="580" cy="270" rx="30" ry="45" fill="#0a1a3e" opacity="0.6" />
+      <!-- 舱内光点 -->
+      <circle cx="570" cy="260" r="2" fill="#4fc3f7" opacity="0.4">
+        <animate attributeName="cy" values="260;250;260" dur="4s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="590" cy="275" r="1.5" fill="#7c4dff" opacity="0.3">
+        <animate attributeName="cy" values="275;265;275" dur="3.5s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="575" cy="285" r="2.5" fill="#4fc3f7" opacity="0.3">
+        <animate attributeName="cy" values="285;275;285" dur="5s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="588" cy="250" r="1.8" fill="#7c4dff" opacity="0.4">
+        <animate attributeName="cy" values="250;240;250" dur="4.5s" repeatCount="indefinite" />
+      </circle>
+      <!-- 标签 -->
+      <text x="580" y="330" text-anchor="middle" fill="#4fc3f7" font-size="6" opacity="0.4">记忆存储舱</text>
+    </g>
+
+    <!-- 相框 -->
+    <g>
+      <rect x="668" y="305" width="28" height="35" rx="2" fill="#2a3a5e" stroke="#3a5a8e" stroke-width="0.8" />
+      <rect x="671" y="308" width="22" height="29" rx="1" fill="#1a2a4e" />
+      <!-- 褪色照片 -->
+      <ellipse cx="682" cy="318" rx="5" ry="6" fill="#c4a060" opacity="0.4" />
+      <rect x="678" y="324" width="8" height="10" rx="1" fill="#c4a060" opacity="0.3" />
     </g>
 
     <!-- 控制台 -->
@@ -507,6 +653,42 @@ defineProps<{
         <ellipse cx="500" cy="391" rx="5" ry="7" />
       </g>
     </g>
+    <!-- 照片墙 -->
+    <g>
+      <rect x="180" y="180" width="50" height="60" rx="3" fill="#2a2a5e" stroke="#5a5a8e" stroke-width="0.5" />
+      <rect x="184" y="184" width="42" height="52" rx="2" fill="#3a3a6e" />
+      <!-- 照片1 -->
+      <rect x="188" y="188" width="16" height="12" rx="1" fill="#ffe4b5" opacity="0.4" />
+      <!-- 照片2 -->
+      <rect x="208" y="188" width="14" height="12" rx="1" fill="#c4a060" opacity="0.4" />
+      <!-- 照片3 -->
+      <rect x="188" y="204" width="14" height="12" rx="1" fill="#ffe4b5" opacity="0.3" />
+      <!-- 照片4 -->
+      <rect x="206" y="204" width="16" height="12" rx="1" fill="#c4a060" opacity="0.3" />
+      <!-- 照片5（大） -->
+      <rect x="192" y="220" width="20" height="14" rx="1" fill="#ffe4b5" opacity="0.5" />
+    </g>
+
+    <!-- 全息皮影舞台（右侧） -->
+    <g opacity="0.6">
+      <!-- 舞台框架 -->
+      <rect x="580" y="280" width="80" height="60" rx="4" fill="none" stroke="#4fc3f7" stroke-width="1" />
+      <!-- 全息幕布 -->
+      <rect x="585" y="285" width="70" height="50" rx="2" fill="#0a1a3e" opacity="0.5" />
+      <!-- 全息皮影（三英战吕布） -->
+      <g fill="#4fc3f7" opacity="0.7">
+        <ellipse cx="605" cy="305" rx="5" ry="8" />
+        <rect x="602" y="312" width="6" height="14" rx="1" />
+        <line x1="608" y1="316" x2="618" y2="308" stroke="#4fc3f7" stroke-width="1.5" />
+        <ellipse cx="635" cy="308" rx="5" ry="8" />
+        <rect x="632" y="315" width="6" height="12" rx="1" />
+      </g>
+      <!-- 全息光效 -->
+      <rect x="580" y="280" width="80" height="60" rx="4" fill="#4fc3f7" opacity="0.05">
+        <animate attributeName="opacity" values="0.03;0.08;0.03" dur="2s" repeatCount="indefinite" />
+      </rect>
+    </g>
+
     <!-- 全息投影文字 -->
     <text x="400" y="200" text-anchor="middle" fill="#ffd700" font-size="20" font-family="sans-serif" opacity="0.6">
       文化遗产保护奖
@@ -582,6 +764,68 @@ defineProps<{
     <!-- 条幅 -->
     <rect x="250" y="270" width="300" height="8" rx="2" fill="#cc0000" opacity="0.7" />
     <text x="400" y="277" text-anchor="middle" fill="#ffd700" font-size="6" font-family="sans-serif">时间就是金钱 效率就是生命</text>
+
+    <!-- 车站大时钟 -->
+    <g>
+      <circle cx="400" cy="80" r="22" fill="#f5f5f5" stroke="#3a3a3a" stroke-width="2" />
+      <circle cx="400" cy="80" r="18" fill="#fff" stroke="#ccc" stroke-width="1" />
+      <!-- 时钟刻度 -->
+      <circle cx="400" cy="65" r="1.5" fill="#3a3a3a" />
+      <circle cx="415" cy="80" r="1.5" fill="#3a3a3a" />
+      <circle cx="400" cy="95" r="1.5" fill="#3a3a3a" />
+      <circle cx="385" cy="80" r="1.5" fill="#3a3a3a" />
+      <!-- 时针（3:47） -->
+      <line x1="400" y1="80" x2="412" y2="72" stroke="#3a3a3a" stroke-width="2.5" stroke-linecap="round" />
+      <!-- 分针 -->
+      <line x1="400" y1="80" x2="397" y2="63" stroke="#3a3a3a" stroke-width="1.5" stroke-linecap="round" />
+      <!-- 中心点 -->
+      <circle cx="400" cy="80" r="2" fill="#cc3300" />
+    </g>
+
+    <!-- 皱巴巴的火车票 -->
+    <g transform="rotate(-8 355 205)">
+      <rect x="335" y="195" width="40" height="22" rx="2" fill="#f5f0e0" opacity="0.85" />
+      <line x1="340" y1="201" x2="370" y2="201" stroke="#999" stroke-width="0.5" />
+      <line x1="340" y1="206" x2="365" y2="206" stroke="#999" stroke-width="0.5" />
+      <text x="342" y="213" font-size="4" fill="#cc3300" font-family="monospace">硬座 ¥42</text>
+    </g>
+
+    <!-- 信封（从口袋露出） -->
+    <g transform="rotate(-15 155 285)">
+      <rect x="140" y="275" width="28" height="18" rx="1" fill="#f5f0e0" opacity="0.8" />
+      <path d="M140 275 L154 287 L168 275" fill="none" stroke="#c4a060" stroke-width="0.8" />
+      <text x="146" y="288" font-size="4" fill="#8b6914" font-family="serif">师父 亲启</text>
+    </g>
+
+    <!-- 皮影道具木箱 -->
+    <g>
+      <rect x="580" y="340" width="50" height="35" rx="3" fill="#5c4a3a" />
+      <rect x="580" y="340" width="50" height="6" rx="2" fill="#6b5b45" />
+      <!-- 锁扣 -->
+      <rect x="600" y="350" width="10" height="6" rx="1" fill="#8b6914" />
+      <!-- 箱内露出的皮影 -->
+      <line x1="595" y1="340" x2="590" y2="328" stroke="#2a1a0a" stroke-width="1.5" />
+      <circle cx="590" cy="325" r="3" fill="#2a1a0a" opacity="0.7" />
+    </g>
+
+    <!-- 穿夹克的年轻人（陌生人） -->
+    <g>
+      <!-- 身体 -->
+      <ellipse cx="700" cy="395" rx="8" ry="14" fill="#4a6a4a" />
+      <!-- 头 -->
+      <circle cx="700" cy="378" r="7" fill="#e8c4a0" />
+      <!-- 夹克领子 -->
+      <path d="M693 385 L695 395 L700 390 L705 395 L707 385" fill="#3a5a3a" />
+      <!-- 手插兜 -->
+      <rect x="693" y="398" width="5" height="8" rx="2" fill="#4a6a4a" />
+      <rect x="702" y="398" width="5" height="8" rx="2" fill="#4a6a4a" />
+    </g>
+
+    <!-- 广场地面细节 -->
+    <g fill="#a0a0a0" opacity="0.3">
+      <ellipse cx="250" cy="420" rx="15" ry="3" />
+      <ellipse cx="500" cy="430" rx="20" ry="4" />
+    </g>
   </svg>
 
   <!-- 默认场景 -->

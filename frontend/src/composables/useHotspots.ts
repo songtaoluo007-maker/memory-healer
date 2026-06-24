@@ -22,7 +22,7 @@ const allHotspots: Record<string, Hotspot[]> = {
   scene_1972: [
     {
       id: 'tool_box',
-      x: 340, y: 310, radius: 25,
+      x: 337, y: 406, radius: 22,
       fragment_id: 'fragment_grandpa_knife',
       hint: '戏台旁的工具箱，里面好像有什么东西……',
       scene: 'scene_1972',
@@ -38,7 +38,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'shadow_screen',
-      x: 400, y: 170, radius: 30,
+      x: 400, y: 335, radius: 30,
       fragment_id: 'fragment_shadow_puppet',
       hint: '皮影戏幕布！上面还残留着"三英战吕布"的影子。',
       scene: 'scene_1972',
@@ -46,7 +46,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'bench',
-      x: 580, y: 340, radius: 22,
+      x: 590, y: 353, radius: 20,
       fragment_id: null,
       hint: '一条旧长凳，坐上去还能感受到余温。有人刚离开？',
       scene: 'scene_1972',
@@ -54,7 +54,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'old_photo',
-      x: 660, y: 250, radius: 18,
+      x: 665, y: 249, radius: 16,
       fragment_id: 'fragment_childhood_photo',
       hint: '墙上挂着一张泛黄的照片……',
       npc_id: 'chen_shouyi_young',
@@ -65,7 +65,7 @@ const allHotspots: Record<string, Hotspot[]> = {
   scene_2024: [
     {
       id: 'desk_medicine',
-      x: 260, y: 290, radius: 22,
+      x: 255, y: 296, radius: 20,
       fragment_id: 'fragment_medicine_label',
       hint: '桌上散落着几瓶药，标签上的字已经模糊了……',
       scene: 'scene_2024',
@@ -73,7 +73,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'photo_wall',
-      x: 140, y: 240, radius: 28,
+      x: 145, y: 245, radius: 24,
       fragment_id: 'fragment_wedding_photo',
       hint: '墙上挂满了照片，有一张婚纱照格外显眼。',
       scene: 'scene_2024',
@@ -81,7 +81,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'teacup',
-      x: 440, y: 310, radius: 18,
+      x: 445, y: 306, radius: 16,
       fragment_id: null,
       hint: '一杯温热的茶，茶水还在微微冒着热气。',
       npc_id: 'chen_shouyi_old',
@@ -90,7 +90,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'neon_window',
-      x: 680, y: 190, radius: 25,
+      x: 688, y: 192, radius: 22,
       fragment_id: null,
       hint: '窗外是深圳的霓虹灯海，远处传来城中村的嘈杂声。',
       scene: 'scene_2024',
@@ -98,7 +98,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'letter_box',
-      x: 560, y: 280, radius: 20,
+      x: 560, y: 297, radius: 20,
       fragment_id: 'fragment_xiaoyu_letter',
       hint: '抽屉里好像有一封信……',
       npc_id: 'xiaoyu',
@@ -109,7 +109,7 @@ const allHotspots: Record<string, Hotspot[]> = {
   scene_2089: [
     {
       id: 'hologram',
-      x: 400, y: 190, radius: 35,
+      x: 400, y: 200, radius: 35,
       fragment_id: 'fragment_shadow_puppet',
       hint: '全息投影仪，正在播放一段模糊的皮影戏影像……',
       scene: 'scene_2089',
@@ -117,7 +117,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'neural_device',
-      x: 220, y: 270, radius: 22,
+      x: 225, y: 280, radius: 22,
       fragment_id: 'fragment_su_family_letter',
       hint: '神经修复仪的控制面板，上面显示着记忆碎片数据。',
       scene: 'scene_2089',
@@ -125,7 +125,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'memory_tank',
-      x: 580, y: 250, radius: 28,
+      x: 580, y: 270, radius: 28,
       fragment_id: null,
       hint: '记忆存储舱，里面漂浮着光点般的记忆碎片。',
       scene: 'scene_2089',
@@ -133,7 +133,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'photo_frame',
-      x: 680, y: 320, radius: 18,
+      x: 682, y: 322, radius: 16,
       fragment_id: 'fragment_childhood_photo',
       hint: '桌上放着一个相框，照片已经褪色了……',
       scene: 'scene_2089',
@@ -143,7 +143,7 @@ const allHotspots: Record<string, Hotspot[]> = {
   scene_1990: [
     {
       id: 'train_ticket',
-      x: 350, y: 200, radius: 25,
+      x: 355, y: 206, radius: 22,
       fragment_id: 'train_ticket_fragment',
       hint: '一张皱巴巴的硬座票，西安到深圳，42元。',
       scene: 'scene_1990',
@@ -151,7 +151,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'puppet_trunk',
-      x: 600, y: 350, radius: 30,
+      x: 605, y: 357, radius: 28,
       fragment_id: 'puppet_trunk_fragment',
       hint: '装满皮影道具的旧木箱，里面好像有个穿西装的皮影……',
       scene: 'scene_1990',
@@ -159,7 +159,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'farewell_letter',
-      x: 150, y: 280, radius: 20,
+      x: 154, y: 284, radius: 16,
       fragment_id: 'farewell_letter_fragment',
       hint: '一封信从口袋里露出一角，收信人是“师父”。',
       scene: 'scene_1990',
@@ -175,7 +175,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'stranger',
-      x: 700, y: 200, radius: 20,
+      x: 700, y: 393, radius: 18,
       fragment_id: null,
       hint: '一个穿夹克的年轻人正在张望，看起来也是来深圳的。',
       npc_id: 'stranger_1990',
@@ -186,7 +186,7 @@ const allHotspots: Record<string, Hotspot[]> = {
   scene_2050: [
     {
       id: 'award_trophy',
-      x: 400, y: 150, radius: 30,
+      x: 400, y: 305, radius: 20,
       fragment_id: 'award_trophy_fragment',
       hint: '水晶奖杯折射着七彩光芒，底座刻着“非遗传承杰出贡献奖”。',
       scene: 'scene_2050',
@@ -194,7 +194,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'old_photos_wall',
-      x: 200, y: 200, radius: 25,
+      x: 205, y: 210, radius: 28,
       fragment_id: 'old_photos_wall_fragment',
       hint: '照片墙上挂满了跨越半个世纪的照片。',
       scene: 'scene_2050',
@@ -202,7 +202,7 @@ const allHotspots: Record<string, Hotspot[]> = {
     },
     {
       id: 'hologram_stage',
-      x: 600, y: 300, radius: 35,
+      x: 620, y: 310, radius: 35,
       fragment_id: 'hologram_stage_fragment',
       hint: '全息投影正在表演皮影戏——三英战吕布！',
       scene: 'scene_2050',
