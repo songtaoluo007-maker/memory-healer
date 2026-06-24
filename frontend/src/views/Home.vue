@@ -65,14 +65,21 @@ const handleLogout = () => {
         </button>
       </div>
 
-      <!-- 用户状态（融入菜单下方） -->
-      <div class="user-bar" v-if="currentUser">
-        <span class="user-icon">?</span>
-        <span class="user-name">{{ currentUser.nickname || currentUser.username }}</span>
-        <button class="user-action" @click="handleLogout">退出</button>
-      </div>
-      <div class="user-bar" v-else>
-        <button class="user-action" @click="showLogin = true">? 登录</button>
+      <!-- 用户状态 -->
+      <div class="user-section">
+        <template v-if="currentUser">
+          <div class="user-info">
+            <span class="user-avatar">?</span>
+            <span class="user-name">{{ currentUser.nickname || currentUser.username }}</span>
+            <button class="btn-logout" @click="handleLogout" title="退出登录">退出</button>
+          </div>
+        </template>
+        <template v-else>
+          <button class="btn btn-login" @click="showLogin = true">
+            <span class="btn-icon">?</span>
+            登录 / 注册
+          </button>
+        </template>
       </div>
 
       <div class="footer" role="contentinfo">
@@ -232,37 +239,55 @@ const handleLogout = () => {
   opacity: 0.3;
 }
 
-.user-bar {
+.btn-login {
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(200, 210, 255, 0.5);
+  border: 1px solid rgba(100, 150, 255, 0.12);
+  padding: 10px 32px;
+  font-size: 14px;
+  min-width: 200px;
+}
+.btn-login:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(100, 150, 255, 0.3);
+  color: rgba(200, 210, 255, 0.8);
+  transform: translateY(-1px);
+}
+
+.user-section {
+  margin-top: 20px;
+}
+
+.user-info {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin: 20px 0 0;
-  font-size: 13px;
+  gap: 10px;
+  padding: 8px 20px;
+  border-radius: 20px;
+  background: rgba(100, 150, 255, 0.06);
+  border: 1px solid rgba(100, 150, 255, 0.1);
+  font-size: 14px;
 }
-
-.user-icon {
-  font-size: 16px;
+.user-avatar {
+  font-size: 18px;
 }
-
-.user-name {
-  color: rgba(200, 210, 255, 0.7);
+.user-info .user-name {
+  color: rgba(200, 210, 255, 0.8);
 }
-
-.user-action {
+.btn-logout {
   background: none;
   border: none;
-  color: rgba(150, 170, 220, 0.5);
-  font-size: 13px;
+  color: rgba(150, 170, 220, 0.4);
+  font-size: 12px;
   cursor: pointer;
   font-family: 'Noto Serif SC', serif;
-  padding: 2px 8px;
+  padding: 2px 10px;
   border-radius: 4px;
   transition: all 0.2s;
 }
-
-.user-action:hover {
-  color: rgba(200, 210, 255, 0.9);
-  background: rgba(255, 255, 255, 0.06);
+.btn-logout:hover {
+  color: rgba(255, 120, 120, 0.8);
+  background: rgba(255, 80, 80, 0.1);
 }
 </style>
