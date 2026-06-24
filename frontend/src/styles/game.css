@@ -654,13 +654,19 @@
   .inventory-panel { width: 100%; }
 }
 @media (max-width: 480px) {
-  .top-bar { padding: 6px 8px; }
-  .scene-info { gap: 6px; }
+  .top-bar { padding: 8px 12px; flex-wrap: wrap; gap: 8px; }
+  .scene-info { flex-wrap: wrap; gap: 6px; }
   .status-right { gap: 4px; }
   .icon-btn { padding: 4px 8px; font-size: 14px; }
   .nav-btn { padding: 4px 10px; font-size: 12px; }
   .fragment-counter { font-size: 12px; padding: 4px 8px; }
   .explore-badge { font-size: 10px; padding: 2px 6px; }
+  .dialogue-float { width: 100%; right: -100%; }
+  .dialogue-float.open { right: 0; }
+  .narrative-float { left: 8px; right: 8px; bottom: 100px; max-width: none; }
+  .npc-dock { padding: 6px 8px; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .npc-chip { min-width: 80px; }
+  .inventory-panel { width: 100%; max-height: 60vh; }
 }
 
 /* 滚动条 */
@@ -689,44 +695,6 @@
 }
 
 /* 响应式优化 */
-@media (max-width: 480px) {
-  .top-bar {
-    padding: 8px 12px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .scene-info {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .dialogue-float {
-    width: 100%;
-    right: -100%;
-  }
-  .dialogue-float.open {
-    right: 0;
-  }
-  .narrative-float {
-    left: 8px;
-    right: 8px;
-    bottom: 100px;
-    max-width: none;
-  }
-  .npc-dock {
-    padding: 6px 8px;
-    gap: 6px;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  .npc-chip {
-    min-width: 80px;
-  }
-  .inventory-panel {
-    width: 100%;
-    max-height: 60vh;
-  }
-}
-
 @media (min-width: 481px) and (max-width: 768px) {
   .dialogue-float {
     width: 360px;
