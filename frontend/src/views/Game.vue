@@ -1520,4 +1520,70 @@ watch(() => gameState.value?.current_scene, async (newScene) => {
 .log-btn:hover {
   background: rgba(255, 215, 100, 0.15);
 }
+
+/* 碎片收集粒子效果 */
+.popup-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #e8b450;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  animation: particleBurst 1s ease-out forwards;
+  animation-delay: calc(var(--i) * 0.05s);
+  opacity: 0;
+}
+@keyframes particleBurst {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% {
+    transform: translate(
+      calc(cos(calc(var(--i) * 30deg)) * 120px),
+      calc(sin(calc(var(--i) * 30deg)) * 120px)
+    ) scale(0);
+    opacity: 0;
+  }
+}
+.popup-icon.just-collected {
+  animation: iconPulse 0.6s ease-out;
+}
+@keyframes iconPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+.fragment-progress-mini {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  margin: 12px 0;
+  position: relative;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(232, 180, 80, 0.4), rgba(232, 180, 80, 0.8));
+  border-radius: 3px;
+  transition: width 0.8s ease;
+}
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+.btn-collected {
+  background: linear-gradient(135deg, rgba(232, 180, 80, 0.3), rgba(232, 180, 80, 0.15)) !important;
+  border-color: rgba(232, 180, 80, 0.4) !important;
+}
 </style>
