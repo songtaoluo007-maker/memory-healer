@@ -84,23 +84,28 @@ const restart = () => {
       </div>
     </div>
 
-    <!-- 开场动画 -->
-    <Intro v-if="currentView === 'intro'" @complete="introComplete" />
+    <!-- 视图切换动画 -->
+    <Transition name="view-fade" mode="out-in">
+      <!-- 开场动画 -->
+      <Intro v-if="currentView === 'intro'" key="intro" @complete="introComplete" />
 
-    <!-- 主菜单 -->
-    <Home v-if="currentView === 'home'" @start="startGame" @load="loadGame" />
+      <!-- 主菜单 -->
+      <Home v-else-if="currentView === 'home'" key="home" @start="startGame" @load="loadGame" />
 
-    <!-- 新手教程 -->
-    <GameTutorial v-if="currentView === 'tutorial'" @complete="tutorialComplete" />
+      <!-- 新手教程 -->
+      <GameTutorial v-else-if="currentView === 'tutorial'" key="tutorial" @complete="tutorialComplete" />
 
-    <!-- 游戏主界面 -->
-    <Game v-if="currentView === 'game'" :load-slot-id="loadSlotId" @ending="onEnding" />
+      <!-- 游戏主界面 -->
+      <Game v-else-if="currentView === 'game'" key="game" :load-slot-id="loadSlotId" @ending="onEnding" />
 
-    <!-- 结局 -->
-    <Ending v-if="currentView === 'ending'" :ending-type="endingType" @restart="restart" />
+      <!-- 结局 -->
+      <Ending v-else-if="currentView === 'ending'" key="ending" :ending-type="endingType" @restart="restart" />
+    </Transition>
 
     <!-- 存档管理弹窗 -->
-    <Saves v-if="showSaves" @load="loadFromSlot" @close="showSaves = false" />
+    <Transition name="modal-fade">
+      <Saves v-if="showSaves" @load="loadFromSlot" @close="showSaves = false" />
+    </Transition>
   </div>
 </template>
 
@@ -184,5 +189,34 @@ body {
 .error-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(232, 180, 80, 0.3);
+}
+
+/* 视图切换动画 */
+.view-fade-enter-active,
+.view-fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.view-fade-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.view-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* 弹窗动画 */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+/* 防止FOUC */
+[v-cloak] {
+  display: none !important;
 }
 </style>

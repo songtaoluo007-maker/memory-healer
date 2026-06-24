@@ -14,7 +14,21 @@
   </style>
 </head>
 <body>
-  <div id="app"></div>
+  <div id="app" v-cloak>
+    <!-- 初始加载 -->
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0a1a;">
+      <div style="text-align:center;">
+        <div style="font-size:32px;margin-bottom:16px;">
+          <span style="animation:pulse 1.5s infinite;">?</span>
+        </div>
+        <div style="color:rgba(232,180,80,0.6);font-size:14px;font-family:'Noto Serif SC',serif;">记忆加载中...</div>
+      </div>
+    </div>
+    <style>
+      @keyframes pulse { 0%,100%{opacity:0.4;transform:scale(1)} 50%{opacity:1;transform:scale(1.1)} }
+      [v-cloak] > div:first-child { display: flex !important; }
+    </style>
+  </div>
   <script type="module" src="/src/main.ts"></script>
   <script>
     // Register Service Worker for PWA offline support
