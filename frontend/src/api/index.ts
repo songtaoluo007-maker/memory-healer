@@ -44,6 +44,13 @@ export const deleteSave = (slotId: number) =>
 export const healthCheck = () =>
   api.get<{ status: string; game: string; has_ai_key: boolean }>('/api/health')
 
+// 结局评估
+export const evaluateEnding = (gameState: GameState) =>
+  api.post<{ type: string; collected: number; total: number; percent: number; butterfly_triggered: number; butterfly_total: number; key_trust_met: boolean }>('/api/ending/evaluate', { game_state: gameState })
+
+export const getEndingHint = (gameState: GameState) =>
+  api.post<{ hint: string }>('/api/ending/hint', { game_state: gameState })
+
 // 蝴蝶效应: 记录玩家选择
 export const recordChoice = (scene: string, choice: string, gameState: GameState) =>
   api.post('/api/dialogue/choice', { scene, choice, game_state: gameState })

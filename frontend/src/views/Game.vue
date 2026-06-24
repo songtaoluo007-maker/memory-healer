@@ -3,7 +3,7 @@ import { ref, onMounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useGameState } from '../composables/useGameState'
 import { useTypewriter } from '../composables/useTypewriter'
 import { useAudio } from '../composables/useAudio'
-import { chatWithNpcStream, getSceneDetail, advanceNarrative, saveGame, recordChoice } from '../api'
+import { chatWithNpcStream, getSceneDetail, advanceNarrative, saveGame, recordChoice, evaluateEnding } from '../api'
 import { useHotspots } from '../composables/useHotspots'
 import { useI18n } from '../composables/useI18n'
 import type { Hotspot } from '../composables/useHotspots'
@@ -304,39 +304,56 @@ const getTrustLevel = (npcId: string) => {
   return { label: '警惕', color: '#f87171' }
 }
 
-watch(() => gameState.value?.collected_fragments?.length, (newVal) => {
-  if (newVal && newVal >= totalFragments.value && totalFragments.value > 0) {
-    // 所有碎片收集完成
-    narrativeText.value = '所有记忆碎片已经收集完毕……陈爷爷的记忆正在恢复。那些消散的光影，重新聚合成完整的画面。'
-    typeStart(narrativeText.value)
-    setTimeout(() => {
-      playSFX('ending_hope')
-      emit('ending', 'hope')
-    }, 4000)
-  } else if (newVal) {
-    // 每收集一个碎片自动存档
-    autoSave()
-    // 检查是否触发结局（场景切换到最后一幕且收集了足够碎片）
-    const percent = totalFragments.value > 0 ? (newVal / totalFragments.value) * 100 : 0
-    if (gameState.value?.current_scene === 'scene_2089' && percent >= 40) {
-      narrativeText.value = '记忆修复程序启动……碎片正在聚合……'
+watch(() => gameState.value?.collected_fragments?.length, async (newVal) => {
+  if (!newVal || !gameState.value) return
+
+  // 每收集一个碎片自动存档
+  autoSave()
+
+  // 在最后一幕时用后端评估结局
+  if (gameState.value.current_scene === 'scene_2089') {
+    try {
+      const { data } = await evaluateEnding(gameState.value)
+      const endingType = data.type as EndingType
+
+      const endingTexts: Record<string, string> = {
+        hope: '记忆修复程序启动……碎片正在聚合……那些消散的光影，重新聚合成完整的画面。',
+        bittersweet: '记忆修复程序启动……部分碎片聚合了。虽然不完整，但温暖还在。',
+        tragic: '记忆碎片太少了……修复程序难以启动……但也许还有希望。',
+        legacy: '所有记忆碎片收集完毕，蝴蝶效应全部激活。跨越五个时代的记忆被完整修复——这不只是修复，是传承。',
+      }
+
+      narrativeText.value = endingTexts[endingType] || endingTexts.hope
       typeStart(narrativeText.value)
-      const endingType = percent >= 80 ? 'hope' : 'bittersweet'
+
       setTimeout(() => {
-        playSFX(endingType === 'hope' ? 'ending_hope' : 'ending_bittersweet')
+        playSFX(`ending_${endingType}`)
         emit('ending', endingType)
-      }, 5000)
+      }, endingType === 'legacy' ? 6000 : 5000)
+    } catch {
+      // 降级：本地判断
+      const percent = totalFragments.value > 0 ? (newVal / totalFragments.value) * 100 : 0
+      const endingType: EndingType = percent >= 80 ? 'hope' : percent >= 40 ? 'bittersweet' : 'tragic'
+      emit('ending', endingType)
     }
+  } else if (newVal >= totalFragments.value && totalFragments.value > 0) {
+    // 非最后一幕但全部收集
+    narrativeText.value = '所有记忆碎片已经收集完毕……去最后一幕完成修复吧。'
+    typeStart(narrativeText.value)
   }
 })
 
-// 场景切换到最后一幕且碎片不足 40% 时触发悲剧结局
-watch(() => gameState.value?.current_scene, (newScene) => {
-  if (newScene === 'scene_2089' && gameState.value) {
-    const percent = totalFragments.value > 0
-      ? (gameState.value.collected_fragments.length / totalFragments.value) * 100
-      : 0
-    if (percent < 40 && gameState.value.collected_fragments.length > 0) {
+// 进入最后一幕时触发结局评估
+watch(() => gameState.value?.current_scene, async (newScene) => {
+  if (newScene !== 'scene_2089' || !gameState.value) return
+  const collected = gameState.value.collected_fragments?.length || 0
+  if (collected === 0) return
+
+  try {
+    const { data } = await evaluateEnding(gameState.value)
+    const endingType = data.type as EndingType
+
+    if (endingType === 'tragic') {
       narrativeText.value = '记忆碎片太少了……修复程序难以启动……'
       typeStart(narrativeText.value)
       setTimeout(() => {
@@ -344,7 +361,7 @@ watch(() => gameState.value?.current_scene, (newScene) => {
         emit('ending', 'tragic')
       }, 5000)
     }
-  }
+  } catch { /* 降级忽略 */ }
 })
 </script>
 
