@@ -12,7 +12,6 @@ import type { EndingType } from '../types/game'
 
 // 懒加载组件
 const SceneIllustration = defineAsyncComponent(() => import('../components/SceneIllustration.vue'))
-const MemoryProgress = defineAsyncComponent(() => import('../components/MemoryProgress.vue'))
 const NpcAvatar = defineAsyncComponent(() => import('../components/NpcAvatar.vue'))
 const HotspotOverlay = defineAsyncComponent(() => import('../components/HotspotOverlay.vue'))
 const SceneTransition = defineAsyncComponent(() => import('../components/SceneTransition.vue'))
@@ -20,6 +19,7 @@ const ButterflyPanel = defineAsyncComponent(() => import('../components/Butterfl
 const StoryLog = defineAsyncComponent(() => import('../components/StoryLog.vue'))
 const SceneTimeline = defineAsyncComponent(() => import('../components/SceneTimeline.vue'))
 const MemoryPanel = defineAsyncComponent(() => import('../components/MemoryPanel.vue'))
+const InventoryPanel = defineAsyncComponent(() => import('../components/InventoryPanel.vue'))
 const ShadowLighting = defineAsyncComponent(() => import('../components/ShadowLighting.vue'))
 const InkParticles = defineAsyncComponent(() => import('../components/InkParticles.vue'))
 const ParallaxBg = defineAsyncComponent(() => import('../components/ParallaxBg.vue'))
@@ -341,27 +341,13 @@ onMounted(async () => {
     </div>
 
     <!-- 背包面板 -->
-    <div class="inventory-panel" v-if="showInventory" role="complementary" aria-label="记忆碎片背包">
-      <div class="inventory-header">
-        <h3>🧩 记忆碎片</h3>
-        <button @click="showInventory = false">✕</button>
-      </div>
-      <div class="inventory-progress">
-        <MemoryProgress :collected="collectedCount" :total="totalFragments" />
-      </div>
-      <div class="inventory-list">
-        <div
-          v-for="(frag, id) in gameState.fragment_states"
-          :key="id"
-          class="inventory-item"
-          :class="{ collected: frag.collected }"
-        >
-          <span class="frag-icon">{{ frag.collected ? '🧩' : '❓' }}</span>
-          <span class="frag-name">{{ frag.collected ? frag.name : '???' }}</span>
-          <span class="frag-scene">{{ frag.scene }}</span>
-        </div>
-      </div>
-    </div>
+    <InventoryPanel
+      v-if="showInventory && gameState"
+      :game-state="gameState"
+      :collected-count="collectedCount"
+      :total-fragments="totalFragments"
+      @close="showInventory = false"
+    />
 
     <!-- 记忆档案面板 -->
     <MemoryPanel
@@ -376,7 +362,7 @@ onMounted(async () => {
     <StoryLog
       v-if="showStoryLog"
       :game-state="gameState"
-      :chat-history="chatHistory"
+      :chat-history="chatPanelRef?.chatHistory || []"
       @close="showStoryLog = false"
     />
 
