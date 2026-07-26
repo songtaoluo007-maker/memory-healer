@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
-import { evaluateEnding, saveGame } from '../api'
+import { evaluateEnding } from '../api'
 import { useAudio } from '../composables/useAudio'
 import { useGameState } from '../composables/useGameState'
 import { useHotspots } from '../composables/useHotspots'
@@ -38,6 +38,7 @@ const {
   gameState,
   initGame,
   loadFromSlot,
+  saveToSlot,
   exploreHotspot,
   submitChoice,
   collectedCount,
@@ -79,18 +80,11 @@ const mounted = ref(false)
 const endingPending = ref(false)
 const chatPanelRef = ref<{ clearHistory: () => void; chatHistory: ChatMessage[] } | null>(null)
 
-const getPlayTime = () => {
-  if (!gameState.value) return 0
-  const startedAt = Date.parse(gameState.value.started_at)
-  if (Number.isNaN(startedAt)) return gameState.value.play_time_seconds
-  return gameState.value.play_time_seconds + Math.floor((Date.now() - startedAt) / 1000)
-}
-
 const autoSave = async () => {
   if (!gameState.value) return
   if (!localStorage.getItem('mh_user')) return
   try {
-    await saveGame(0, '自动存档', gameState.value, gameState.value.current_scene, getPlayTime())
+    await saveToSlot(0, '自动存档')
   } catch {
     // 自动存档属于增强能力，不阻断主流程。
   }

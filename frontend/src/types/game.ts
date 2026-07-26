@@ -194,9 +194,19 @@ export interface SaveSlot {
   slot_name: string
   scene_id: string
   play_time: number
+  save_revision: number
+  state_revision: number
   saved_at: string
   created_at: string
   updated_at: string
+}
+
+export interface SaveMutationResult extends SaveSlot {
+  success: boolean
+}
+
+export interface LoadedSave extends SaveSlot {
+  game_state: GameState
 }
 
 export interface ChatMessage {

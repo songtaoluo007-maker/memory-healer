@@ -105,6 +105,7 @@ async def handle_domain_error(_request: Request, exc: DomainError):
         "USERNAME_TAKEN": 409,
         "AUTH_REQUIRED": 401,
         "INVALID_CREDENTIALS": 401,
+        "SAVE_NOT_FOUND": 404,
         "SCENE_NOT_FOUND": 404,
         "NPC_NOT_FOUND": 404,
         "FRAGMENT_NOT_FOUND": 404,

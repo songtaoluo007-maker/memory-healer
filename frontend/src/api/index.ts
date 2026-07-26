@@ -5,7 +5,9 @@ import type {
   DialogueResponse,
   EndingContent,
   GameState,
+  LoadedSave,
   NewGameResponse,
+  SaveMutationResult,
   SaveSlot,
   SceneView,
 } from '../types/game'
@@ -55,25 +57,16 @@ export const saveGame = (
   slotId: number,
   slotName: string,
   gameState: GameState,
-  sceneId: string,
-  playTime: number,
+  expectedRevision: number,
 ) =>
-  api.post('/save/save', {
+  api.post<SaveMutationResult>('/save/save', {
     slot_id: slotId,
     slot_name: slotName,
     game_state: gameState,
-    scene_id: sceneId,
-    play_time: playTime,
+    expected_revision: expectedRevision,
   })
 
-export const loadGame = (slotId: number) =>
-  api.post<{
-    game_state: GameState
-    scene_id: string
-    play_time: number
-    slot_name: string
-    saved_at: string
-  }>('/save/load', { slot_id: slotId })
+export const loadGame = (slotId: number) => api.post<LoadedSave>('/save/load', { slot_id: slotId })
 
 export const listSaves = () => api.get<{ saves: SaveSlot[] }>('/save/list')
 

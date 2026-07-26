@@ -620,29 +620,29 @@ git commit -m "feat: secure authentication with cookie sessions"
 - Consumes: Cookie user, strict `GameState`.
 - Produces: unique `(user_id, slot_id)` save slots, `SaveRepository.write(user_id, slot_id, expected_revision, state)`, and `GAME_REVISION_CONFLICT` mapped to HTTP 409.
 
-- [ ] **Step 1: Write save isolation and concurrency tests**
+- [x] **Step 1: Write save isolation and concurrency tests**
 
 Assert two users can own the same slot number, cannot list/load/delete each other’s slot, persisted JSON is schema-valid, first save requires expected revision 0, update succeeds only with the stored revision, stale update returns 409 and preserves the newer state, and invalid state is rejected before persistence.
 
-- [ ] **Step 2: Run save tests to verify RED**
+- [x] **Step 2: Run save tests to verify RED**
 
 Run: `pytest backend/tests/api/test_saves.py -q`
 
 Expected: FAIL because the current save API accepts arbitrary dictionaries and has no revision compare-and-swap.
 
-- [ ] **Step 3: Define the clean initial migration**
+- [x] **Step 3: Define the clean initial migration**
 
 Create `users`, `sessions`, and `save_slots` with named primary keys, foreign keys with cascade behavior, unique username, unique `(user_id, slot_id)`, session hash index, state schema/revision columns, UTC timestamp defaults, and PostgreSQL-compatible column types.
 
-- [ ] **Step 4: Implement repository compare-and-swap**
+- [x] **Step 4: Implement repository compare-and-swap**
 
 Lock the existing row where supported, compare `expected_revision`, validate `GameState`, store JSON plus `state_schema_version` and `state_revision`, commit, and return a typed save DTO. Map integrity races to stable domain errors.
 
-- [ ] **Step 5: Replace manual `create_all`/SQLite ALTER logic**
+- [x] **Step 5: Replace manual `create_all`/SQLite ALTER logic**
 
 Keep `init_db()` only for test/bootstrap compatibility if needed; production and Compose startup must execute `alembic upgrade head`. `DATABASE_URL` must accept both SQLite and PostgreSQL URLs.
 
-- [ ] **Step 6: Run migration and API tests on fresh SQLite**
+- [x] **Step 6: Run migration and API tests on fresh SQLite**
 
 Run:
 
@@ -655,13 +655,13 @@ pytest backend/tests/api/test_saves.py -q
 
 Expected: Alembic reports `20260726_0001 (head)` and save tests PASS. Remove only the explicitly named temporary database after confirming its resolved path is inside `data`.
 
-- [ ] **Step 7: Run all backend tests**
+- [x] **Step 7: Run all backend tests**
 
 Run: `pytest backend/tests -q`
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add alembic.ini alembic backend

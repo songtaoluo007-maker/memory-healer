@@ -28,7 +28,8 @@ def get_db():
 def init_db():
     # Local development may bootstrap an empty SQLite database directly. All
     # deployed environments use Alembic migrations.
+    if settings.is_production:
+        return
     from backend.persistence import models as _persistence
-    from backend.models import save as _save
 
     Base.metadata.create_all(bind=engine)

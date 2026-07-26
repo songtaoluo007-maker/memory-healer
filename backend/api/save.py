@@ -1,46 +1,56 @@
-"""存档API"""
-import json
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, validator
+"""Revision-safe, user-isolated save API."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from fastapi import APIRouter, Depends, Path
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
-from backend.database import get_db
-from backend.models.save import SaveSlot
-from backend.persistence.models import User
+
 from backend.api.auth import get_current_user
+from backend.database import get_db
+from backend.domain.errors import DomainError
+from backend.domain.game_state import GameState
+from backend.engine.world import CONTENT_REGISTRY
+from backend.persistence.models import SaveSlot, User
+from backend.persistence.repositories import SaveRepository
 
 router = APIRouter(prefix="/api/save", tags=["save"])
 
 
-class SaveRequest(BaseModel):
-    slot_id: int
-    slot_name: str = ""
-    game_state: dict
-    scene_id: str = ""
-    play_time: int = 0
+class ApiRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
-    @validator('slot_id')
-    def validate_slot_id(cls, v):
-        if v < 0 or v > 10:
-            raise ValueError('slot_id必须在0-10之间')
-        return v
 
-    @validator('slot_name')
-    def validate_slot_name(cls, v):
-        if len(v) > 50:
-            raise ValueError('存档名称长度不能超过50')
-        return v.strip()
+class SaveRequest(ApiRequest):
+    slot_id: int = Field(ge=0, le=10)
+    slot_name: str = Field(default="", max_length=50)
+    game_state: GameState
+    expected_revision: int = Field(ge=0)
 
-    @validator('scene_id')
-    def validate_scene_id(cls, v):
-        if v and not v.replace('_', '').replace('-', '').isalnum():
-            raise ValueError('scene_id格式无效')
-        return v
+    @field_validator("slot_name")
+    @classmethod
+    def normalize_slot_name(cls, value: str) -> str:
+        return value.strip()
 
-    @validator('play_time')
-    def validate_play_time(cls, v):
-        if v < 0 or v > 86400:
-            raise ValueError('游戏时间无效')
-        return v
+
+class LoadRequest(ApiRequest):
+    slot_id: int = Field(ge=0, le=10)
+
+
+def _summary(slot: SaveSlot) -> dict[str, Any]:
+    return {
+        "slot_id": slot.slot_id,
+        "slot_name": slot.slot_name,
+        "scene_id": slot.scene_id,
+        "play_time": slot.play_time,
+        "save_revision": slot.save_revision,
+        "state_revision": slot.state_revision,
+        "created_at": slot.created_at.isoformat(),
+        "updated_at": slot.updated_at.isoformat(),
+        "saved_at": slot.updated_at.isoformat(),
+    }
 
 
 @router.post("/save")
@@ -48,34 +58,16 @@ def save_game(
     req: SaveRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-):
-    """保存游戏（需要登录，存档绑定用户）"""
-    existing = db.query(SaveSlot).filter(
-        SaveSlot.slot_id == req.slot_id,
-        SaveSlot.user_id == user.id,
-    ).first()
-
-    if existing:
-        existing.slot_name = req.slot_name
-        existing.game_state = json.dumps(req.game_state, ensure_ascii=False)
-        existing.scene_id = req.scene_id
-        existing.play_time = req.play_time
-    else:
-        slot = SaveSlot(
-            slot_id=req.slot_id,
-            user_id=user.id,
-            slot_name=req.slot_name,
-            game_state=json.dumps(req.game_state, ensure_ascii=False),
-            scene_id=req.scene_id,
-            play_time=req.play_time,
-        )
-        db.add(slot)
-    db.commit()
-    return {"success": True}
-
-
-class LoadRequest(BaseModel):
-    slot_id: int
+) -> dict[str, Any]:
+    req.game_state.validate_content_references(CONTENT_REGISTRY)
+    slot = SaveRepository(db).write(
+        user_id=user.id,
+        slot_id=req.slot_id,
+        slot_name=req.slot_name,
+        expected_revision=req.expected_revision,
+        state=req.game_state,
+    )
+    return {"success": True, **_summary(slot)}
 
 
 @router.post("/load")
@@ -83,59 +75,31 @@ def load_game(
     req: LoadRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-):
-    """读取存档（只能读自己的）"""
-    slot = db.query(SaveSlot).filter(
-        SaveSlot.slot_id == req.slot_id,
-        SaveSlot.user_id == user.id,
-    ).first()
-    if not slot:
-        raise HTTPException(status_code=404, detail="存档不存在")
-    return {
-        "slot_id": slot.slot_id,
-        "slot_name": slot.slot_name,
-        "game_state": json.loads(slot.game_state),
-        "scene_id": slot.scene_id,
-        "play_time": slot.play_time,
-        "saved_at": str(slot.updated_at),
-    }
+) -> dict[str, Any]:
+    slot = SaveRepository(db).get(user_id=user.id, slot_id=req.slot_id)
+    if slot is None:
+        raise DomainError("SAVE_NOT_FOUND", "存档不存在")
+    state = GameState.model_validate_json(slot.game_state)
+    state.validate_content_references(CONTENT_REGISTRY)
+    return {**_summary(slot), "game_state": state}
 
 
 @router.get("/list")
 def list_saves(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-):
-    """获取当前用户的所有存档"""
-    slots = db.query(SaveSlot).filter(
-        SaveSlot.user_id == user.id,
-    ).order_by(SaveSlot.slot_id).all()
-    return {
-        "saves": [
-            {
-                "slot_id": s.slot_id,
-                "slot_name": s.slot_name,
-                "scene_id": s.scene_id,
-                "play_time": s.play_time,
-                "saved_at": str(s.updated_at),
-            }
-            for s in slots
-        ]
-    }
+) -> dict[str, list[dict[str, Any]]]:
+    slots = SaveRepository(db).list_for_user(user.id)
+    return {"saves": [_summary(slot) for slot in slots]}
 
 
 @router.delete("/delete/{slot_id}")
 def delete_save(
-    slot_id: int,
+    slot_id: int = Path(ge=0, le=10),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-):
-    """删除存档（只能删自己的）"""
-    slot = db.query(SaveSlot).filter(
-        SaveSlot.slot_id == slot_id,
-        SaveSlot.user_id == user.id,
-    ).first()
-    if slot:
-        db.delete(slot)
-        db.commit()
+) -> dict[str, bool]:
+    deleted = SaveRepository(db).delete(user_id=user.id, slot_id=slot_id)
+    if not deleted:
+        raise DomainError("SAVE_NOT_FOUND", "存档不存在")
     return {"success": True}

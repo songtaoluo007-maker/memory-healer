@@ -5,6 +5,7 @@ import type { ActionResult, DialogueResponse, GameState, NewGameResponse } from 
 const gameState = ref<GameState | null>(null)
 const loading = ref(false)
 const error = ref('')
+const saveRevisions = ref<Record<number, number>>({})
 
 export class StateRevisionError extends Error {
   readonly incomingRevision: number
@@ -57,6 +58,7 @@ export function useGameState() {
     try {
       const response = await api.loadGame(slotId)
       replaceAuthoritativeState(response.data.game_state)
+      saveRevisions.value[slotId] = response.data.save_revision
       return response.data.game_state
     } catch (caught: unknown) {
       error.value = (caught as Error).message || '存档加载失败'
@@ -68,7 +70,14 @@ export function useGameState() {
 
   const saveToSlot = async (slotId: number, slotName: string) => {
     const state = currentState()
-    await api.saveGame(slotId, slotName, state, state.current_scene, state.play_time_seconds)
+    if (saveRevisions.value[slotId] === undefined) {
+      const response = await api.listSaves()
+      const existing = response.data.saves.find((slot) => slot.slot_id === slotId)
+      saveRevisions.value[slotId] = existing?.save_revision ?? 0
+    }
+    const response = await api.saveGame(slotId, slotName, state, saveRevisions.value[slotId] ?? 0)
+    saveRevisions.value[slotId] = response.data.save_revision
+    return response.data
   }
 
   const applyActionResult = (result: ActionResult): ActionResult => {
@@ -107,6 +116,7 @@ export function useGameState() {
     gameState,
     loading,
     error,
+    saveRevisions,
     replaceAuthoritativeState,
     initGame,
     loadFromSlot,

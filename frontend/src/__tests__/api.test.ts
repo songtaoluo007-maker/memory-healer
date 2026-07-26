@@ -140,14 +140,13 @@ describe('API Layer', () => {
     mockPost.mockResolvedValue({ data: { success: true } })
 
     const gameState = createGameState()
-    await saveGame(1, '测试存档', gameState, 'scene_1972', 120)
+    await saveGame(1, '测试存档', gameState, 3)
 
     expect(mockPost).toHaveBeenCalledWith('/save/save', {
       slot_id: 1,
       slot_name: '测试存档',
       game_state: gameState,
-      scene_id: 'scene_1972',
-      play_time: 120,
+      expected_revision: 3,
     })
   })
 

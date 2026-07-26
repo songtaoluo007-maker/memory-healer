@@ -1,6 +1,5 @@
-"""Compatibility exports while persistence models move behind repositories."""
+"""Compatibility exports for product persistence models."""
 
-from backend.models.save import SaveSlot
-from backend.persistence.models import User, UserSession
+from backend.persistence.models import SaveSlot, User, UserSession
 
 __all__ = ["SaveSlot", "User", "UserSession"]
