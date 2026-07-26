@@ -73,7 +73,9 @@ const chatPanelRef = ref<InstanceType<typeof ChatPanel> | null>(null)
 // 游戏时间
 const getPlayTime = () => {
   if (!gameState.value) return 0
-  return Math.floor((Date.now() - (gameState.value.play_start_time || Date.now())) / 1000)
+  const startedAt = Date.parse(gameState.value.started_at)
+  if (Number.isNaN(startedAt)) return gameState.value.play_time_seconds
+  return gameState.value.play_time_seconds + Math.floor((Date.now() - startedAt) / 1000)
 }
 
 // 自动存档

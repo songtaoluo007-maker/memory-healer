@@ -258,7 +258,7 @@ git commit -m "feat: add canonical content registry"
 - Consumes: `ContentRegistry`.
 - Produces: `GameState.new(registry, now, game_id) -> GameState`, `GameState.model_validate(...)`, `DialogueMessage`, `KeyChoiceRecord`, `FragmentState`, and the exact JSON contract consumed by TypeScript.
 
-- [ ] **Step 1: Write state schema and initial-state tests**
+- [x] **Step 1: Write state schema and initial-state tests**
 
 Assert all eighteen required fields, UUID game ID, `schema_version == 1`, `revision == 0`, current/visited `scene_1972`, timezone-aware ISO start time, bounded trust/emotions, no duplicate fragment IDs, and rejection of unknown fields.
 
@@ -270,25 +270,25 @@ def test_initial_state_has_versioned_contract(registry, fixed_now):
     assert state.model_dump(mode="json")["schema_version"] == 1
 ```
 
-- [ ] **Step 2: Run backend state tests to verify RED**
+- [x] **Step 2: Run backend state tests to verify RED**
 
 Run: `pytest backend/tests/domain/test_game_state.py -q`
 
 Expected: FAIL because `backend.domain.game_state` does not exist.
 
-- [ ] **Step 3: Implement strict state models and validators**
+- [x] **Step 3: Implement strict state models and validators**
 
 Use `extra="forbid"`; model dialogue roles as `player | npc | system`; model fragment status as `hidden | revealed | collected`; clamp trust to `0..100`; validate every state ID against the injected registry through `validate_content_references(registry)`.
 
-- [ ] **Step 4: Replace the legacy initial-state factory**
+- [x] **Step 4: Replace the legacy initial-state factory**
 
 Make `backend/engine/world.py:create_initial_state()` delegate to `GameState.new(...).model_dump(mode="json")` during the compatibility period.
 
-- [ ] **Step 5: Mirror the schema in TypeScript and test representative decoding**
+- [x] **Step 5: Mirror the schema in TypeScript and test representative decoding**
 
 Define literal unions, arrays, maps, and nullable ending without `any`. Update `gameState.test.ts` to assert complete state replacement preserves `revision`, `visited_scenes`, dialogue roles, and fragment states.
 
-- [ ] **Step 6: Run focused tests**
+- [x] **Step 6: Run focused tests**
 
 Run:
 
@@ -301,7 +301,7 @@ npm run typecheck
 
 Expected: all commands PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add backend/domain backend/tests/domain backend/engine/world.py frontend/src/types/game.ts frontend/src/__tests__/gameState.test.ts

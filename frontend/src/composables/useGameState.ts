@@ -1,17 +1,21 @@
 import { ref, computed } from 'vue'
 import * as api from '../api'
-import type { GameState } from '../types/game'
+import type { DialogueMessage, GameState } from '../types/game'
 
 const gameState = ref<GameState | null>(null)
 const loading = ref(false)
 const error = ref('')
 
 export function useGameState() {
+  const replaceAuthoritativeState = (nextState: GameState) => {
+    gameState.value = structuredClone(nextState)
+  }
+
   const initGame = async () => {
     loading.value = true
     try {
       const res = await api.getInitialState()
-      gameState.value = res.data
+      replaceAuthoritativeState(res.data)
     } catch (e: unknown) {
       error.value = (e as Error).message || '初始化失败'
     } finally {
@@ -23,7 +27,7 @@ export function useGameState() {
     loading.value = true
     try {
       const res = await api.loadGame(slotId)
-      gameState.value = res.data.game_state
+      replaceAuthoritativeState(res.data.game_state)
     } catch {
       error.value = '存档加载失败'
     } finally {
@@ -38,7 +42,7 @@ export function useGameState() {
       slotName,
       gameState.value,
       gameState.value.current_scene,
-      gameState.value.play_time,
+      gameState.value.play_time_seconds,
     )
   }
 
@@ -55,6 +59,8 @@ export function useGameState() {
     }
     if (gameState.value.fragment_states[fragmentId]) {
       gameState.value.fragment_states[fragmentId].collected = true
+      gameState.value.fragment_states[fragmentId].revealed = true
+      gameState.value.fragment_states[fragmentId].status = 'collected'
     }
   }
 
@@ -65,12 +71,19 @@ export function useGameState() {
     }
     if (gameState.value.fragment_states[fragmentId]) {
       gameState.value.fragment_states[fragmentId].revealed = true
+      if (!gameState.value.fragment_states[fragmentId].collected) {
+        gameState.value.fragment_states[fragmentId].status = 'revealed'
+      }
     }
   }
 
-  const addDialogue = (role: string, content: string) => {
+  const addDialogue = (role: DialogueMessage['role'], content: string, npcId?: string) => {
     if (!gameState.value) return
-    gameState.value.dialogue_history.push({ role, content })
+    gameState.value.dialogue_history.push({
+      role,
+      content,
+      ...(npcId ? { npc_id: npcId } : {}),
+    })
   }
 
   const changeScene = (sceneId: string) => {
@@ -85,6 +98,7 @@ export function useGameState() {
     gameState,
     loading,
     error,
+    replaceAuthoritativeState,
     initGame,
     loadFromSlot,
     saveToSlot,

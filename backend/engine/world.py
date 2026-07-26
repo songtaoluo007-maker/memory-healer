@@ -1,7 +1,12 @@
 """世界状态管理"""
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+from uuid import uuid4
+
+from backend.content.registry import ContentRegistry
+from backend.domain.game_state import GameState
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
@@ -16,6 +21,7 @@ def load_json(name: str) -> dict:
 SCENES = load_json("scenes.json")
 NPCS = load_json("npcs.json")
 FRAGMENTS = load_json("fragments.json")
+CONTENT_REGISTRY = ContentRegistry.load(DATA_DIR)
 
 
 def get_scene(scene_id: str) -> Optional[dict]:
@@ -48,29 +54,8 @@ def get_all_scene_ids() -> list[str]:
 
 def create_initial_state() -> dict:
     """创建初始游戏状态"""
-    # 初始化所有碎片为未收集
-    fragment_states = {}
-    for fid, fdata in FRAGMENTS.items():
-        fragment_states[fid] = {
-            "id": fid,
-            "name": fdata["name"],
-            "collected": False,
-            "revealed": False,
-            "scene": fdata["scene"],
-        }
-
-    import time
-    return {
-        "current_scene": "scene_1972",
-        "collected_fragments": [],
-        "revealed_fragments": [],
-        "fragment_states": fragment_states,
-        "npc_trust": {},
-        "key_choices": [],
-        "dialogue_history": [],
-        "current_mood": "warm",
-        "play_time": 0,
-        "play_start_time": int(time.time() * 1000),
-        "chapter": 1,
-        "ending": None,
-    }
+    return GameState.new(
+        CONTENT_REGISTRY,
+        datetime.now(timezone.utc),
+        uuid4(),
+    ).model_dump(mode="json")

@@ -44,26 +44,44 @@ export interface Fragment {
 export interface FragmentState {
   id: string
   name: string
+  status: 'hidden' | 'revealed' | 'collected'
   collected: boolean
   revealed: boolean
   scene: string
 }
 
+export interface DialogueMessage {
+  role: 'player' | 'npc' | 'system'
+  content: string
+  npc_id?: string | null
+  emotion?: string | null
+}
+
+export interface KeyChoiceRecord {
+  choice_id: string
+  scene_id: string
+  made_at_revision: number
+}
+
 export interface GameState {
+  schema_version: 1
+  game_id: string
+  revision: number
   current_scene: string
   visited_scenes: string[]
   collected_fragments: string[]
   revealed_fragments: string[]
   fragment_states: Record<string, FragmentState>
   npc_trust: Record<string, number>
-  key_choices: string[]
-  dialogue_history: Array<{ role: string; content: string }>
+  npc_emotions: Record<string, string>
+  key_choices: KeyChoiceRecord[]
+  butterfly_choices: Record<string, string>
+  dialogue_history: DialogueMessage[]
   current_mood: string
-  play_time: number
-  play_start_time: number
+  play_time_seconds: number
+  started_at: string
   chapter: number
   ending: string | null
-  butterfly_choices?: Record<string, string>
 }
 
 export interface NpcSummary {
