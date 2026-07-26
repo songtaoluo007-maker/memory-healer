@@ -42,7 +42,9 @@ onMounted(() => {
     emit('complete')
     return
   }
-  setTimeout(() => { visible.value = true }, 300)
+  setTimeout(() => {
+    visible.value = true
+  }, 300)
 })
 
 const next = () => {
@@ -155,8 +157,13 @@ const skip = () => {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 .step-title {
@@ -213,7 +220,14 @@ const skip = () => {
 }
 
 /* 过渡动画 */
-.tutorial-enter-active { transition: opacity 0.4s; }
-.tutorial-leave-active { transition: opacity 0.4s; }
-.tutorial-enter-from, .tutorial-leave-to { opacity: 0; }
+.tutorial-enter-active {
+  transition: opacity 0.4s;
+}
+.tutorial-leave-active {
+  transition: opacity 0.4s;
+}
+.tutorial-enter-from,
+.tutorial-leave-to {
+  opacity: 0;
+}
 </style>

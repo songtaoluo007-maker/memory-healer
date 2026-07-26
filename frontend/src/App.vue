@@ -20,7 +20,7 @@ const loadSlotId = ref<number | null>(null)
 const globalError = ref<string | null>(null)
 
 // 全局错误捕获
-onErrorCaptured((err, instance, info) => {
+onErrorCaptured((err, _instance, info) => {
   console.error('[拾忆错误]', err, info)
   globalError.value = err.message || '发生了未知错误'
   return false // 阻止错误向上传播
@@ -93,13 +93,27 @@ const restart = () => {
       <Home v-else-if="currentView === 'home'" key="home" @start="startGame" @load="loadGame" />
 
       <!-- 新手教程 -->
-      <GameTutorial v-else-if="currentView === 'tutorial'" key="tutorial" @complete="tutorialComplete" />
+      <GameTutorial
+        v-else-if="currentView === 'tutorial'"
+        key="tutorial"
+        @complete="tutorialComplete"
+      />
 
       <!-- 游戏主界面 -->
-      <Game v-else-if="currentView === 'game'" key="game" :load-slot-id="loadSlotId" @ending="onEnding" />
+      <Game
+        v-else-if="currentView === 'game'"
+        key="game"
+        :load-slot-id="loadSlotId"
+        @ending="onEnding"
+      />
 
       <!-- 结局 -->
-      <Ending v-else-if="currentView === 'ending'" key="ending" :ending-type="endingType" @restart="restart" />
+      <Ending
+        v-else-if="currentView === 'ending'"
+        key="ending"
+        :ending-type="endingType"
+        @restart="restart"
+      />
     </Transition>
 
     <!-- 存档管理弹窗 -->
@@ -194,7 +208,9 @@ body {
 /* 视图切换动画 */
 .view-fade-enter-active,
 .view-fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 .view-fade-enter-from {
   opacity: 0;

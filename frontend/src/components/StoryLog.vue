@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
+import type { ChatMessage, GameState } from '../types/game'
 
 interface LogEntry {
   time: string
@@ -11,8 +12,8 @@ interface LogEntry {
 }
 
 const props = defineProps<{
-  gameState: Record<string, any> | null
-  chatHistory: Array<{ role: string; content: string; npcName?: string }>
+  gameState: GameState | null
+  chatHistory: ChatMessage[]
 }>()
 
 const emit = defineEmits<{
@@ -27,15 +28,6 @@ const sceneNames: Record<string, string> = {
   scene_2024: '2024 城中村',
   scene_2050: '2050 颁奖礼',
   scene_2089: '2089 实验室',
-}
-
-const iconMap: Record<string, string> = {
-  dialogue: '💬',
-  choice: '🔀',
-  fragment: '✨',
-  scene: '🏙',
-  butterfly: '🦋',
-  system: '📝',
 }
 
 function buildLog(): LogEntry[] {
@@ -65,7 +57,7 @@ function buildLog(): LogEntry[] {
 
   // 从蝴蝶选择提取关键决策
   const choices = gs.butterfly_choices || {}
-  for (const [scene, choice] of Object.entries(choices)) {
+  for (const scene of Object.keys(choices)) {
     entries.push({
       time: '',
       type: 'choice',
@@ -78,11 +70,11 @@ function buildLog(): LogEntry[] {
   // 从碎片状态提取收集记录
   const fragments = gs.fragment_states || {}
   for (const [id, frag] of Object.entries(fragments)) {
-    if ((frag as any)?.collected) {
+    if (frag.collected) {
       entries.push({
         time: '',
         type: 'fragment',
-        content: `收集碎片: ${(frag as any).title || id}`,
+        content: `收集碎片: ${frag.name || id}`,
         icon: '✨',
       })
     }
@@ -94,7 +86,7 @@ function buildLog(): LogEntry[] {
 const logEntries = computed(() => {
   const all = buildLog()
   if (filter.value === 'all') return all
-  return all.filter(e => e.type === filter.value)
+  return all.filter((e) => e.type === filter.value)
 })
 
 const filterOptions = [
@@ -127,17 +119,14 @@ const filterOptions = [
       </div>
 
       <div class="log-content" v-if="logEntries.length">
-        <div
-          v-for="(entry, i) in logEntries"
-          :key="i"
-          class="log-entry"
-          :class="entry.type"
-        >
+        <div v-for="(entry, i) in logEntries" :key="i" class="log-entry" :class="entry.type">
           <span class="entry-icon">{{ entry.icon }}</span>
           <div class="entry-body">
             <span class="entry-meta" v-if="entry.npc || entry.scene">
               <span v-if="entry.npc" class="entry-npc">{{ entry.npc }}</span>
-              <span v-if="entry.scene" class="entry-scene">{{ sceneNames[entry.scene] || entry.scene }}</span>
+              <span v-if="entry.scene" class="entry-scene">{{
+                sceneNames[entry.scene] || entry.scene
+              }}</span>
             </span>
             <span class="entry-text">{{ entry.content }}</span>
           </div>
@@ -199,7 +188,9 @@ const filterOptions = [
   padding: 4px 8px;
   transition: color 0.2s;
 }
-.close-btn:hover { color: #fff; }
+.close-btn:hover {
+  color: #fff;
+}
 
 .log-filters {
   display: flex;
@@ -220,7 +211,9 @@ const filterOptions = [
   transition: all 0.2s;
   font-family: 'Noto Serif SC', serif;
 }
-.filter-btn:hover { border-color: rgba(100, 150, 255, 0.3); }
+.filter-btn:hover {
+  border-color: rgba(100, 150, 255, 0.3);
+}
 .filter-btn.active {
   background: rgba(100, 150, 255, 0.15);
   border-color: rgba(100, 150, 255, 0.4);
@@ -244,7 +237,9 @@ const filterOptions = [
   background: rgba(255, 255, 255, 0.02);
   transition: background 0.2s;
 }
-.log-entry:hover { background: rgba(255, 255, 255, 0.04); }
+.log-entry:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
 
 .entry-icon {
   flex-shrink: 0;
@@ -281,9 +276,16 @@ const filterOptions = [
   word-break: break-word;
 }
 
-.log-entry.choice .entry-text { color: rgba(180, 160, 255, 0.8); }
-.log-entry.fragment .entry-text { color: rgba(255, 215, 100, 0.8); }
-.log-entry.system .entry-text { color: rgba(255, 255, 255, 0.4); font-style: italic; }
+.log-entry.choice .entry-text {
+  color: rgba(180, 160, 255, 0.8);
+}
+.log-entry.fragment .entry-text {
+  color: rgba(255, 215, 100, 0.8);
+}
+.log-entry.system .entry-text {
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
 
 .log-empty {
   flex: 1;
@@ -294,20 +296,40 @@ const filterOptions = [
   gap: 8px;
   color: rgba(255, 255, 255, 0.3);
 }
-.log-empty p { margin: 0; }
-.log-empty-hint { font-size: 13px; }
+.log-empty p {
+  margin: 0;
+}
+.log-empty-hint {
+  font-size: 13px;
+}
 
 /* 移动端适配 */
 @media (max-width: 768px) {
-  .story-log { padding: 16px; max-height: 80vh; }
-  .story-log h3 { font-size: 16px; }
-  .log-filters { gap: 4px; }
-  .log-filter-btn { padding: 4px 10px; font-size: 12px; }
-  .log-item { padding: 10px; }
+  .story-log {
+    padding: 16px;
+    max-height: 80vh;
+  }
+  .story-log h3 {
+    font-size: 16px;
+  }
+  .log-filters {
+    gap: 4px;
+  }
+  .log-filter-btn {
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+  .log-item {
+    padding: 10px;
+  }
 }
 @media (max-width: 480px) {
-  .story-log { padding: 12px; }
-  .log-item { padding: 8px; font-size: 13px; }
+  .story-log {
+    padding: 12px;
+  }
+  .log-item {
+    padding: 8px;
+    font-size: 13px;
+  }
 }
 </style>
-

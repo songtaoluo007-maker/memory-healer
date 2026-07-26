@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { getSceneDetail, advanceNarrative } from '../api'
-import type { Scene, NpcSummary, Fragment } from '../types/game'
+import type { Fragment, GameState, NpcSummary, Scene } from '../types/game'
 
 export function useScene() {
   const currentScene = ref<Scene | null>(null)
@@ -9,7 +9,7 @@ export function useScene() {
   const narrativeText = ref('')
   const sceneTransitioning = ref(false)
 
-  async function loadScene(gameState: any): Promise<string> {
+  async function loadScene(gameState: GameState | null): Promise<string> {
     if (!gameState) return ''
     const res = await getSceneDetail(gameState.current_scene, gameState)
     currentScene.value = res.data.scene
@@ -25,8 +25,8 @@ export function useScene() {
     const butterflyMods = res.data.butterfly_mods || []
     if (butterflyMods.length > 0) {
       const modDescs = butterflyMods
-        .filter((m: any) => m.mod_type === 'scene_description')
-        .map((m: any) => m.mod_value)
+        .filter((modifier) => modifier.mod_type === 'scene_description')
+        .map((modifier) => modifier.mod_value)
       if (modDescs.length > 0) {
         sceneDesc += '\n\n' + modDescs.join('\n')
       }
@@ -38,17 +38,17 @@ export function useScene() {
 
   async function switchScene(
     targetScene: string,
-    gameState: any,
+    gameState: GameState | null,
     emit: (e: 'scene-change', v: string) => void,
     playSFX: (s: string) => void,
     playBGM: (m: string) => void,
-    typeStart: (t: string) => void
+    typeStart: (t: string) => void,
   ) {
     if (!gameState || sceneTransitioning.value) return
     sceneTransitioning.value = true
     playSFX('scene_transition')
 
-    const scenes = gameState.scenes_visited || []
+    const scenes = gameState.visited_scenes
     if (!scenes.includes(gameState.current_scene)) {
       scenes.push(gameState.current_scene)
     }
@@ -56,7 +56,7 @@ export function useScene() {
     emit('scene-change', targetScene)
     gameState.current_scene = targetScene
 
-    await new Promise(r => setTimeout(r, 200))
+    await new Promise((r) => setTimeout(r, 200))
     const desc = await loadScene(gameState)
     if (desc) typeStart(desc)
     playBGM(gameState.current_scene.replace('scene_', ''))

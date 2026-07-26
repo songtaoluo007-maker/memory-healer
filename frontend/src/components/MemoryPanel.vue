@@ -61,21 +61,14 @@ const sceneLabels: Record<string, string> = {
       >
         关联图
       </button>
-      <button
-        class="tab-btn"
-        :class="{ active: activeTab === 'list' }"
-        @click="activeTab = 'list'"
-      >
+      <button class="tab-btn" :class="{ active: activeTab === 'list' }" @click="activeTab = 'list'">
         碎片列表
       </button>
     </div>
 
     <!-- 关联图 -->
     <div v-if="activeTab === 'graph'" class="tab-content">
-      <FragmentGraph
-        :fragment-states="fragmentStates"
-        :current-scene="currentScene"
-      />
+      <FragmentGraph :fragment-states="fragmentStates" :current-scene="currentScene" />
     </div>
 
     <!-- 碎片列表 -->
@@ -94,9 +87,7 @@ const sceneLabels: Record<string, string> = {
             </span>
             <div class="frag-info">
               <span class="frag-name">{{ frag.name || frag.id }}</span>
-              <span class="frag-hint" v-if="frag.revealed && !frag.collected">
-                继续探索...
-              </span>
+              <span class="frag-hint" v-if="frag.revealed && !frag.collected"> 继续探索... </span>
             </div>
           </div>
         </div>
@@ -111,9 +102,7 @@ const sceneLabels: Record<string, string> = {
           :style="{ width: `${totalFragments > 0 ? (collectedCount / totalFragments) * 100 : 0}%` }"
         ></div>
       </div>
-      <span class="footer-text">
-        记忆完整度 {{ collectedCount }}/{{ totalFragments }}
-      </span>
+      <span class="footer-text"> 记忆完整度 {{ collectedCount }}/{{ totalFragments }} </span>
     </div>
   </div>
 </template>
@@ -131,8 +120,12 @@ const sceneLabels: Record<string, string> = {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .panel-header {

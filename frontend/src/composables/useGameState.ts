@@ -33,7 +33,13 @@ export function useGameState() {
 
   const saveToSlot = async (slotId: number, slotName: string) => {
     if (!gameState.value) return
-    await api.saveGame(slotId, slotName, gameState.value, gameState.value.current_scene, gameState.value.play_time)
+    await api.saveGame(
+      slotId,
+      slotName,
+      gameState.value,
+      gameState.value.current_scene,
+      gameState.value.play_time,
+    )
   }
 
   const updateTrust = (npcId: string, change: number) => {

@@ -24,22 +24,25 @@ function getAudioContext(): AudioContext {
 }
 
 // ── 场景氛围音配置 ──
-const sceneBgmConfig: Record<string, { frequencies: number[]; type: OscillatorType; volume: number }> = {
+const sceneBgmConfig: Record<
+  string,
+  { frequencies: number[]; type: OscillatorType; volume: number }
+> = {
   scene_1972: {
     // 温暖的五声音阶，模拟古筝/二胡
-    frequencies: [261.63, 293.66, 329.63, 392.00, 440.00],
+    frequencies: [261.63, 293.66, 329.63, 392.0, 440.0],
     type: 'sine',
     volume: 0.06,
   },
   scene_2024: {
     // 小调和弦，钢琴感
-    frequencies: [261.63, 311.13, 349.23, 415.30],
+    frequencies: [261.63, 311.13, 349.23, 415.3],
     type: 'triangle',
     volume: 0.05,
   },
   scene_2089: {
     // 电子合成器感，空灵
-    frequencies: [220.00, 277.18, 329.63, 440.00, 554.37],
+    frequencies: [220.0, 277.18, 329.63, 440.0, 554.37],
     type: 'sine',
     volume: 0.04,
   },
@@ -47,9 +50,9 @@ const sceneBgmConfig: Record<string, { frequencies: number[]; type: OscillatorTy
 
 // ── 环境音配置 ──
 const ambientConfig: Record<string, { noise: boolean; filterFreq: number; volume: number }> = {
-  scene_1972: { noise: true, filterFreq: 800, volume: 0.015 },   // 温暖的巷子环境
-  scene_2024: { noise: true, filterFreq: 400, volume: 0.02 },    // 雨声+车流
-  scene_2089: { noise: true, filterFreq: 2000, volume: 0.008 },  // 实验室机器嗡鸣
+  scene_1972: { noise: true, filterFreq: 800, volume: 0.015 }, // 温暖的巷子环境
+  scene_2024: { noise: true, filterFreq: 400, volume: 0.02 }, // 雨声+车流
+  scene_2089: { noise: true, filterFreq: 2000, volume: 0.008 }, // 实验室机器嗡鸣
 }
 
 export function useAudio() {
@@ -83,10 +86,7 @@ export function useAudio() {
     bgmGain.connect(ctx.destination)
 
     // 淡入
-    bgmGain.gain.linearRampToValueAtTime(
-      config.volume * bgmVolume.value,
-      ctx.currentTime + 2
-    )
+    bgmGain.gain.linearRampToValueAtTime(config.volume * bgmVolume.value, ctx.currentTime + 2)
 
     // 创建多声部氛围音
     config.frequencies.forEach((freq, i) => {
@@ -97,14 +97,14 @@ export function useAudio() {
       osc.frequency.value = freq
 
       // 每个声部略有不同的音量和相位
-      oscGain.gain.value = 0.3 + (i * 0.1)
+      oscGain.gain.value = 0.3 + i * 0.1
       osc.connect(oscGain)
       oscGain.connect(bgmGain!)
 
       // 缓慢的音量波动，营造呼吸感
       const lfo = ctx.createOscillator()
       const lfoGain = ctx.createGain()
-      lfo.frequency.value = 0.1 + (i * 0.05)  // 每个声部不同频率
+      lfo.frequency.value = 0.1 + i * 0.05 // 每个声部不同频率
       lfoGain.gain.value = 0.15
       lfo.connect(lfoGain)
       lfoGain.connect(oscGain.gain)
@@ -163,8 +163,12 @@ export function useAudio() {
     }
 
     setTimeout(() => {
-      bgmOscillators.forEach(osc => {
-        try { osc.stop() } catch (e) { /* ignore */ }
+      bgmOscillators.forEach((osc) => {
+        try {
+          osc.stop()
+        } catch {
+          /* oscillator may already be stopped */
+        }
       })
       bgmOscillators = []
       bgmGain = null
@@ -176,11 +180,17 @@ export function useAudio() {
           ambientGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1)
         }
         setTimeout(() => {
-          try { ambientSource?.stop() } catch (e) { /* ignore */ }
+          try {
+            ambientSource?.stop()
+          } catch {
+            /* source may already be stopped */
+          }
           ambientSource = null
           ambientGain = null
         }, 1200)
-      } catch (e) { /* ignore */ }
+      } catch {
+        /* audio context may already be closed */
+      }
     }
   }
 
@@ -211,9 +221,9 @@ export function useAudio() {
 
       case 'trust_up':
         // 信任度提升 — 温暖和弦
-        _playTone(ctx, masterGain, 523.25, 0.3, 'sine', 0.3)  // C5
+        _playTone(ctx, masterGain, 523.25, 0.3, 'sine', 0.3) // C5
         _playTone(ctx, masterGain, 659.25, 0.3, 'sine', 0.25) // E5
-        _playTone(ctx, masterGain, 783.99, 0.3, 'sine', 0.2)  // G5
+        _playTone(ctx, masterGain, 783.99, 0.3, 'sine', 0.2) // G5
         break
 
       case 'trust_down':
@@ -234,12 +244,12 @@ export function useAudio() {
 
       case 'ending_hope':
         // 结局·光 — 渐强的和弦
-        _playChord(ctx, masterGain, [261.63, 329.63, 392.00, 523.25], 2, 'sine')
+        _playChord(ctx, masterGain, [261.63, 329.63, 392.0, 523.25], 2, 'sine')
         break
 
       case 'ending_bittersweet':
         // 结局·余温 — 钢琴独奏渐弱
-        _playChord(ctx, masterGain, [261.63, 311.13, 392.00], 3, 'triangle')
+        _playChord(ctx, masterGain, [261.63, 311.13, 392.0], 3, 'triangle')
         break
 
       case 'ending_tragic':
@@ -269,7 +279,7 @@ export function useAudio() {
     freq: number,
     duration: number,
     type: OscillatorType,
-    volume: number
+    volume: number,
   ) => {
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
@@ -293,7 +303,7 @@ export function useAudio() {
     dest: GainNode,
     startFreq: number,
     endFreq: number,
-    duration: number
+    duration: number,
   ) => {
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
@@ -318,9 +328,9 @@ export function useAudio() {
     dest: GainNode,
     freqs: number[],
     duration: number,
-    type: OscillatorType
+    type: OscillatorType,
   ) => {
-    freqs.forEach(freq => {
+    freqs.forEach((freq) => {
       _playTone(ctx, dest, freq, duration, type, 0.15)
     })
   }
@@ -352,8 +362,6 @@ export function useAudio() {
   // ── TTS 语音朗读（Edge TTS） ──
   const isSpeaking = ref(false)
   let currentAudio: HTMLAudioElement | null = null
-  let audioQueue: string[] = []
-  let isProcessingQueue = false
 
   /**
    * 播放NPC语音朗读
@@ -366,17 +374,20 @@ export function useAudio() {
     stopSpeak()
 
     // 清理文本：移除多余标点和特殊字符
-    const cleanText = text.replace(/[【】\[\]{}]/g, '').replace(/\s+/g, ' ').trim()
+    const cleanText = text
+      .replace(/[【】[\]{}]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
     if (!cleanText) return
 
     try {
       isSpeaking.value = true
 
-      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-      const response = await fetch(`${baseURL}/api/tts/speak`, {
+      const response = await fetch('/api/tts/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: cleanText, npc_id: npcId }),
+        credentials: 'include',
       })
 
       if (!response.ok || isMuted.value) {

@@ -36,18 +36,38 @@ onUnmounted(() => {
 
 // 各层视差系数
 const layers = computed(() => [
-  { depth: 0.02, blur: 0, opacity: 1 },    // 最远背景
-  { depth: 0.05, blur: 1, opacity: 0.7 },   // 中景
-  { depth: 0.1, blur: 2, opacity: 0.5 },    // 近景
+  { depth: 0.02, blur: 0, opacity: 1 }, // 最远背景
+  { depth: 0.05, blur: 1, opacity: 0.7 }, // 中景
+  { depth: 0.1, blur: 2, opacity: 0.5 }, // 近景
 ])
 
 // 场景氛围色
 const ambientColors: Record<string, { primary: string; secondary: string; glow: string }> = {
-  scene_1972: { primary: 'rgba(180, 140, 60, 0.08)', secondary: 'rgba(120, 80, 20, 0.05)', glow: 'rgba(255, 200, 80, 0.03)' },
-  scene_1990: { primary: 'rgba(60, 100, 180, 0.08)', secondary: 'rgba(40, 70, 140, 0.05)', glow: 'rgba(80, 140, 255, 0.03)' },
-  scene_2024: { primary: 'rgba(100, 60, 140, 0.08)', secondary: 'rgba(70, 40, 100, 0.05)', glow: 'rgba(160, 100, 220, 0.03)' },
-  scene_2050: { primary: 'rgba(40, 100, 160, 0.08)', secondary: 'rgba(20, 70, 120, 0.05)', glow: 'rgba(60, 160, 255, 0.03)' },
-  scene_2089: { primary: 'rgba(160, 100, 40, 0.08)', secondary: 'rgba(120, 70, 20, 0.05)', glow: 'rgba(255, 160, 60, 0.03)' },
+  scene_1972: {
+    primary: 'rgba(180, 140, 60, 0.08)',
+    secondary: 'rgba(120, 80, 20, 0.05)',
+    glow: 'rgba(255, 200, 80, 0.03)',
+  },
+  scene_1990: {
+    primary: 'rgba(60, 100, 180, 0.08)',
+    secondary: 'rgba(40, 70, 140, 0.05)',
+    glow: 'rgba(80, 140, 255, 0.03)',
+  },
+  scene_2024: {
+    primary: 'rgba(100, 60, 140, 0.08)',
+    secondary: 'rgba(70, 40, 100, 0.05)',
+    glow: 'rgba(160, 100, 220, 0.03)',
+  },
+  scene_2050: {
+    primary: 'rgba(40, 100, 160, 0.08)',
+    secondary: 'rgba(20, 70, 120, 0.05)',
+    glow: 'rgba(60, 160, 255, 0.03)',
+  },
+  scene_2089: {
+    primary: 'rgba(160, 100, 40, 0.08)',
+    secondary: 'rgba(120, 70, 20, 0.05)',
+    glow: 'rgba(255, 160, 60, 0.03)',
+  },
 }
 
 const ambient = computed(() => ambientColors[props.sceneId] || ambientColors.scene_1972)
@@ -137,13 +157,16 @@ const ambient = computed(() => ambientColors[props.sceneId] || ambientColors.sce
   height: 6px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(255, 220, 150, 0.9), rgba(255, 180, 80, 0.4));
-  box-shadow: 0 0 12px rgba(255, 200, 100, 0.5), 0 0 24px rgba(255, 180, 80, 0.2);
+  box-shadow:
+    0 0 12px rgba(255, 200, 100, 0.5),
+    0 0 24px rgba(255, 180, 80, 0.2);
   animation: sparkFloat ease-in-out infinite;
   opacity: 0;
 }
 
 @keyframes sparkFloat {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0;
     transform: translateY(0) scale(0.5);
   }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import type { GameState } from '../types/game'
 
 interface ButterflyRule {
   id: string
@@ -11,7 +12,7 @@ interface ButterflyRule {
 }
 
 const props = defineProps<{
-  gameState: Record<string, any> | null
+  gameState: GameState | null
 }>()
 
 const rules = ref<ButterflyRule[]>([])
@@ -43,17 +44,19 @@ async function fetchStatus() {
   if (!props.gameState) return
   loading.value = true
   try {
-    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-    const res = await fetch(`${baseURL}/api/butterfly/status`, {
+    const res = await fetch('/api/butterfly/status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ game_state: props.gameState }),
+      credentials: 'include',
     })
     const data = await res.json()
     rules.value = data.rules
     triggeredCount.value = data.triggered_count
     totalRules.value = data.total_rules
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   loading.value = false
 }
 
@@ -71,9 +74,7 @@ defineExpose({ refresh: fetchStatus })
       <span class="butterfly-count">{{ triggeredCount }}/{{ totalRules }}</span>
     </div>
 
-    <div class="butterfly-hint" v-if="triggeredCount === 0">
-      你的选择会影响未来的剧情……
-    </div>
+    <div class="butterfly-hint" v-if="triggeredCount === 0">你的选择会影响未来的剧情……</div>
 
     <div class="butterfly-rules">
       <div
@@ -85,15 +86,13 @@ defineExpose({ refresh: fetchStatus })
         <div class="rule-trigger">
           <span class="rule-icon">{{ rule.triggered ? '🦋' : '○' }}</span>
           <span class="rule-scene">{{ sceneNames[rule.trigger_scene] || rule.trigger_scene }}</span>
-          <span class="rule-choice">{{ choiceNames[rule.trigger_choice] || rule.trigger_choice }}</span>
+          <span class="rule-choice">{{
+            choiceNames[rule.trigger_choice] || rule.trigger_choice
+          }}</span>
         </div>
         <div class="rule-arrow" v-if="rule.triggered">→</div>
         <div class="rule-effects" v-if="rule.triggered">
-          <span
-            v-for="scene in rule.target_scenes"
-            :key="scene"
-            class="effect-target"
-          >
+          <span v-for="scene in rule.target_scenes" :key="scene" class="effect-target">
             {{ sceneNames[scene] || scene }}
           </span>
         </div>
@@ -202,13 +201,24 @@ defineExpose({ refresh: fetchStatus })
 
 /* 移动端适配 */
 @media (max-width: 768px) {
-  .butterfly-panel { padding: 16px; max-height: 80vh; }
-  .butterfly-panel h3 { font-size: 16px; }
-  .rule-card { padding: 10px; }
+  .butterfly-panel {
+    padding: 16px;
+    max-height: 80vh;
+  }
+  .butterfly-panel h3 {
+    font-size: 16px;
+  }
+  .rule-card {
+    padding: 10px;
+  }
 }
 @media (max-width: 480px) {
-  .butterfly-panel { padding: 12px; }
-  .rule-card { padding: 8px; font-size: 13px; }
+  .butterfly-panel {
+    padding: 12px;
+  }
+  .rule-card {
+    padding: 8px;
+    font-size: 13px;
+  }
 }
 </style>
-

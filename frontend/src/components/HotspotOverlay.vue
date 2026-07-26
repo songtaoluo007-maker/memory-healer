@@ -47,7 +47,12 @@ const handleClick = (hotspot: Hotspot) => {
       <!-- 脉冲动画 -->
       <radialGradient :id="'pulse-' + sceneId" cx="50%" cy="50%" r="50%">
         <stop offset="0%" :stop-color="eraColor.main" stop-opacity="0.6">
-          <animate attributeName="stop-opacity" values="0.6;0.2;0.6" dur="2s" repeatCount="indefinite" />
+          <animate
+            attributeName="stop-opacity"
+            values="0.6;0.2;0.6"
+            dur="2s"
+            repeatCount="indefinite"
+          />
         </stop>
         <stop offset="100%" :stop-color="eraColor.main" stop-opacity="0" />
       </radialGradient>
@@ -69,7 +74,7 @@ const handleClick = (hotspot: Hotspot) => {
       class="hotspot-group"
       :class="{
         explored: exploredIds.has(hotspot.id),
-        hovered: hoveredId === hotspot.id
+        hovered: hoveredId === hotspot.id,
       }"
       @click="handleClick(hotspot)"
       @mouseenter="hoveredId = hotspot.id"
@@ -174,8 +179,14 @@ const handleClick = (hotspot: Hotspot) => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.6; transform-origin: center; }
-  50% { opacity: 0.2; }
+  0%,
+  100% {
+    opacity: 0.6;
+    transform-origin: center;
+  }
+  50% {
+    opacity: 0.2;
+  }
 }
 
 .hotspot-icon {

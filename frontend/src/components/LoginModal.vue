@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import type { AuthUser } from '../types/game'
 
 const emit = defineEmits<{
-  login: [user: { token: string; user_id: number; username: string; nickname: string }]
+  login: [user: AuthUser]
   close: []
 }>()
 
@@ -12,8 +13,6 @@ const password = ref('')
 const nickname = ref('')
 const loading = ref(false)
 const error = ref('')
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const handleSubmit = async () => {
   if (!username.value || !password.value) {
@@ -26,14 +25,16 @@ const handleSubmit = async () => {
 
   try {
     const endpoint = mode.value === 'login' ? '/api/auth/login' : '/api/auth/register'
-    const body = mode.value === 'login'
-      ? { username: username.value, password: password.value }
-      : { username: username.value, password: password.value, nickname: nickname.value }
+    const body =
+      mode.value === 'login'
+        ? { username: username.value, password: password.value }
+        : { username: username.value, password: password.value, nickname: nickname.value }
 
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      credentials: 'include',
     })
 
     if (!res.ok) {
@@ -42,11 +43,10 @@ const handleSubmit = async () => {
     }
 
     const data = await res.json()
-    localStorage.setItem('mh_token', data.token)
     localStorage.setItem('mh_user', JSON.stringify(data))
     emit('login', data)
-  } catch (e: any) {
-    error.value = e.message || '网络错误'
+  } catch (caught: unknown) {
+    error.value = caught instanceof Error ? caught.message : '网络错误'
   } finally {
     loading.value = false
   }
@@ -66,7 +66,9 @@ const switchMode = () => {
       <div class="panel-header">
         <div class="panel-icon">🧠</div>
         <h2>{{ mode === 'login' ? '登录' : '注册' }}</h2>
-        <p class="panel-subtitle">{{ mode === 'login' ? '继续你的记忆修复之旅' : '开始新的旅程' }}</p>
+        <p class="panel-subtitle">
+          {{ mode === 'login' ? '继续你的记忆修复之旅' : '开始新的旅程' }}
+        </p>
       </div>
 
       <form @submit.prevent="handleSubmit" class="login-form">
@@ -82,11 +84,7 @@ const switchMode = () => {
 
         <div class="form-group" v-if="mode === 'register'">
           <label>昵称</label>
-          <input
-            v-model="nickname"
-            type="text"
-            placeholder="可选，默认为用户名"
-          />
+          <input v-model="nickname" type="text" placeholder="可选，默认为用户名" />
         </div>
 
         <div class="form-group">
@@ -102,7 +100,7 @@ const switchMode = () => {
         <div class="error-msg" v-if="error">{{ error }}</div>
 
         <button type="submit" class="submit-btn" :disabled="loading">
-          {{ loading ? '处理中...' : (mode === 'login' ? '登录' : '注册') }}
+          {{ loading ? '处理中...' : mode === 'login' ? '登录' : '注册' }}
         </button>
       </form>
 

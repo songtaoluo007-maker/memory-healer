@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { listSaves, deleteSave } from '../api'
-import { useI18n } from '../composables/useI18n'
 import type { SaveSlot } from '../types/game'
 
 const emit = defineEmits<{
@@ -9,7 +8,6 @@ const emit = defineEmits<{
   close: []
 }>()
 
-const { t } = useI18n()
 const saves = ref<SaveSlot[]>([])
 const loading = ref(true)
 
@@ -32,7 +30,7 @@ const deleteSlot = async (slotId: number) => {
   if (!confirm('确定删除这个存档？')) return
   try {
     await deleteSave(slotId)
-    saves.value = saves.value.filter(s => s.slot_id !== slotId)
+    saves.value = saves.value.filter((s) => s.slot_id !== slotId)
   } catch {
     alert('删除失败')
   }
@@ -55,7 +53,13 @@ const getSceneName = (sceneId: string) => {
 </script>
 
 <template>
-  <div class="save-overlay" @click.self="emit('close')" role="dialog" aria-label="存档管理" aria-modal="true">
+  <div
+    class="save-overlay"
+    @click.self="emit('close')"
+    role="dialog"
+    aria-label="存档管理"
+    aria-modal="true"
+  >
     <div class="save-panel">
       <div class="save-header">
         <h2>📂 存档管理</h2>
@@ -67,11 +71,7 @@ const getSceneName = (sceneId: string) => {
           <p>暂无存档</p>
           <p class="hint">游戏过程中会自动创建存档</p>
         </div>
-        <div
-          v-for="save in saves"
-          :key="save.slot_id"
-          class="save-card"
-        >
+        <div v-for="save in saves" :key="save.slot_id" class="save-card">
           <div class="save-info">
             <div class="save-name">{{ save.slot_name }}</div>
             <div class="save-meta">
@@ -205,7 +205,8 @@ const getSceneName = (sceneId: string) => {
   gap: 8px;
 }
 
-.btn-load, .btn-delete {
+.btn-load,
+.btn-delete {
   padding: 6px 16px;
   border-radius: 6px;
   border: none;
@@ -254,6 +255,8 @@ const getSceneName = (sceneId: string) => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

@@ -14,9 +14,15 @@ const emit = defineEmits<{
 const { collectedCount, totalFragments } = useGameState()
 
 const phase = ref(0)
-setTimeout(() => { phase.value = 1 }, 500)
-setTimeout(() => { phase.value = 2 }, 3000)
-setTimeout(() => { phase.value = 3 }, 7000)
+setTimeout(() => {
+  phase.value = 1
+}, 500)
+setTimeout(() => {
+  phase.value = 2
+}, 3000)
+setTimeout(() => {
+  phase.value = 3
+}, 7000)
 
 const endingData = computed(() => {
   const endings = {
@@ -110,11 +116,16 @@ const shareEnding = () => {
   <div class="ending" :class="'ending-' + endingType">
     <!-- 背景粒子 -->
     <div class="particles">
-      <div v-for="i in 30" :key="i" class="particle" :style="{
-        left: Math.random() * 100 + '%',
-        animationDelay: Math.random() * 5 + 's',
-        animationDuration: (4 + Math.random() * 6) + 's',
-      }" />
+      <div
+        v-for="i in 30"
+        :key="i"
+        class="particle"
+        :style="{
+          left: Math.random() * 100 + '%',
+          animationDelay: Math.random() * 5 + 's',
+          animationDuration: 4 + Math.random() * 6 + 's',
+        }"
+      />
     </div>
 
     <!-- Phase 0: 黑屏淡入 -->
@@ -128,7 +139,11 @@ const shareEnding = () => {
 
       <!-- 结局故事 -->
       <div class="ending-story" :class="{ visible: phase >= 2 }">
-        <p v-for="(line, i) in endingData.description.split('\n\n')" :key="i" class="story-paragraph">
+        <p
+          v-for="(line, i) in endingData.description.split('\n\n')"
+          :key="i"
+          class="story-paragraph"
+        >
           {{ line }}
         </p>
       </div>
@@ -147,12 +162,8 @@ const shareEnding = () => {
 
       <!-- 重新开始 -->
       <div class="ending-actions" :class="{ visible: phase >= 3 }">
-        <button class="btn-restart" @click="emit('restart')">
-          重新开始修复
-        </button>
-        <button class="btn-share" @click="shareEnding">
-          分享结局
-        </button>
+        <button class="btn-restart" @click="emit('restart')">重新开始修复</button>
+        <button class="btn-share" @click="shareEnding">分享结局</button>
       </div>
     </div>
   </div>
@@ -200,10 +211,20 @@ const shareEnding = () => {
 }
 
 @keyframes float {
-  0% { transform: translateY(0) scale(1); opacity: 0; }
-  10% { opacity: 0.6; }
-  90% { opacity: 0.6; }
-  100% { transform: translateY(-100vh) scale(0); opacity: 0; }
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-100vh) scale(0);
+    opacity: 0;
+  }
 }
 
 .ending-content {

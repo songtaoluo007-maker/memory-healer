@@ -55,26 +55,32 @@ const curtainStyle = computed(() => {
   }
 })
 
-watch(() => props.active, (newVal) => {
-  if (newVal) {
-    phase.value = 'closing'
-    setTimeout(() => {
-      phase.value = 'hold'
+watch(
+  () => props.active,
+  (newVal) => {
+    if (newVal) {
+      phase.value = 'closing'
       setTimeout(() => {
-        phase.value = 'opening'
+        phase.value = 'hold'
         setTimeout(() => {
-          phase.value = 'idle'
-        }, 600)
-      }, 300)
-    }, 500)
-  }
-})
+          phase.value = 'opening'
+          setTimeout(() => {
+            phase.value = 'idle'
+          }, 600)
+        }, 300)
+      }, 500)
+    }
+  },
+)
 </script>
 
 <template>
   <div
     class="curtain-transition"
-    :class="[phase, `era-${sceneId.includes('1972') ? '1972' : sceneId.includes('1990') ? '1990' : sceneId.includes('2024') ? '2024' : sceneId.includes('2050') ? '2050' : '2089'}`]"
+    :class="[
+      phase,
+      `era-${sceneId.includes('1972') ? '1972' : sceneId.includes('1990') ? '1990' : sceneId.includes('2024') ? '2024' : sceneId.includes('2050') ? '2050' : '2089'}`,
+    ]"
   >
     <!-- 左幕布 -->
     <div class="curtain curtain-left" :style="{ background: curtainStyle.bg }">
@@ -128,8 +134,20 @@ watch(() => props.active, (newVal) => {
   inset: 0;
   opacity: 0.15;
   background-image:
-    repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(255,255,255,0.05) 8px, rgba(255,255,255,0.05) 9px),
-    repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(255,255,255,0.03) 20px, rgba(255,255,255,0.03) 21px);
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 8px,
+      rgba(255, 255, 255, 0.05) 8px,
+      rgba(255, 255, 255, 0.05) 9px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 20px,
+      rgba(255, 255, 255, 0.03) 20px,
+      rgba(255, 255, 255, 0.03) 21px
+    );
 }
 
 .curtain-edge {
@@ -141,12 +159,12 @@ watch(() => props.active, (newVal) => {
 
 .curtain-left .curtain-edge {
   right: 0;
-  background: linear-gradient(180deg, rgba(255,215,0,0.6), rgba(255,215,0,0.2));
+  background: linear-gradient(180deg, rgba(255, 215, 0, 0.6), rgba(255, 215, 0, 0.2));
 }
 
 .curtain-right .curtain-edge {
   left: 0;
-  background: linear-gradient(180deg, rgba(255,215,0,0.2), rgba(255,215,0,0.6));
+  background: linear-gradient(180deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.6));
 }
 
 .curtain-center {
@@ -204,36 +222,65 @@ watch(() => props.active, (newVal) => {
 /* 不同年代的纹理差异 */
 .era-1972 .curtain-texture {
   opacity: 0.2;
-  background-image:
-    repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,215,0,0.05) 10px, rgba(255,215,0,0.05) 11px);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(255, 215, 0, 0.05) 10px,
+    rgba(255, 215, 0, 0.05) 11px
+  );
 }
 
 .era-1990 .curtain-texture {
   opacity: 0.15;
-  background-image:
-    repeating-linear-gradient(90deg, transparent, transparent 15px, rgba(210,180,140,0.05) 15px, rgba(210,180,140,0.05) 16px);
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 15px,
+    rgba(210, 180, 140, 0.05) 15px,
+    rgba(210, 180, 140, 0.05) 16px
+  );
 }
 
 .era-2024 .curtain-texture {
   opacity: 0.1;
-  background-image:
-    repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(100,150,255,0.05) 40px, rgba(100,150,255,0.05) 41px);
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 40px,
+    rgba(100, 150, 255, 0.05) 40px,
+    rgba(100, 150, 255, 0.05) 41px
+  );
 }
 
 .era-2050 .curtain-texture {
   opacity: 0.18;
-  background-image:
-    repeating-linear-gradient(0deg, transparent, transparent 5px, rgba(255,215,0,0.04) 5px, rgba(255,215,0,0.04) 6px);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 5px,
+    rgba(255, 215, 0, 0.04) 5px,
+    rgba(255, 215, 0, 0.04) 6px
+  );
 }
 
 .era-2089 .curtain-texture {
   opacity: 0.15;
-  background-image:
-    repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(100,200,255,0.05) 3px, rgba(100,200,255,0.05) 4px);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(100, 200, 255, 0.05) 3px,
+    rgba(100, 200, 255, 0.05) 4px
+  );
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 </style>

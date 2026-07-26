@@ -58,7 +58,7 @@ const emit = defineEmits<{ close: [] }>()
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 .inventory-header h3 {
   font-size: 15px;
@@ -67,13 +67,13 @@ const emit = defineEmits<{ close: [] }>()
 .inventory-header button {
   background: none;
   border: none;
-  color: rgba(255,255,255,0.4);
+  color: rgba(255, 255, 255, 0.4);
   font-size: 18px;
   cursor: pointer;
 }
 .inventory-progress {
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 .inventory-list {
   flex: 1;
@@ -89,7 +89,7 @@ const emit = defineEmits<{ close: [] }>()
   transition: background 0.2s;
 }
 .inventory-item:hover {
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
 }
 .inventory-item.collected {
   background: rgba(232, 180, 80, 0.05);
@@ -105,10 +105,10 @@ const emit = defineEmits<{ close: [] }>()
 }
 .frag-scene {
   font-size: 11px;
-  color: rgba(255,255,255,0.3);
+  color: rgba(255, 255, 255, 0.3);
 }
 .inventory-item:not(.collected) .frag-name {
-  color: rgba(255,255,255,0.3);
+  color: rgba(255, 255, 255, 0.3);
   font-style: italic;
 }
 

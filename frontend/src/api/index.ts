@@ -9,25 +9,16 @@ import type {
 } from '../types/game'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: '/api',
   timeout: 60000,
+  withCredentials: true,
 })
 
-// 请求拦截器：自动附加Authorization token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('mh_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
-
-// 响应拦截器：401自动清除登录状态
+// 响应拦截器：Cookie 会话失效时清除本地展示缓存。
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem('mh_token')
       localStorage.removeItem('mh_user')
     }
     return Promise.reject(err)
@@ -36,45 +27,68 @@ api.interceptors.response.use(
 
 // 对话
 export const chatWithNpc = (data: DialogueRequest) =>
-  api.post<DialogueResponse>('/api/dialogue/chat', data)
+  api.post<DialogueResponse>('/dialogue/chat', data)
 
 // 场景
 export const getSceneDetail = (sceneId: string, gameState: GameState) =>
-  api.post<SceneDetail>('/api/scene/detail', { scene_id: sceneId, game_state: gameState })
+  api.post<SceneDetail>('/scene/detail', { scene_id: sceneId, game_state: gameState })
 
 export const advanceNarrative = (action: string, gameState: GameState) =>
-  api.post<NarrativeResult>('/api/scene/advance', { action, game_state: gameState })
+  api.post<NarrativeResult>('/scene/advance', { action, game_state: gameState })
 
-export const getInitialState = () =>
-  api.get<GameState>('/api/scene/initial-state')
+export const getInitialState = () => api.get<GameState>('/scene/initial-state')
 
 // 存档
-export const saveGame = (slotId: number, slotName: string, gameState: GameState, sceneId: string, playTime: number) =>
-  api.post('/api/save/save', { slot_id: slotId, slot_name: slotName, game_state: gameState, scene_id: sceneId, play_time: playTime })
+export const saveGame = (
+  slotId: number,
+  slotName: string,
+  gameState: GameState,
+  sceneId: string,
+  playTime: number,
+) =>
+  api.post('/save/save', {
+    slot_id: slotId,
+    slot_name: slotName,
+    game_state: gameState,
+    scene_id: sceneId,
+    play_time: playTime,
+  })
 
 export const loadGame = (slotId: number) =>
-  api.post<{ game_state: GameState; scene_id: string; play_time: number; slot_name: string; saved_at: string }>(`/api/save/load`, { slot_id: slotId })
+  api.post<{
+    game_state: GameState
+    scene_id: string
+    play_time: number
+    slot_name: string
+    saved_at: string
+  }>('/save/load', { slot_id: slotId })
 
-export const listSaves = () =>
-  api.get<{ saves: SaveSlot[] }>('/api/save/list')
+export const listSaves = () => api.get<{ saves: SaveSlot[] }>('/save/list')
 
-export const deleteSave = (slotId: number) =>
-  api.delete(`/api/save/delete/${slotId}`)
+export const deleteSave = (slotId: number) => api.delete(`/save/delete/${slotId}`)
 
 // 健康检查
 export const healthCheck = () =>
-  api.get<{ status: string; game: string; has_ai_key: boolean }>('/api/health')
+  api.get<{ status: string; game: string; has_ai_key: boolean }>('/health')
 
 // 结局评估
 export const evaluateEnding = (gameState: GameState) =>
-  api.post<{ type: string; collected: number; total: number; percent: number; butterfly_triggered: number; butterfly_total: number; key_trust_met: boolean }>('/api/ending/evaluate', { game_state: gameState })
+  api.post<{
+    type: string
+    collected: number
+    total: number
+    percent: number
+    butterfly_triggered: number
+    butterfly_total: number
+    key_trust_met: boolean
+  }>('/ending/evaluate', { game_state: gameState })
 
 export const getEndingHint = (gameState: GameState) =>
-  api.post<{ hint: string }>('/api/ending/hint', { game_state: gameState })
+  api.post<{ hint: string }>('/ending/hint', { game_state: gameState })
 
 // 蝴蝶效应: 记录玩家选择
 export const recordChoice = (scene: string, choice: string, gameState: GameState) =>
-  api.post('/api/dialogue/choice', { scene, choice, game_state: gameState })
+  api.post('/dialogue/choice', { scene, choice, game_state: gameState })
 
 // SSE 流式对话（带重连）
 export function chatWithNpcStream(
@@ -84,58 +98,60 @@ export function chatWithNpcStream(
   onError: (msg: string) => void,
   maxRetries = 2,
 ) {
-  const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
   const controller = new AbortController()
 
   const attempt = (retriesLeft: number) => {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    const token = localStorage.getItem('mh_token')
-    if (token) headers['Authorization'] = `Bearer ${token}`
 
-    fetch(`${baseURL}/api/dialogue/chat/stream`, {
+    fetch('/api/dialogue/chat/stream', {
       method: 'POST',
       headers,
       body: JSON.stringify(data),
       signal: controller.signal,
-    }).then(async (res) => {
-      if (!res.ok) {
-        if (res.status >= 500 && retriesLeft > 0) {
-          setTimeout(() => attempt(retriesLeft - 1), 1000)
+      credentials: 'include',
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          if (res.status >= 500 && retriesLeft > 0) {
+            setTimeout(() => attempt(retriesLeft - 1), 1000)
+            return
+          }
+          onError(`HTTP ${res.status}`)
           return
         }
-        onError(`HTTP ${res.status}`)
-        return
-      }
-      const reader = res.body?.getReader()
-      if (!reader) return
-      const decoder = new TextDecoder()
-      let buffer = ''
+        const reader = res.body?.getReader()
+        if (!reader) return
+        const decoder = new TextDecoder()
+        let buffer = ''
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || ''
 
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const msg = JSON.parse(line.slice(6))
-            if (msg.type === 'token') onToken(msg.content)
-            else if (msg.type === 'done') onDone(msg as DialogueResponse)
-            else if (msg.type === 'error') onError(msg.content)
-          } catch {}
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue
+            try {
+              const msg = JSON.parse(line.slice(6))
+              if (msg.type === 'token') onToken(msg.content)
+              else if (msg.type === 'done') onDone(msg as DialogueResponse)
+              else if (msg.type === 'error') onError(msg.content)
+            } catch {
+              // Ignore malformed SSE frames and continue reading the stream.
+            }
+          }
         }
-      }
-    }).catch((err) => {
-      if (err.name === 'AbortError') return
-      if (retriesLeft > 0) {
-        setTimeout(() => attempt(retriesLeft - 1), 1000)
-      } else {
-        onError(err.message)
-      }
-    })
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return
+        if (retriesLeft > 0) {
+          setTimeout(() => attempt(retriesLeft - 1), 1000)
+        } else {
+          onError(err.message)
+        }
+      })
   }
 
   attempt(maxRetries)

@@ -1,6 +1,6 @@
 /**
  * Web Vitals 性能监控
- * 采集 LCP/FID/CLS/FCP/TTFB 指标
+ * 采集 LCP/INP/CLS/FCP/TTFB 指标
  */
 
 import { onMounted } from 'vue'
@@ -18,7 +18,7 @@ const metrics: VitalMetric[] = []
 // 指标阈值 (ms)
 const THRESHOLDS = {
   LCP: { good: 2500, poor: 4000 },
-  FID: { good: 100, poor: 300 },
+  INP: { good: 200, poor: 500 },
   CLS: { good: 0.1, poor: 0.25 },
   FCP: { good: 1800, poor: 3000 },
   TTFB: { good: 800, poor: 1800 },
@@ -34,13 +34,14 @@ function getRating(name: string, value: number): 'good' | 'needs-improvement' | 
 
 function sendToAnalytics(metric: VitalMetric) {
   metrics.push(metric)
-  
+
   // 开发环境打印
   if (import.meta.env.DEV) {
-    const emoji = metric.rating === 'good' ? '✅' : metric.rating === 'needs-improvement' ? '⚠️' : '❌'
+    const emoji =
+      metric.rating === 'good' ? '✅' : metric.rating === 'needs-improvement' ? '⚠️' : '❌'
     console.log(`[拾忆性能] ${emoji} ${metric.name}: ${metric.value.toFixed(2)} (${metric.rating})`)
   }
-  
+
   // 生产环境可发送到后端
   // fetch('/api/analytics/vitals', {
   //   method: 'POST',
@@ -52,8 +53,8 @@ function sendToAnalytics(metric: VitalMetric) {
 export function useWebVitals() {
   onMounted(async () => {
     try {
-      const { onLCP, onFID, onCLS, onFCP, onTTFB } = await import('web-vitals')
-      
+      const { onLCP, onINP, onCLS, onFCP, onTTFB } = await import('web-vitals')
+
       onLCP((metric) => {
         sendToAnalytics({
           name: 'LCP',
@@ -62,16 +63,16 @@ export function useWebVitals() {
           timestamp: Date.now(),
         })
       })
-      
-      onFID((metric) => {
+
+      onINP((metric) => {
         sendToAnalytics({
-          name: 'FID',
+          name: 'INP',
           value: metric.value,
-          rating: getRating('FID', metric.value),
+          rating: getRating('INP', metric.value),
           timestamp: Date.now(),
         })
       })
-      
+
       onCLS((metric) => {
         sendToAnalytics({
           name: 'CLS',
@@ -80,7 +81,7 @@ export function useWebVitals() {
           timestamp: Date.now(),
         })
       })
-      
+
       onFCP((metric) => {
         sendToAnalytics({
           name: 'FCP',
@@ -89,7 +90,7 @@ export function useWebVitals() {
           timestamp: Date.now(),
         })
       })
-      
+
       onTTFB((metric) => {
         sendToAnalytics({
           name: 'TTFB',
@@ -102,10 +103,10 @@ export function useWebVitals() {
       console.warn('[拾忆性能] Web Vitals 加载失败:', err)
     }
   })
-  
+
   return {
     getMetrics: () => [...metrics],
     getMetricByName: (name: string) => metrics.filter((m) => m.name === name),
-    clearMetrics: () => metrics.length = 0,
+    clearMetrics: () => (metrics.length = 0),
   }
 }

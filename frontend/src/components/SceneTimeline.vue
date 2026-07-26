@@ -23,11 +23,46 @@ const emit = defineEmits<{
 }>()
 
 const scenes: SceneInfo[] = [
-  { id: 'scene_1972', name: '学艺', year: 1972, location: '西安老巷', description: '25岁的陈守义，皮影戏传人。爷爷的遗言、刻刀上的"陈"字。', icon: '🎭' },
-  { id: 'scene_1990', name: '南下', year: 1990, location: '深圳火车站', description: '43岁的陈守义带着一箱皮影去深圳闯荡。陌生人的搭话。', icon: '🚂' },
-  { id: 'scene_2024', name: '遗忘', year: 2024, location: '深圳城中村', description: '77岁的陈守义坐在轮椅上，记忆开始消散。', icon: '🏚' },
-  { id: 'scene_2050', name: '传承', year: 2050, location: '北京颁奖典礼', description: '小雨创办拾忆公司，获得非遗传承贡献奖。', icon: '🏆' },
-  { id: 'scene_2089', name: '修复', year: 2089, location: '拾忆实验室', description: '所有记忆碎片在这里被修复。最终结局。', icon: '🔬' },
+  {
+    id: 'scene_1972',
+    name: '学艺',
+    year: 1972,
+    location: '西安老巷',
+    description: '25岁的陈守义，皮影戏传人。爷爷的遗言、刻刀上的"陈"字。',
+    icon: '🎭',
+  },
+  {
+    id: 'scene_1990',
+    name: '南下',
+    year: 1990,
+    location: '深圳火车站',
+    description: '43岁的陈守义带着一箱皮影去深圳闯荡。陌生人的搭话。',
+    icon: '🚂',
+  },
+  {
+    id: 'scene_2024',
+    name: '遗忘',
+    year: 2024,
+    location: '深圳城中村',
+    description: '77岁的陈守义坐在轮椅上，记忆开始消散。',
+    icon: '🏚',
+  },
+  {
+    id: 'scene_2050',
+    name: '传承',
+    year: 2050,
+    location: '北京颁奖典礼',
+    description: '小雨创办拾忆公司，获得非遗传承贡献奖。',
+    icon: '🏆',
+  },
+  {
+    id: 'scene_2089',
+    name: '修复',
+    year: 2089,
+    location: '拾忆实验室',
+    description: '所有记忆碎片在这里被修复。最终结局。',
+    icon: '🔬',
+  },
 ]
 
 const visited = computed(() => new Set(props.visitedScenes || []))
@@ -52,7 +87,7 @@ function getProgress(sceneId: string): string {
         <div class="timeline-line" />
 
         <div
-          v-for="(scene, i) in scenes"
+          v-for="scene in scenes"
           :key="scene.id"
           class="timeline-node"
           :class="{
@@ -131,7 +166,9 @@ function getProgress(sceneId: string): string {
   padding: 4px 8px;
   transition: color 0.2s;
 }
-.close-btn:hover { color: #fff; }
+.close-btn:hover {
+  color: #fff;
+}
 
 .timeline-track {
   flex: 1;
@@ -146,10 +183,12 @@ function getProgress(sceneId: string): string {
   top: 24px;
   bottom: 24px;
   width: 2px;
-  background: linear-gradient(to bottom,
+  background: linear-gradient(
+    to bottom,
     rgba(100, 200, 150, 0.4),
     rgba(150, 170, 220, 0.2),
-    rgba(255, 255, 255, 0.05));
+    rgba(255, 255, 255, 0.05)
+  );
 }
 
 .timeline-node {
@@ -252,15 +291,29 @@ function getProgress(sceneId: string): string {
 
 /* 移动端适配 */
 @media (max-width: 768px) {
-  .scene-timeline { padding: 16px; max-height: 80vh; }
-  .scene-timeline h3 { font-size: 16px; }
-  .timeline-node { padding: 10px; }
-  .node-year { font-size: 18px; }
+  .scene-timeline {
+    padding: 16px;
+    max-height: 80vh;
+  }
+  .scene-timeline h3 {
+    font-size: 16px;
+  }
+  .timeline-node {
+    padding: 10px;
+  }
+  .node-year {
+    font-size: 18px;
+  }
 }
 @media (max-width: 480px) {
-  .scene-timeline { padding: 12px; }
-  .timeline-node { padding: 8px; }
-  .node-name { font-size: 13px; }
+  .scene-timeline {
+    padding: 12px;
+  }
+  .timeline-node {
+    padding: 8px;
+  }
+  .node-name {
+    font-size: 13px;
+  }
 }
 </style>
-

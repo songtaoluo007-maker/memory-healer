@@ -56,7 +56,7 @@ const sceneLabels: Record<string, { label: string; color: string }> = {
 
 // 计算链接状态
 const linkStates = computed(() => {
-  return fragmentLinks.map(link => {
+  return fragmentLinks.map((link) => {
     const fromState = props.fragmentStates[link.from]
     const toState = props.fragmentStates[link.to]
     const fromCollected = fromState?.collected || false
@@ -94,9 +94,9 @@ const stats = computed(() => {
   const nodes = fragmentNodes.value
   return {
     total: nodes.length,
-    collected: nodes.filter(n => n.collected).length,
-    revealed: nodes.filter(n => n.revealed).length,
-    percent: Math.round((nodes.filter(n => n.collected).length / nodes.length) * 100),
+    collected: nodes.filter((n) => n.collected).length,
+    revealed: nodes.filter((n) => n.revealed).length,
+    percent: Math.round((nodes.filter((n) => n.collected).length / nodes.length) * 100),
   }
 })
 </script>
@@ -143,9 +143,36 @@ const stats = computed(() => {
       <rect x="500" y="30" width="160" height="300" rx="8" fill="url(#grad-2089)" />
 
       <!-- 年代标签 -->
-      <text x="120" y="55" text-anchor="middle" font-size="14" :fill="sceneLabels.scene_1972.color" font-weight="bold">1972 西安</text>
-      <text x="360" y="55" text-anchor="middle" font-size="14" :fill="sceneLabels.scene_2024.color" font-weight="bold">2024 深圳</text>
-      <text x="580" y="55" text-anchor="middle" font-size="14" :fill="sceneLabels.scene_2089.color" font-weight="bold">2089 实验室</text>
+      <text
+        x="120"
+        y="55"
+        text-anchor="middle"
+        font-size="14"
+        :fill="sceneLabels.scene_1972.color"
+        font-weight="bold"
+      >
+        1972 西安
+      </text>
+      <text
+        x="360"
+        y="55"
+        text-anchor="middle"
+        font-size="14"
+        :fill="sceneLabels.scene_2024.color"
+        font-weight="bold"
+      >
+        2024 深圳
+      </text>
+      <text
+        x="580"
+        y="55"
+        text-anchor="middle"
+        font-size="14"
+        :fill="sceneLabels.scene_2089.color"
+        font-weight="bold"
+      >
+        2089 实验室
+      </text>
 
       <!-- 链接线 -->
       <g v-for="link in linkStates" :key="`${link.from}-${link.to}`">
@@ -178,7 +205,13 @@ const stats = computed(() => {
           :cx="node.x"
           :cy="node.y"
           r="24"
-          :fill="node.collected ? 'rgba(74,222,128,0.2)' : node.revealed ? 'rgba(245,158,11,0.2)' : 'rgba(50,50,50,0.3)'"
+          :fill="
+            node.collected
+              ? 'rgba(74,222,128,0.2)'
+              : node.revealed
+                ? 'rgba(245,158,11,0.2)'
+                : 'rgba(50,50,50,0.3)'
+          "
           :stroke="node.collected ? '#4ade80' : node.revealed ? '#f59e0b' : 'rgba(100,100,100,0.3)'"
           stroke-width="2"
           :filter="node.collected ? 'url(#glow)' : 'none'"
@@ -282,8 +315,13 @@ const stats = computed(() => {
 }
 
 @keyframes pulse-node {
-  0%, 100% { stroke-width: 2; }
-  50% { stroke-width: 4; }
+  0%,
+  100% {
+    stroke-width: 2;
+  }
+  50% {
+    stroke-width: 4;
+  }
 }
 
 .graph-legend {

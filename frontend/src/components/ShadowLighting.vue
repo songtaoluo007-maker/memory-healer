@@ -37,12 +37,8 @@ const silhouettePaths: Record<string, Array<{ x: number; y: number; scale: numbe
     { x: 0.4, y: 0.5, scale: 0.7 },
     { x: 0.6, y: 0.52, scale: 0.65 },
   ],
-  scene_2050: [
-    { x: 0.5, y: 0.4, scale: 1.0 },
-  ],
-  scene_2089: [
-    { x: 0.5, y: 0.5, scale: 0.85 },
-  ],
+  scene_2050: [{ x: 0.5, y: 0.4, scale: 1.0 }],
+  scene_2089: [{ x: 0.5, y: 0.5, scale: 0.85 }],
 }
 
 // 烛光火焰绘制
@@ -68,21 +64,16 @@ function drawFlame(ctx: CanvasRenderingContext2D, x: number, y: number, size: nu
   const flameW = size * (6 + flicker * 2)
   ctx.beginPath()
   ctx.moveTo(0, -flameH)
+  ctx.bezierCurveTo(flameW * 0.5, -flameH * 0.6, flameW, -flameH * 0.2, flameW * 0.3, flameH * 0.3)
   ctx.bezierCurveTo(
-    flameW * 0.5, -flameH * 0.6,
-    flameW, -flameH * 0.2,
-    flameW * 0.3, flameH * 0.3
+    flameW * 0.1,
+    flameH * 0.1,
+    -flameW * 0.1,
+    flameH * 0.1,
+    -flameW * 0.3,
+    flameH * 0.3,
   )
-  ctx.bezierCurveTo(
-    flameW * 0.1, flameH * 0.1,
-    -flameW * 0.1, flameH * 0.1,
-    -flameW * 0.3, flameH * 0.3
-  )
-  ctx.bezierCurveTo(
-    -flameW, -flameH * 0.2,
-    -flameW * 0.5, -flameH * 0.6,
-    0, -flameH
-  )
+  ctx.bezierCurveTo(-flameW, -flameH * 0.2, -flameW * 0.5, -flameH * 0.6, 0, -flameH)
   const flameGrad = ctx.createLinearGradient(0, -flameH, 0, flameH * 0.3)
   flameGrad.addColorStop(0, 'rgba(255, 240, 200, 0.9)')
   flameGrad.addColorStop(0.3, 'rgba(255, 180, 60, 0.7)')
@@ -104,7 +95,13 @@ function drawFlame(ctx: CanvasRenderingContext2D, x: number, y: number, size: nu
 }
 
 // 皮影人物绘制
-function drawSilhouette(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, t: number) {
+function drawSilhouette(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  scale: number,
+  t: number,
+) {
   const sway = Math.sin(t * 0.8 + x) * 2
 
   ctx.save()
@@ -222,17 +219,16 @@ onUnmounted(() => {
   window.removeEventListener('resize', resize)
 })
 
-watch(() => props.sceneId, () => {
-  time = 0
-})
+watch(
+  () => props.sceneId,
+  () => {
+    time = 0
+  },
+)
 </script>
 
 <template>
-  <canvas
-    ref="canvasRef"
-    class="shadow-lighting"
-    aria-hidden="true"
-  />
+  <canvas ref="canvasRef" class="shadow-lighting" aria-hidden="true" />
 </template>
 
 <style scoped>

@@ -9,10 +9,19 @@ const phase = ref(0) // 0=黑屏, 1=文字淡入, 2=故事背景, 3=淡出
 const skipVisible = ref(false)
 
 onMounted(() => {
-  setTimeout(() => { phase.value = 1; skipVisible.value = true }, 800)
-  setTimeout(() => { phase.value = 2 }, 3000)
-  setTimeout(() => { phase.value = 3 }, 8000)
-  setTimeout(() => { emit('complete') }, 9500)
+  setTimeout(() => {
+    phase.value = 1
+    skipVisible.value = true
+  }, 800)
+  setTimeout(() => {
+    phase.value = 2
+  }, 3000)
+  setTimeout(() => {
+    phase.value = 3
+  }, 8000)
+  setTimeout(() => {
+    emit('complete')
+  }, 9500)
 })
 
 const skip = () => {
@@ -34,30 +43,16 @@ const skip = () => {
 
     <!-- Phase 2: 故事背景 -->
     <div v-if="phase >= 2 && phase < 3" class="story-text">
-      <p class="story-line" style="animation-delay: 0s">
-        2089年，深圳。
-      </p>
-      <p class="story-line" style="animation-delay: 0.8s">
-        阿尔茨海默症已经不再是绝症。
-      </p>
-      <p class="story-line" style="animation-delay: 1.6s">
-        拾忆科技发明了一种技术——
-      </p>
-      <p class="story-line" style="animation-delay: 2.4s">
-        通过AI重建患者的记忆碎片，
-      </p>
-      <p class="story-line" style="animation-delay: 3.2s">
-        让他们在梦中重走一生。
-      </p>
-      <p class="story-line highlight" style="animation-delay: 4.2s">
-        你是第一位记忆修复师。
-      </p>
+      <p class="story-line" style="animation-delay: 0s">2089年，深圳。</p>
+      <p class="story-line" style="animation-delay: 0.8s">阿尔茨海默症已经不再是绝症。</p>
+      <p class="story-line" style="animation-delay: 1.6s">拾忆科技发明了一种技术——</p>
+      <p class="story-line" style="animation-delay: 2.4s">通过AI重建患者的记忆碎片，</p>
+      <p class="story-line" style="animation-delay: 3.2s">让他们在梦中重走一生。</p>
+      <p class="story-line highlight" style="animation-delay: 4.2s">你是第一位记忆修复师。</p>
     </div>
 
     <!-- 跳过按钮 -->
-    <button v-if="skipVisible && phase < 3" class="skip-btn" @click="skip">
-      跳过 ▸
-    </button>
+    <button v-if="skipVisible && phase < 3" class="skip-btn" @click="skip">跳过 ▸</button>
   </div>
 </template>
 
@@ -79,7 +74,8 @@ const skip = () => {
   background: #000;
 }
 
-.phase-1, .phase-2 {
+.phase-1,
+.phase-2 {
   background: linear-gradient(180deg, #000 0%, #0a0a1a 100%);
 }
 
@@ -183,7 +179,12 @@ const skip = () => {
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 </style>

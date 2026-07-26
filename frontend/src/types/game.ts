@@ -51,6 +51,7 @@ export interface FragmentState {
 
 export interface GameState {
   current_scene: string
+  visited_scenes: string[]
   collected_fragments: string[]
   revealed_fragments: string[]
   fragment_states: Record<string, FragmentState>
@@ -76,7 +77,12 @@ export interface SceneDetail {
   scene: Scene
   npcs: NpcSummary[]
   fragments: Array<Fragment & { is_collected: boolean }>
-  butterfly_mods?: string[]
+  butterfly_mods?: SceneModifier[]
+}
+
+export interface SceneModifier {
+  mod_type: string
+  mod_value: string
 }
 
 export interface DialogueRequest {
@@ -120,6 +126,12 @@ export interface ChatMessage {
   npcId?: string
   emotion?: string
   trustChange?: number
+}
+
+export interface AuthUser {
+  user_id: number
+  username: string
+  nickname: string
 }
 
 export type EndingType = 'hope' | 'bittersweet' | 'tragic' | 'legacy'

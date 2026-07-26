@@ -83,7 +83,7 @@
 - Consumes: current Vue components and `frontend/src/api/index.ts`.
 - Produces: commands `npm run typecheck`, `npm run lint`, `npm run check`, `npm test`, and `npm run build` that all exit zero.
 
-- [ ] **Step 1: Make the API mock represent the Axios instance contract**
+- [x] **Step 1: Make the API mock represent the Axios instance contract**
 
 Add `interceptors.request.use`, `interceptors.response.use`, `defaults`, and verb mocks to `frontend/src/__tests__/api.test.ts`, then assert the exported client uses `withCredentials: true` and no Authorization header.
 
@@ -100,13 +100,13 @@ const axiosInstance = {
 }
 ```
 
-- [ ] **Step 2: Run the API test and preserve the expected RED**
+- [x] **Step 2: Run the API test and preserve the expected RED**
 
 Run: `cd frontend && npm test -- src/__tests__/api.test.ts`
 
 Expected: FAIL because the current client still reads/writes bearer tokens and does not configure the Cookie-only contract.
 
-- [ ] **Step 3: Add explicit typecheck/lint scripts and flat ESLint configuration**
+- [x] **Step 3: Add explicit typecheck/lint scripts and flat ESLint configuration**
 
 Use `vue-eslint-parser`, `@typescript-eslint/parser`, `eslint-plugin-vue`, and `eslint-config-prettier` in `frontend/eslint.config.js`; add these scripts:
 
@@ -120,7 +120,7 @@ Use `vue-eslint-parser`, `@typescript-eslint/parser`, `eslint-plugin-vue`, and `
 }
 ```
 
-- [ ] **Step 4: Fix current compiler and API-client failures without suppressions**
+- [x] **Step 4: Fix current compiler and API-client failures without suppressions**
 
 Replace removed `onFID` usage with `onINP`, add all actual state fields to `GameState`, remove unused bindings/imports, type emitted component events, remove references to missing `preset_dialogues`, and set Axios to `baseURL: '/api'`, `withCredentials: true`.
 
@@ -132,11 +132,11 @@ export interface ApiError {
 }
 ```
 
-- [ ] **Step 5: Update direct API paths after using `/api` as base URL**
+- [x] **Step 5: Update direct API paths after using `/api` as base URL**
 
 Change client calls from `/api/scene/detail` to `/scene/detail` and apply the same rule to every endpoint so the final URL contains exactly one `/api` prefix.
 
-- [ ] **Step 6: Run the complete frontend baseline**
+- [x] **Step 6: Run the complete frontend baseline**
 
 Run:
 
@@ -152,7 +152,7 @@ npm run build
 
 Expected: every command exits zero; Vitest has no unhandled errors; `dist` contains no `http://localhost`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add frontend

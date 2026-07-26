@@ -51,10 +51,9 @@ describe('useI18n', () => {
     expect(localStorage.getItem('mh_lang')).toBe('en')
   })
 
-  it('setLang with invalid value changes language (no validation)', () => {
+  it('setLang ignores unsupported languages', () => {
     const { setLang, lang } = useI18n()
-    setLang('fr' as any)
-    // setLang doesn't validate input, so it accepts any value
-    expect(lang.value).toBe('fr')
+    setLang('fr')
+    expect(lang.value).toBe('zh')
   })
 })

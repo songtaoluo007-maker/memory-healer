@@ -158,7 +158,7 @@ function drawInkDrop(ctx: CanvasRenderingContext2D, p: InkParticle) {
         Math.cos(a + 0.5) * len * 0.5,
         Math.sin(a + 0.5) * len * 0.5,
         Math.cos(a) * len,
-        Math.sin(a) * len
+        Math.sin(a) * len,
       )
       ctx.stroke()
     }
@@ -200,7 +200,7 @@ function render() {
     // 生命周期
     p.life++
     if (p.type !== 'float') {
-      p.alpha *= (1 - p.decay)
+      p.alpha *= 1 - p.decay
       p.size *= 0.995
     } else {
       // float类型渐入渐出
@@ -261,18 +261,17 @@ onUnmounted(() => {
   window.removeEventListener('resize', resize)
 })
 
-watch(() => props.sceneId, () => {
-  // 场景切换时清空旧粒子
-  particles = []
-})
+watch(
+  () => props.sceneId,
+  () => {
+    // 场景切换时清空旧粒子
+    particles = []
+  },
+)
 </script>
 
 <template>
-  <canvas
-    ref="canvasRef"
-    class="ink-particles"
-    aria-hidden="true"
-  />
+  <canvas ref="canvasRef" class="ink-particles" aria-hidden="true" />
 </template>
 
 <style scoped>

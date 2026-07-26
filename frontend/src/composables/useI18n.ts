@@ -83,7 +83,8 @@ const messages: Record<Lang, Record<string, string>> = {
     'home.start': 'Begin Journey',
     'home.continue': 'Continue Journey',
     'home.saves': 'Save Files',
-    'home.intro': 'You are about to enter a century-spanning memory. Every choice creates ripples through the river of time.',
+    'home.intro':
+      'You are about to enter a century-spanning memory. Every choice creates ripples through the river of time.',
 
     // Game
     'game.narrative': 'Narrative',
@@ -110,7 +111,7 @@ const messages: Record<Lang, Record<string, string>> = {
     'saves.confirm': 'Delete this save?',
 
     // Scenes
-    'scene.1972': '1972 · Xi\'an',
+    'scene.1972': "1972 · Xi'an",
     'scene.1990': '1990 · Shenzhen',
     'scene.2024': '2024 · Shenzhen',
     'scene.2050': '2050 · Beijing',
@@ -137,7 +138,7 @@ const messages: Record<Lang, Record<string, string>> = {
     'a11y.dialogue': 'Dialogue panel',
     'a11y.narrative': 'Narrative text',
     'a11y.language': 'Language switch',
-  }
+  },
 }
 
 export function useI18n() {
@@ -145,7 +146,8 @@ export function useI18n() {
     return messages[currentLang.value][key] || key
   }
 
-  function setLang(lang: Lang) {
+  function setLang(lang: string) {
+    if (lang !== 'zh' && lang !== 'en') return
     currentLang.value = lang
     localStorage.setItem('mh_lang', lang)
   }
@@ -164,6 +166,6 @@ export function useI18n() {
     lang: computed(() => currentLang.value),
     t,
     setLang,
-    toggleLang
+    toggleLang,
   }
 }

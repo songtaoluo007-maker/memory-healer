@@ -4,22 +4,54 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { DialogueRequest, GameState } from '../types/game'
+
+const createGameState = (overrides: Partial<GameState> = {}): GameState => ({
+  current_scene: 'scene_1972',
+  visited_scenes: ['scene_1972'],
+  collected_fragments: [],
+  revealed_fragments: [],
+  fragment_states: {},
+  npc_trust: {},
+  key_choices: [],
+  dialogue_history: [],
+  current_mood: 'warm',
+  play_time: 0,
+  play_start_time: Date.now(),
+  chapter: 1,
+  ending: null,
+  ...overrides,
+})
 
 // Use vi.hoisted to define mock functions before vi.mock is hoisted
-const { mockPost, mockGet, mockDelete } = vi.hoisted(() => ({
-  mockPost: vi.fn(),
-  mockGet: vi.fn(),
-  mockDelete: vi.fn(),
-}))
+const { mockPost, mockGet, mockDelete, mockCreate, mockApi } = vi.hoisted(() => {
+  const mockApi = {
+    defaults: {
+      withCredentials: true,
+      headers: { common: {} as Record<string, string> },
+    },
+    interceptors: {
+      request: { use: vi.fn() },
+      response: { use: vi.fn() },
+    },
+    post: vi.fn(),
+    get: vi.fn(),
+    delete: vi.fn(),
+  }
+
+  return {
+    mockPost: mockApi.post,
+    mockGet: mockApi.get,
+    mockDelete: mockApi.delete,
+    mockCreate: vi.fn(() => mockApi),
+    mockApi,
+  }
+})
 
 // Mock axios before importing the module
 vi.mock('axios', () => ({
   default: {
-    create: vi.fn(() => ({
-      post: mockPost,
-      get: mockGet,
-      delete: mockDelete,
-    })),
+    create: mockCreate,
   },
 }))
 
@@ -27,7 +59,6 @@ vi.mock('axios', () => ({
 import {
   chatWithNpc,
   getSceneDetail,
-  advanceNarrative,
   getInitialState,
   saveGame,
   loadGame,
@@ -44,27 +75,37 @@ describe('API Layer', () => {
     mockDelete.mockReset()
   })
 
+  it('uses same-origin Cookie authentication without bearer headers', () => {
+    expect(mockCreate).toHaveBeenCalledWith({
+      baseURL: '/api',
+      timeout: 60000,
+      withCredentials: true,
+    })
+    expect(mockApi.interceptors.request.use).not.toHaveBeenCalled()
+    expect(mockApi.defaults.headers.common.Authorization).toBeUndefined()
+  })
+
   it('chatWithNpc sends correct request', async () => {
-    const requestData = {
+    const requestData: DialogueRequest = {
       npc_id: 'li_yun',
       player_input: '你好',
-      game_state: {},
+      game_state: createGameState(),
     }
     mockPost.mockResolvedValue({ data: { reply: '你好！' } })
 
-    const result = await chatWithNpc(requestData as any)
+    const result = await chatWithNpc(requestData)
 
-    expect(mockPost).toHaveBeenCalledWith('/api/dialogue/chat', requestData)
+    expect(mockPost).toHaveBeenCalledWith('/dialogue/chat', requestData)
     expect(result.data.reply).toBe('你好！')
   })
 
   it('getSceneDetail sends correct request', async () => {
-    const gameState = { current_scene: 'scene_1972' }
+    const gameState = createGameState()
     mockPost.mockResolvedValue({ data: { scene: {} } })
 
-    await getSceneDetail('scene_1972', gameState as any)
+    await getSceneDetail('scene_1972', gameState)
 
-    expect(mockPost).toHaveBeenCalledWith('/api/scene/detail', {
+    expect(mockPost).toHaveBeenCalledWith('/scene/detail', {
       scene_id: 'scene_1972',
       game_state: gameState,
     })
@@ -75,18 +116,19 @@ describe('API Layer', () => {
 
     await getInitialState()
 
-    expect(mockGet).toHaveBeenCalledWith('/api/scene/initial-state')
+    expect(mockGet).toHaveBeenCalledWith('/scene/initial-state')
   })
 
   it('saveGame sends correct request', async () => {
     mockPost.mockResolvedValue({ data: { success: true } })
 
-    await saveGame(1, '测试存档', {} as any, 'scene_1972', 120)
+    const gameState = createGameState()
+    await saveGame(1, '测试存档', gameState, 'scene_1972', 120)
 
-    expect(mockPost).toHaveBeenCalledWith('/api/save/save', {
+    expect(mockPost).toHaveBeenCalledWith('/save/save', {
       slot_id: 1,
       slot_name: '测试存档',
-      game_state: {},
+      game_state: gameState,
       scene_id: 'scene_1972',
       play_time: 120,
     })
@@ -97,7 +139,7 @@ describe('API Layer', () => {
 
     await loadGame(1)
 
-    expect(mockPost).toHaveBeenCalledWith('/api/save/load', { slot_id: 1 })
+    expect(mockPost).toHaveBeenCalledWith('/save/load', { slot_id: 1 })
   })
 
   it('listSaves sends GET request', async () => {
@@ -105,7 +147,7 @@ describe('API Layer', () => {
 
     await listSaves()
 
-    expect(mockGet).toHaveBeenCalledWith('/api/save/list')
+    expect(mockGet).toHaveBeenCalledWith('/save/list')
   })
 
   it('deleteSave sends DELETE request', async () => {
@@ -113,7 +155,7 @@ describe('API Layer', () => {
 
     await deleteSave(1)
 
-    expect(mockDelete).toHaveBeenCalledWith('/api/save/delete/1')
+    expect(mockDelete).toHaveBeenCalledWith('/save/delete/1')
   })
 
   it('healthCheck sends GET request', async () => {
@@ -121,18 +163,19 @@ describe('API Layer', () => {
 
     await healthCheck()
 
-    expect(mockGet).toHaveBeenCalledWith('/api/health')
+    expect(mockGet).toHaveBeenCalledWith('/health')
   })
 
   it('recordChoice sends correct request', async () => {
     mockPost.mockResolvedValue({ data: { success: true } })
 
-    await recordChoice('scene_1972', 'encourage', {} as any)
+    const gameState = createGameState()
+    await recordChoice('scene_1972', 'encourage', gameState)
 
-    expect(mockPost).toHaveBeenCalledWith('/api/dialogue/choice', {
+    expect(mockPost).toHaveBeenCalledWith('/dialogue/choice', {
       scene: 'scene_1972',
       choice: 'encourage',
-      game_state: {},
+      game_state: gameState,
     })
   })
 })

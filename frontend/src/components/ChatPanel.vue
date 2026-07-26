@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue'
+import { ref, nextTick } from 'vue'
 import { chatWithNpcStream } from '../api'
 import { useAudio } from '../composables/useAudio'
-import type { ChatMessage, NpcSummary, Fragment, EndingType } from '../types/game'
+import type { ChatMessage, EndingType, Fragment, GameState, NpcSummary } from '../types/game'
 
 const props = defineProps<{
   selectedNpc: NpcSummary | null
-  gameState: Record<string, any> | null
+  gameState: GameState | null
   totalFragments: number
 }>()
 
 const emit = defineEmits<{
   trustChange: [npcId: string, change: number]
-  fragmentReveal: [fragmentId: string, fragmentData: any]
+  fragmentReveal: [fragmentId: string, fragmentData: Fragment]
   ending: [type: EndingType]
   choiceDetected: [msg: string, npcId: string]
 }>()
@@ -35,6 +35,11 @@ function scrollToBottom() {
 
 function detectAndRecordChoice(playerMsg: string, npcId: string) {
   emit('choiceDetected', playerMsg, npcId)
+}
+
+function sendPreset(option: string) {
+  playSFX('click')
+  void sendMessage(option)
 }
 
 const sendMessage = async (text?: string) => {
@@ -79,16 +84,12 @@ const sendMessage = async (text?: string) => {
           emit('fragmentReveal', data.fragment_revealed, data.fragment_data)
         }
 
-        if (data.preset_dialogues?.length) {
-          presetOptions.value = data.preset_dialogues
-        }
-
         chatLoading.value = false
       },
-      (error) => {
+      () => {
         chatHistory.value[npcMsgIndex].content = '[连接中断]'
         chatLoading.value = false
-      }
+      },
     )
   } catch {
     chatHistory.value[npcMsgIndex].content = '[发送失败]'
@@ -112,13 +113,14 @@ defineExpose({ chatHistory, clearHistory })
       <div v-if="!chatHistory.length && selectedNpc" class="chat-empty">
         <p>与 {{ selectedNpc.name }} 开始对话吧</p>
       </div>
-      <div
-        v-for="(msg, i) in chatHistory"
-        :key="i"
-        class="chat-msg"
-        :class="msg.role"
-      >
-        <NpcAvatar v-if="msg.role === 'npc' && msg.npcId" :npc-id="msg.npcId" :emotion="msg.emotion || 'neutral'" :size="28" class="msg-avatar" />
+      <div v-for="(msg, i) in chatHistory" :key="i" class="chat-msg" :class="msg.role">
+        <NpcAvatar
+          v-if="msg.role === 'npc' && msg.npcId"
+          :npc-id="msg.npcId"
+          :emotion="msg.emotion || 'neutral'"
+          :size="28"
+          class="msg-avatar"
+        />
         <span class="msg-avatar-player" v-else-if="msg.role === 'player'">你</span>
         <div class="msg-body">
           <span class="msg-name" v-if="msg.role === 'npc'">{{ msg.npcName }}</span>
@@ -128,10 +130,18 @@ defineExpose({ chatHistory, clearHistory })
         </div>
       </div>
       <div v-if="chatLoading" class="chat-msg npc loading">
-        <NpcAvatar :npc-id="selectedNpc?.id || ''" emotion="neutral" :size="28" class="msg-avatar" />
+        <NpcAvatar
+          :npc-id="selectedNpc?.id || ''"
+          emotion="neutral"
+          :size="28"
+          class="msg-avatar"
+        />
         <div class="msg-body">
           <span class="msg-name">{{ selectedNpc?.name }}</span>
-          <span class="msg-text typing-dots">思考中<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span>
+          <span class="msg-text typing-dots"
+            >思考中<span class="dot">.</span><span class="dot">.</span
+            ><span class="dot">.</span></span
+          >
         </div>
       </div>
     </div>
@@ -142,9 +152,11 @@ defineExpose({ chatHistory, clearHistory })
         v-for="opt in presetOptions"
         :key="opt"
         class="preset-btn"
-        @click="playSFX('click'); sendMessage(opt)"
+        @click="sendPreset(opt)"
         :disabled="chatLoading"
-      >{{ opt }}</button>
+      >
+        {{ opt }}
+      </button>
     </div>
 
     <!-- 输入框 -->
@@ -156,7 +168,13 @@ defineExpose({ chatHistory, clearHistory })
         @keyup.enter="sendMessage()"
         :disabled="chatLoading"
       />
-      <button class="send-btn" @click="sendMessage()" :disabled="chatLoading || !playerInput.trim()">发送</button>
+      <button
+        class="send-btn"
+        @click="sendMessage()"
+        :disabled="chatLoading || !playerInput.trim()"
+      >
+        发送
+      </button>
     </div>
   </div>
 </template>
@@ -192,9 +210,15 @@ defineExpose({ chatHistory, clearHistory })
   gap: 8px;
   align-items: flex-start;
 }
-.chat-msg.npc { flex-direction: row; }
-.chat-msg.player { flex-direction: row-reverse; }
-.chat-msg.system { justify-content: center; }
+.chat-msg.npc {
+  flex-direction: row;
+}
+.chat-msg.player {
+  flex-direction: row-reverse;
+}
+.chat-msg.system {
+  justify-content: center;
+}
 
 .msg-avatar {
   flex-shrink: 0;
@@ -260,11 +284,21 @@ defineExpose({ chatHistory, clearHistory })
 .typing-dots .dot {
   animation: dotBlink 1.4s infinite both;
 }
-.typing-dots .dot:nth-child(2) { animation-delay: 0.2s; }
-.typing-dots .dot:nth-child(3) { animation-delay: 0.4s; }
+.typing-dots .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-dots .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
 @keyframes dotBlink {
-  0%, 80%, 100% { opacity: 0; }
-  40% { opacity: 1; }
+  0%,
+  80%,
+  100% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
 }
 
 /* 预设选项 */
@@ -291,7 +325,10 @@ defineExpose({ chatHistory, clearHistory })
   background: rgba(232, 180, 80, 0.15);
   border-color: rgba(232, 180, 80, 0.3);
 }
-.preset-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.preset-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* 输入区 */
 .input-area {
@@ -334,23 +371,58 @@ defineExpose({ chatHistory, clearHistory })
 .send-btn:hover:not(:disabled) {
   background: rgba(100, 150, 255, 0.25);
 }
-.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* 移动端适配 */
 @media (max-width: 768px) {
-  .chat-messages { padding: 12px; gap: 10px; }
-  .msg-body { max-width: 85%; }
-  .msg-text { font-size: 14px; padding: 10px 14px; }
-  .preset-options { padding: 8px 12px; }
-  .preset-btn { padding: 8px 16px; font-size: 13px; min-height: 36px; }
-  .input-area { padding: 10px 12px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
-  .chat-input { font-size: 16px; padding: 12px 14px; } /* 16px防止iOS缩放 */
-  .send-btn { padding: 12px 20px; min-height: 44px; }
+  .chat-messages {
+    padding: 12px;
+    gap: 10px;
+  }
+  .msg-body {
+    max-width: 85%;
+  }
+  .msg-text {
+    font-size: 14px;
+    padding: 10px 14px;
+  }
+  .preset-options {
+    padding: 8px 12px;
+  }
+  .preset-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    min-height: 36px;
+  }
+  .input-area {
+    padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+  .chat-input {
+    font-size: 16px;
+    padding: 12px 14px;
+  } /* 16px防止iOS缩放 */
+  .send-btn {
+    padding: 12px 20px;
+    min-height: 44px;
+  }
 }
 
 @media (max-width: 480px) {
-  .msg-text { font-size: 13px; }
-  .msg-avatar-player { width: 24px; height: 24px; font-size: 10px; }
-  .preset-btn { font-size: 12px; padding: 6px 12px; }
+  .msg-text {
+    font-size: 13px;
+  }
+  .msg-avatar-player {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+  .preset-btn {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
 }
 </style>
