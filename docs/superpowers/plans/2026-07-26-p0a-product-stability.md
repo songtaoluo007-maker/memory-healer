@@ -803,21 +803,25 @@ git commit -m "fix: make production stack reproducible"
 - Consumes: all local quality commands from Tasks 1–10.
 - Produces: valid GitHub Actions jobs `backend`, `frontend`, `docker`, and `smoke`, with no masked failures.
 
-- [ ] **Step 1: Add a standalone content validation command**
+- [x] **Step 1: Add a standalone content validation command**
 
 `scripts/validate_content.py` imports `ContentRegistry`, loads `backend/data`, calls `validate()`, prints exact scene/NPC/fragment/hotspot/choice/ending counts, and exits nonzero on `ContentValidationError`.
 
-- [ ] **Step 2: Run the command locally**
+- [x] **Step 2: Run the command locally**
 
 Run: `python scripts/validate_content.py`
 
 Expected: exit zero and report 5 scenes and 17 fragments.
 
-- [ ] **Step 3: Rewrite the workflow with valid YAML**
+- [x] **Step 3: Rewrite the workflow with valid YAML**
 
 Use Python 3.11 and current LTS Node, cache pip/npm, install from locked files, run content validation, pytest, TypeScript, ESLint, Prettier, Vitest, Vite build, Docker builds, Compose startup, and `scripts/smoke.ps1`. Every `upload-artifact` use must include a valid `path`; services must be cleaned up under `if: always()`.
 
-- [ ] **Step 4: Validate workflow syntax and forbidden bypasses**
+- [x] **Step 4: Validate workflow syntax and forbidden bypasses**
+
+`actionlint` v1.7.12 passed using its official Windows binary because the
+Docker daemon was unavailable; the forbidden-bypass search returned no
+matches.
 
 Run:
 
@@ -828,13 +832,19 @@ docker run --rm -v "${PWD}:/repo" rhysd/actionlint:latest -color /repo/.github/w
 
 Expected: `rg` returns no matches; actionlint exits zero.
 
-- [ ] **Step 5: Re-run the commands used by CI**
+- [x] **Step 5: Re-run the commands used by CI**
+
+Content validation, Python compilation, 167 backend tests, all frontend gates,
+the production build, dependency audit, Compose configuration, and local
+same-origin smoke passed. Docker image builds remain environment-blocked by the
+missing Docker daemon noted in Task 10; the CI `docker` and `smoke` jobs enforce
+them on GitHub-hosted runners.
 
 Run backend tests, all frontend gates, both Docker builds, Compose smoke, and content validation exactly as encoded in the workflow.
 
 Expected: every local equivalent exits zero.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add .github/workflows/ci.yml scripts/validate_content.py
