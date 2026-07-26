@@ -1,0 +1,1 @@
+"""Content registry tests."""

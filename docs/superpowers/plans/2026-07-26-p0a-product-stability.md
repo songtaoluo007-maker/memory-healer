@@ -179,7 +179,7 @@ git commit -m "fix: restore frontend quality baseline"
 - Consumes: existing five scene, seven NPC, and seventeen fragment records.
 - Produces: `ContentRegistry.load(data_dir: Path) -> ContentRegistry`, `ContentRegistry.validate() -> None`, `get_scene(scene_id: str) -> SceneContent`, `get_hotspot(hotspot_id: str) -> HotspotContent`, `get_choice(choice_id: str) -> ChoiceContent`, and immutable ID-indexed mappings.
 
-- [ ] **Step 1: Write registry failure tests**
+- [x] **Step 1: Write registry failure tests**
 
 Cover duplicate IDs, missing NPCs/fragments, hotspot fragments from the wrong scene, invalid choice source/target scenes, NPC reveal references, missing fallback assets, and unreachable ending condition fields.
 
@@ -190,17 +190,17 @@ def test_hotspot_fragment_must_belong_to_same_scene(tmp_content):
         ContentRegistry.from_documents(tmp_content.documents)
 ```
 
-- [ ] **Step 2: Run the registry tests to verify RED**
+- [x] **Step 2: Run the registry tests to verify RED**
 
 Run: `pytest backend/tests/content/test_registry.py -q`
 
 Expected: FAIL with `ModuleNotFoundError: backend.content`.
 
-- [ ] **Step 3: Define strict Pydantic content models**
+- [x] **Step 3: Define strict Pydantic content models**
 
 Use `ConfigDict(extra="forbid", frozen=True)` and explicit fields. `HotspotContent` must contain `id`, `scene_id`, `label`, normalized coordinates, optional `fragment_id`, optional `npc_id`, `interaction`, and `presentation_event`. `ChoiceContent` must contain `id`, `scene_id`, `label`, optional `target_scene`, and typed effects.
 
-- [ ] **Step 4: Implement load, indexes, and cross-reference validation**
+- [x] **Step 4: Implement load, indexes, and cross-reference validation**
 
 Load UTF-8 JSON once, reject duplicate IDs before building maps, and raise `ContentValidationError(code, references)` containing stable machine-readable codes.
 
@@ -213,11 +213,11 @@ class ContentRegistry:
             raise DomainError("SCENE_NOT_FOUND", scene_id) from exc
 ```
 
-- [ ] **Step 5: Normalize all five-scene content**
+- [x] **Step 5: Normalize all five-scene content**
 
 Define exactly five scene IDs, seven NPC IDs, seventeen fragment IDs, scene-correct hotspots, standardized choices for 1972/1990/2024/2050/2089, and four endings. Remove invalid IDs `fragment_childhood_photo`, `fragment_medicine_label`, `fragment_wedding_photo`, `fragment_xiaoyu_letter`, `fragment_su_family_letter`, plus all three-era graph aliases.
 
-- [ ] **Step 6: Add whole-registry acceptance assertions**
+- [x] **Step 6: Add whole-registry acceptance assertions**
 
 ```python
 def test_shipping_content_counts_and_references():
@@ -228,13 +228,13 @@ def test_shipping_content_counts_and_references():
     registry.validate()
 ```
 
-- [ ] **Step 7: Run tests**
+- [x] **Step 7: Run tests**
 
 Run: `pytest backend/tests/content/test_registry.py -q`
 
 Expected: PASS with all shipping-content reference checks executed.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add backend/content backend/data backend/tests/content

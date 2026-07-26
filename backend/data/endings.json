@@ -1,0 +1,50 @@
+[
+  {
+    "id": "legacy",
+    "title": "传承",
+    "description": "跨越五个时代的记忆被完整修复，并成为仍在生长的故事。",
+    "priority": 400,
+    "conditions": {
+      "min_collected_ratio": 1.0,
+      "min_key_choices": 4,
+      "required_npc_trust": {
+        "chen_shouyi_young": 60,
+        "chen_shouyi_old": 60,
+        "xiaoyu": 60
+      }
+    }
+  },
+  {
+    "id": "hope",
+    "title": "光",
+    "description": "大部分记忆重新聚合，散失的光影再次照亮幕布。",
+    "priority": 300,
+    "conditions": {
+      "min_collected_ratio": 0.8,
+      "min_key_choices": 0,
+      "required_npc_trust": {}
+    }
+  },
+  {
+    "id": "bittersweet",
+    "title": "余温",
+    "description": "记忆并不完整，但仍留下足以拥抱彼此的温度。",
+    "priority": 200,
+    "conditions": {
+      "min_collected_ratio": 0.4,
+      "min_key_choices": 0,
+      "required_npc_trust": {}
+    }
+  },
+  {
+    "id": "tragic",
+    "title": "消散",
+    "description": "碎片未能重组，名字与光影逐渐沉入安静的黑暗。",
+    "priority": 100,
+    "conditions": {
+      "min_collected_ratio": 0.0,
+      "min_key_choices": 0,
+      "required_npc_trust": {}
+    }
+  }
+]

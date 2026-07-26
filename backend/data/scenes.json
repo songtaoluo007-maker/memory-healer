@@ -22,7 +22,8 @@
       "on_collect_all": "unlock_memory_1972"
     },
     "transition_in": "记忆修复程序启动……你睁开眼，回到了1972年的西安老巷。",
-    "transition_out": "老巷的光影渐渐模糊，陈守义的身影远去。时光开始流转……"
+    "transition_out": "老巷的光影渐渐模糊，陈守义的身影远去。时光开始流转……",
+    "fallback_asset": "procedural-svg:scene_1972"
   },
   "scene_1990": {
     "id": "scene_1990",
@@ -50,7 +51,8 @@
       "on_collect_all": "unlock_memory_1990"
     },
     "transition_in": "时光流转，你来到了1990年的深圳火车站。站台上人潮涌动，一个年轻人正攥着车票犹豫不决。",
-    "transition_out": "火车汽笛声渐渐远去，深圳在飞速变化。又是三十年……"
+    "transition_out": "火车汽笛声渐渐远去，深圳在飞速变化。又是三十年……",
+    "fallback_asset": "procedural-svg:scene_1990"
   },
   "scene_2024": {
     "id": "scene_2024",
@@ -76,7 +78,8 @@
       "on_collect_all": "unlock_memory_2024"
     },
     "transition_in": "岁月如梭。深圳的城中村里，垂垂老矣的陈守义坐在轮椅上，记忆正在消散。",
-    "transition_out": "老人闭上了眼睛，但故事还没有结束。记忆的河流继续向前……"
+    "transition_out": "老人闭上了眼睛，但故事还没有结束。记忆的河流继续向前……",
+    "fallback_asset": "procedural-svg:scene_2024"
   },
   "scene_2050": {
     "id": "scene_2050",
@@ -104,7 +107,8 @@
       "on_collect_all": "unlock_memory_2050"
     },
     "transition_in": "2050年，北京国家大剧院。小雨站在颁奖台上，讲述爷爷一生的故事。",
-    "transition_out": "掌声渐渐远去，记忆的最终章即将到来……"
+    "transition_out": "掌声渐渐远去，记忆的最终章即将到来……",
+    "fallback_asset": "procedural-svg:scene_2050"
   },
   "scene_2089": {
     "id": "scene_2089",
@@ -129,6 +133,7 @@
       "on_collect_all": "unlock_memory_2089"
     },
     "transition_in": "2089年，拾忆实验室。一切记忆碎片都将在这里被修复。你是第一位记忆修复师。",
-    "transition_out": ""
+    "transition_out": "",
+    "fallback_asset": "procedural-svg:scene_2089"
   }
 }

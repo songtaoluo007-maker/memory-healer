@@ -1,0 +1,122 @@
+[
+  {
+    "id": "encourage_art",
+    "scene_id": "scene_1972",
+    "label": "告诉陈守义：这门手艺值得传下去",
+    "target_scene": "scene_1990",
+    "is_key": true,
+    "effects": {
+      "trust_changes": { "chen_shouyi_young": 35 },
+      "reveal_fragments": ["fragment_three_kings"],
+      "current_mood": "hopeful"
+    }
+  },
+  {
+    "id": "discourage_art",
+    "scene_id": "scene_1972",
+    "label": "劝他放下皮影，另谋生活",
+    "target_scene": "scene_1990",
+    "is_key": true,
+    "effects": {
+      "trust_changes": { "chen_shouyi_young": -10 },
+      "reveal_fragments": [],
+      "current_mood": "guarded"
+    }
+  },
+  {
+    "id": "talk_to_stranger",
+    "scene_id": "scene_1990",
+    "label": "和站台陌生人谈谈皮影",
+    "target_scene": "scene_2024",
+    "is_key": true,
+    "effects": {
+      "trust_changes": { "stranger_1990": 20 },
+      "reveal_fragments": ["puppet_trunk_fragment"],
+      "current_mood": "hopeful"
+    }
+  },
+  {
+    "id": "ignore_stranger",
+    "scene_id": "scene_1990",
+    "label": "守住秘密，独自登车",
+    "target_scene": "scene_2024",
+    "is_key": true,
+    "effects": {
+      "trust_changes": { "stranger_1990": -10 },
+      "reveal_fragments": [],
+      "current_mood": "guarded"
+    }
+  },
+  {
+    "id": "found_letter",
+    "scene_id": "scene_2024",
+    "label": "把小雨的信念给老人听",
+    "target_scene": "scene_2050",
+    "is_key": true,
+    "effects": {
+      "trust_changes": { "chen_shouyi_old": 45 },
+      "reveal_fragments": ["fragment_letter"],
+      "current_mood": "warm"
+    }
+  },
+  {
+    "id": "help_elderly",
+    "scene_id": "scene_2024",
+    "label": "陪老人完成最后一幅皮影",
+    "target_scene": "scene_2050",
+    "is_key": true,
+    "effects": {
+      "trust_changes": { "chen_shouyi_old": 45 },
+      "reveal_fragments": ["fragment_last_show"],
+      "current_mood": "warm"
+    }
+  },
+  {
+    "id": "accept_award",
+    "scene_id": "scene_2050",
+    "label": "替爷爷接过传承的奖杯",
+    "target_scene": "scene_2089",
+    "is_key": true,
+    "effects": {
+      "trust_changes": { "xiaoyu_2050": 10 },
+      "reveal_fragments": ["award_trophy_fragment"],
+      "current_mood": "triumphant"
+    }
+  },
+  {
+    "id": "reject_award",
+    "scene_id": "scene_2050",
+    "label": "拒绝被奖项定义这段记忆",
+    "target_scene": "scene_2089",
+    "is_key": true,
+    "effects": {
+      "trust_changes": { "xiaoyu_2050": -10 },
+      "reveal_fragments": [],
+      "current_mood": "bittersweet"
+    }
+  },
+  {
+    "id": "protect_legacy",
+    "scene_id": "scene_2089",
+    "label": "让记忆成为可以继续讲述的故事",
+    "target_scene": null,
+    "is_key": true,
+    "effects": {
+      "trust_changes": { "xiaoyu": 20 },
+      "reveal_fragments": ["fragment_last_puppet"],
+      "current_mood": "hopeful"
+    }
+  },
+  {
+    "id": "release_memory",
+    "scene_id": "scene_2089",
+    "label": "尊重遗忘，让记忆安静消散",
+    "target_scene": null,
+    "is_key": true,
+    "effects": {
+      "trust_changes": { "xiaoyu": -10 },
+      "reveal_fragments": [],
+      "current_mood": "bittersweet"
+    }
+  }
+]

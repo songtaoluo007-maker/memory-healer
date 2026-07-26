@@ -14,7 +14,8 @@
       "fragment_shadow_puppet",
       "fragment_grandpa_knife",
       "fragment_three_kings"
-    ]
+    ],
+    "fallback_dialogue": "额守着这方幕布，就像守着爷爷留下的一盏灯。你愿意听额讲讲皮影吗？"
   },
   "chen_shouyi_1990": {
     "id": "chen_shouyi_1990",
@@ -32,7 +33,8 @@
       "puppet_trunk_fragment",
       "farewell_letter_fragment",
       "station_clock_fragment"
-    ]
+    ],
+    "fallback_dialogue": "车快进站了。额带着这一箱皮影去南方，也不知道前头等着啥。"
   },
   "stranger_1990": {
     "id": "stranger_1990",
@@ -45,7 +47,8 @@
     "background": "看似同样南下打工的年轻人，其实是香港商人，来内地考察投资机会。他看中了陈守义的皮影手艺，后来成了深圳第一批文化商人。",
     "system_prompt": "你是1990年深圳火车站的一个年轻人，看起来28岁左右，穿着崭新的夹克。你表面上说来深圳打工，但其实是香港商人来考察。你对皮影戏很好奇，会试探性地问陈守义手艺的事。你说话热情开朗，带点湖南口音。你见过世面，知道香港人喜欢传统文化。你可能会问：'这皮影能卖钱吗？''香港人喜欢这个吗？'回复80字以内，自然真诚。",
     "initial_trust": 40,
-    "fragments_to_reveal": []
+    "fragments_to_reveal": [],
+    "fallback_dialogue": "大家都是来闯深圳的。你这箱子里的老手艺，说不定真能找到新活路。"
   },
   "chen_shouyi_old": {
     "id": "chen_shouyi_old",
@@ -62,7 +65,8 @@
       "fragment_letter",
       "fragment_old_photos",
       "fragment_last_show"
-    ]
+    ],
+    "fallback_dialogue": "我有些事记不清了，可刻刀一落到手里，老巷子的锣鼓声就又回来了。"
   },
   "xiaoyu_2050": {
     "id": "xiaoyu_2050",
@@ -80,7 +84,8 @@
       "old_photos_wall_fragment",
       "hologram_stage_fragment",
       "audience_reactions_fragment"
-    ]
+    ],
+    "fallback_dialogue": "这份荣誉属于爷爷，也属于每一个没有让老手艺熄灭的人。"
   },
   "journalist_2050": {
     "id": "journalist_2050",
@@ -93,7 +98,8 @@
     "background": "新华社文化记者，专门报道非遗传承。今天来采访小雨，想了解'拾忆'技术背后的故事。",
     "system_prompt": "你是2050年颁奖典礼上的新华社记者，30岁左右。你正在采访'拾忆'创始人小雨，想了解AI记忆修复技术如何帮助皮影戏传承。你会问一些有深度的问题，比如'技术能替代真实记忆吗？''您爷爷如果看到今天会说什么？'你说话专业但有温度，会追问细节。你对非遗传承有热情，想写出有温度的报道。回复80字以内，展示记者的专业和人文关怀。",
     "initial_trust": 45,
-    "fragments_to_reveal": []
+    "fragments_to_reveal": [],
+    "fallback_dialogue": "技术让记忆重现，但真正让故事留下来的，还是人与人之间的选择。"
   },
   "xiaoyu": {
     "id": "xiaoyu",
@@ -110,6 +116,7 @@
       "fragment_family_photo",
       "fragment_certificate",
       "fragment_last_puppet"
-    ]
+    ],
+    "fallback_dialogue": "如果爷爷还能认出这个皮影，他一定会先问我：小雨，你还记得怎么让它走路吗？"
   }
 }
