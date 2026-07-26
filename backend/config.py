@@ -35,6 +35,15 @@ class Settings(BaseSettings):
     SESSION_COOKIE_NAME: str = "memory_session"
     SESSION_TTL_SECONDS: int = Field(default=2_592_000, ge=300, le=31_536_000)
     COOKIE_SECURE: bool = False
+    TTS_CACHE_DIR: Path = ROOT_DIR / "data" / "tts_cache"
+    TTS_MAX_TEXT_LENGTH: int = Field(default=500, ge=1, le=2_000)
+    TTS_MAX_CONCURRENCY: int = Field(default=2, ge=1, le=16)
+    TTS_MAX_CACHE_FILES: int = Field(default=500, ge=1, le=10_000)
+    TTS_MAX_CACHE_BYTES: int = Field(
+        default=256 * 1024 * 1024,
+        ge=1024,
+        le=10 * 1024 * 1024 * 1024,
+    )
 
     @property
     def cors_origins_list(self) -> List[str]:

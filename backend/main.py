@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -159,6 +160,7 @@ app.include_router(tts_router)
 app.include_router(ending_router)
 app.include_router(butterfly_router)
 app.include_router(game_router)
+app.mount("/tts", StaticFiles(directory=settings.TTS_CACHE_DIR), name="tts-cache")
 
 
 @app.get("/api/health", tags=["health"])

@@ -684,25 +684,25 @@ git commit -m "feat: add revision-safe isolated saves"
 - Consumes: installed `edge-tts`, TTS settings, validated text/voice/rate/pitch.
 - Produces: `TtsService.synthesize(request) -> TtsResult`, SHA-256 cache key, atomic cache files, and `TTS_UNAVAILABLE` responses that the frontend can ignore.
 
-- [ ] **Step 1: Write TTS tests**
+- [x] **Step 1: Write TTS tests**
 
 Assert the cache key changes with text/voice/rate/pitch, text above 500 characters is rejected, unsupported voices/rates/pitches are rejected, concurrent identical requests synthesize once, temporary files are atomically renamed, failed synthesis leaves no partial file, and cleanup respects both maximum file count and byte size.
 
-- [ ] **Step 2: Run TTS tests to verify RED**
+- [x] **Step 2: Run TTS tests to verify RED**
 
 Run: `pytest backend/tests/integrations/test_tts.py -q`
 
 Expected: FAIL because the bounded TTS service does not exist.
 
-- [ ] **Step 3: Implement bounded synthesis and cache**
+- [x] **Step 3: Implement bounded synthesis and cache**
 
 Use an `asyncio.Semaphore`, one lock per cache key, `tempfile.NamedTemporaryFile(delete=False, dir=cache_dir)`, `Path.replace`, deterministic SHA-256 filenames, least-recently-used cleanup by access/modified time, and guaranteed temporary-file cleanup in `finally`.
 
-- [ ] **Step 4: Map the TTS API and frontend fallback**
+- [x] **Step 4: Map the TTS API and frontend fallback**
 
 Return a same-origin `/tts/{filename}` URL on success; return status 503 with `TTS_UNAVAILABLE` on provider failure. The frontend must keep the textual reply visible, stop only the failed audio attempt, and allow the next dialogue action.
 
-- [ ] **Step 5: Run integration and frontend tests**
+- [x] **Step 5: Run integration and frontend tests**
 
 Run:
 
@@ -714,7 +714,7 @@ npm test
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add backend/integrations/tts.py backend/tests/integrations/test_tts.py backend/api/tts.py backend/config.py backend/main.py frontend/src .gitignore

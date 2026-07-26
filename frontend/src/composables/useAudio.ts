@@ -395,27 +395,24 @@ export function useAudio() {
         return
       }
 
-      const blob = await response.blob()
-      if (blob.size === 0) {
+      const payload = (await response.json()) as { url?: string }
+      if (!payload.url) {
         isSpeaking.value = false
         return
       }
 
-      const url = URL.createObjectURL(blob)
-      const audio = new Audio(url)
+      const audio = new Audio(payload.url)
       audio.volume = sfxVolume.value
       currentAudio = audio
 
       audio.onended = () => {
         isSpeaking.value = false
         currentAudio = null
-        URL.revokeObjectURL(url)
       }
 
       audio.onerror = () => {
         isSpeaking.value = false
         currentAudio = null
-        URL.revokeObjectURL(url)
       }
 
       await audio.play()

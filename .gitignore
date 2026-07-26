@@ -17,6 +17,7 @@ venv/
 
 # Data
 data/game.db
+data/tts_cache/
 
 # IDE
 .vscode/
