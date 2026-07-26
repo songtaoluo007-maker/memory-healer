@@ -15,7 +15,7 @@ P0-A 的内容、权威状态、完整流程、AI/TTS 降级、认证、存档�
 | 验证项 | 结果 |
 | --- | --- |
 | 内容注册表 | 5 场景、7 NPC、17 碎片、17 热区、10 选择、4 结局 |
-| 后端测试 | 167 passed |
+| 后端测试 | 168 passed |
 | 前端测试 | 5 files / 30 tests passed |
 | TypeScript / ESLint / Prettier | passed |
 | Vite 生产构建 | passed，148 modules transformed |
@@ -40,7 +40,7 @@ python -m compileall -q backend scripts
 exit 0
 
 python -m pytest backend/tests -q
-167 passed
+168 passed
 ```
 
 前端：
@@ -98,5 +98,5 @@ GitHub Actions 的 `docker` 与 `smoke` job 会在具备 daemon 的 runner 上�
 ## 已知验证说明
 
 - 当前测试运行会显示 Starlette 对 `TestClient` 传输层的上游弃用提示；不影响
-  167 项测试结果，后续依赖升级时跟进。
+  168 项测试结果，后续依赖升级时跟进。
 - P0-B 开始前仍需保留本报告中的全部自动化门。

@@ -3,7 +3,9 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
+from sqlalchemy import create_engine, inspect
 
+from backend import database
 from backend.config import Settings
 from backend.main import app
 
@@ -47,3 +49,12 @@ def test_health_response_contains_no_secret_or_capability_disclosure() -> None:
     assert "deepseek" not in serialized
     assert "api_key" not in serialized
     assert "debug" not in serialized
+
+
+def test_application_startup_never_creates_unmigrated_tables(tmp_path, monkeypatch) -> None:
+    empty_engine = create_engine(f"sqlite:///{tmp_path / 'empty.db'}")
+    monkeypatch.setattr(database, "engine", empty_engine)
+
+    database.init_db()
+
+    assert inspect(empty_engine).get_table_names() == []

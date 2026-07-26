@@ -915,7 +915,7 @@ git commit -m "docs: record p0a stability foundation"
 - Consumes: the complete P0-A implementation.
 - Produces: evidence that every P0-A acceptance criterion passes and a clean branch ready for P0-B.
 
-- [ ] **Step 1: Run the backend acceptance suite**
+- [x] **Step 1: Run the backend acceptance suite**
 
 Run:
 
@@ -928,7 +928,7 @@ alembic current
 
 Expected: all pass; output proves five scenes, seventeen fragments, four endings, auth/session isolation, revision conflicts, and DeepSeek/TTS degradation.
 
-- [ ] **Step 2: Run the frontend acceptance suite**
+- [x] **Step 2: Run the frontend acceptance suite**
 
 Run:
 
@@ -945,7 +945,12 @@ npm audit --omit=dev
 
 Expected: all quality commands pass; production audit has no high/critical finding; built assets contain no browser-local backend URL.
 
-- [ ] **Step 3: Run deployment acceptance**
+- [x] **Step 3: Run deployment acceptance**
+
+Compose configuration passed. Image build was attempted again and remained
+blocked by the absent Docker daemon; the exact named-pipe error is recorded in
+`TEST_REPORT.md`. The freshly restarted local same-origin stack passed the full
+smoke script.
 
 Run:
 
@@ -960,7 +965,7 @@ docker compose down
 
 Expected: all pass and cleanup runs even if smoke fails.
 
-- [ ] **Step 4: Inspect the complete diff and repository state**
+- [x] **Step 4: Inspect the complete diff and repository state**
 
 Run:
 
@@ -973,15 +978,20 @@ git log --oneline --decorate -15
 
 Expected: no whitespace errors, no accidental secrets/generated databases/TTS files/node_modules, and no unrelated user changes.
 
-- [ ] **Step 5: Fix any failed gate through a new RED/GREEN cycle**
+- [x] **Step 5: Fix any failed gate through a new RED/GREEN cycle**
+
+The final migration gate exposed that development startup could create an
+unstamped schema before Alembic. A regression test reproduced the table
+creation, startup schema mutation was removed, the test passed, and a clean
+default database migrated to `20260726_0001 (head)` without model drift.
 
 For each failure, add the smallest regression test that reproduces it, run that test to confirm failure, implement the correction, run the focused test and then the affected full gate, and create a focused commit naming the behavior fixed.
 
-- [ ] **Step 6: Use the verification and branch-finishing skills**
+- [x] **Step 6: Use the verification and branch-finishing skills**
 
 Read and follow `superpowers:verification-before-completion`, then `superpowers:finishing-a-development-branch`. Do not push, merge, or create a PR without explicit user authorization.
 
-- [ ] **Step 7: Commit final verification-only corrections if present**
+- [x] **Step 7: Commit final verification-only corrections if present**
 
 ```powershell
 git add backend frontend scripts .github Dockerfile docker-compose.yml alembic.ini alembic docs README.md TEST_REPORT.md UPGRADE_PLAN.md CHANGELOG.md

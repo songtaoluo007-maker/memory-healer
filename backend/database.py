@@ -26,10 +26,8 @@ def get_db():
 
 
 def init_db():
-    # Local development may bootstrap an empty SQLite database directly. All
-    # deployed environments use Alembic migrations.
-    if settings.is_production:
-        return
-    from backend.persistence import models as _persistence
+    """Compatibility hook; schema changes are exclusively owned by Alembic."""
 
-    Base.metadata.create_all(bind=engine)
+    # Importing the models keeps metadata available to tests and migration
+    # tooling, but application startup must never create an unstamped schema.
+    from backend.persistence import models as _persistence

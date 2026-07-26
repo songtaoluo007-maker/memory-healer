@@ -43,7 +43,7 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("正在初始化数据库...")
+    logger.info("正在检查应用依赖（数据库结构由 Alembic 管理）...")
     init_db()
     logger.info("拾忆 · 后端启动完成 (log_level={})", settings.LOG_LEVEL)
     yield
