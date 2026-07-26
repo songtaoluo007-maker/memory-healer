@@ -866,27 +866,27 @@ git commit -m "ci: enforce product stability gates"
 - Consumes: verified commands, actual test counts, final endpoint/deployment/auth behavior.
 - Produces: user-facing setup/deployment instructions and a changelog that distinguishes P0-A complete from P0-B/P1/P2 planned work.
 
-- [ ] **Step 1: Capture factual final outputs**
+- [x] **Step 1: Capture factual final outputs**
 
 Record tool versions, pytest/Vitest test totals, build result, content counts, migration head, Docker smoke result, and `npm audit --omit=dev` result from fresh commands. Do not copy stale counts.
 
-- [ ] **Step 2: Rewrite README run and deployment instructions**
+- [x] **Step 2: Rewrite README run and deployment instructions**
 
 Document local Python/frontend setup, optional DeepSeek behavior, Cookie auth, Alembic, Docker Compose, environment variables, Tencent Cloud PostgreSQL URL form, health endpoint, test commands, and five-scene/seventeen-fragment/four-ending scope.
 
-- [ ] **Step 3: Replace stale test and upgrade claims**
+- [x] **Step 3: Replace stale test and upgrade claims**
 
 Make `TEST_REPORT.md` a dated evidence report with commands and outcomes. Mark P0-A tasks complete only when verified; list P0-B 1972 movie-stage work as next; remove claims that i18n, CI, TypeScript, or deployment are complete unless their gates pass.
 
-- [ ] **Step 4: Add a Keep-a-Changelog-style unreleased entry**
+- [x] **Step 4: Add a Keep-a-Changelog-style unreleased entry**
 
 Under `CHANGELOG.md` `Unreleased`, describe canonical content/state, deterministic endings, secure sessions, revision-safe saves, AI/TTS fallback, frontend state repair, CI, and deployment. Do not claim five-era cinematic art in P0-A.
 
-- [ ] **Step 5: Mark this plan’s completed checkboxes**
+- [x] **Step 5: Mark this plan’s completed checkboxes**
 
 Change each executed `- [ ]` to `- [x]` only after its command has passed or its explicit environment limitation is recorded in `TEST_REPORT.md`.
 
-- [ ] **Step 6: Run documentation consistency checks**
+- [x] **Step 6: Run documentation consistency checks**
 
 Run:
 
@@ -897,7 +897,7 @@ python scripts/validate_content.py
 
 Expected: no stale product claims or bearer-token implementation matches; content validation passes.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add README.md TEST_REPORT.md UPGRADE_PLAN.md CHANGELOG.md docs/superpowers/plans/2026-07-26-p0a-product-stability.md

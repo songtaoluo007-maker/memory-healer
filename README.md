@@ -1,129 +1,129 @@
-# 🧠 拾忆 — Memory Healer
+# 拾忆 · Memory Healer
 
-> AI驱动的记忆修复叙事游戏 · 腾讯云黑客松参赛作品
+一款关于皮影、记忆与代际传承的 AI 叙事游戏。玩家作为“记忆修复师”，
+穿行于陈守义跨越百年的五段人生，通过探索、对话和选择修复逐渐消散的记忆。
 
-## 游戏简介
+当前分支已完成 P0-A 产品稳定底座；电影级 UI/美术属于下一阶段 P0-B，尚未
+在本文中冒充已完成。
 
-玩家扮演"记忆修复师"，进入一位阿尔茨海默症老人的记忆碎片，通过与 AI 角色对话、探索场景、做出选择，找回他遗失的非遗技艺和人生故事。
+## 当前可玩范围
 
-## 核心功能
+- 5 个年代场景：1972、1990、2024、2050、2089。
+- 7 位场景角色、17 个记忆碎片、17 个可探索热区。
+- 10 个权威选择和 4 个确定性结局。
+- DeepSeek 结构化角色对白；未配置或不可用时自动使用角色化本地对白。
+- Edge TTS 语音增强；失败时保留文字，不阻断剧情。
+- Cookie 登录、用户隔离存档和并发覆盖保护。
 
-- 🤖 **AI自由对话** — 每个NPC都是AI驱动的，玩家输入任何内容都能动态回应
-- 🧩 **记忆碎片系统** — 通过对话和探索收集碎片，还原完整记忆
-- 🔀 **剧情分支** — 关键选择影响故事走向，3种结局
-- 🎨 **场景插画** — SVG 动画场景，带粒子效果和氛围光
-- 💾 **存档系统** — 自动存档 + 手动存档，5个存档位
-- 🎬 **开场动画** — 沉浸式故事引入
-- 📊 **记忆进度** — 实时显示记忆恢复完整度
+后端是场景内容、规则和 `GameState` 的唯一权威来源。前端只提交玩家意图，
+并应用后端返回的完整版本化状态。
 
-## 技术栈
+## 技术结构
 
-| 层 | 技术 |
-|----|------|
-| 前端 | Vue 3 + TypeScript + Vite |
-| 后端 | Python FastAPI |
-| AI | DeepSeek API / 腾讯混元 |
-| 数据库 | SQLite |
-| 部署 | 腾讯云轻量应用服务器 |
+| 层 | 实现 |
+| --- | --- |
+| 前端 | Vue 3、TypeScript、Vite、Vitest |
+| 后端 | FastAPI、Pydantic 2、SQLAlchemy 2 |
+| AI / 语音 | DeepSeek（OpenAI SDK 协议）、Edge TTS |
+| 数据 | 本地 SQLite；生产支持 PostgreSQL |
+| 迁移 | Alembic，当前 head 为 `20260726_0001` |
+| 部署 | Nginx 同域代理、Docker Compose、GitHub Actions |
 
-## 快速启动
+主要目录：
 
-### 一键启动（Windows）
-
-```bash
-start.bat
+```text
+backend/
+  api/             HTTP 与 Cookie 协议
+  application/     确定性游戏与对话用例
+  content/         严格内容模型和交叉引用校验
+  domain/          版本化权威 GameState
+  integrations/    DeepSeek / Edge TTS 降级适配器
+  persistence/     用户、会话和存档仓储
+alembic/           初始数据库迁移
+frontend/src/      Vue 页面、组件、组合式状态和 API 客户端
+scripts/           内容校验与部署冒烟测试
 ```
 
-自动安装依赖并启动前后端。
+## 本地开发
 
-### 手动启动
+要求 Python 3.11+、Node.js 24+。从项目根目录执行：
 
-```bash
-# 后端
-pip install -r requirements.txt
-cd backend && python main.py
-
-# 前端
-cd frontend && npm install && npm run dev
+```powershell
+Copy-Item .env.example .env
+python -m pip install -r requirements.txt
+alembic upgrade head
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
-- 前端: http://localhost:5173
-- 后端: http://localhost:8000
-- API文档: http://localhost:8000/docs
+另开终端：
 
-## 项目结构
-
-```
-memory-healer/
-├── backend/
-│   ├── api/          # API路由
-│   ├── engine/       # 游戏引擎（NPC对话、叙事、世界状态）
-│   ├── prompts/      # AI Prompt模板
-│   ├── data/         # 游戏数据（场景、NPC、碎片）
-│   ├── models/       # 数据库模型
-│   └── main.py       # 后端入口
-├── frontend/
-│   ├── src/
-│   │   ├── views/    # 游戏页面（Home/Intro/Game/Ending/Saves）
-│   │   ├── components/ # 组件（SceneIllustration/MemoryProgress）
-│   │   ├── composables/ # 状态管理
-│   │   └── api/      # 后端API调用
-│   └── index.html
-├── start.bat         # 一键启动
-├── stop.bat          # 停止服务
-├── .env.example
-└── requirements.txt
+```powershell
+Set-Location frontend
+npm ci
+npm run dev
 ```
 
-## 游戏场景
+打开 `http://127.0.0.1:5173/`。开发服务器会把 `/api` 代理到后端；浏览器代码
+不包含固定的后端主机名。API 文档位于 `http://127.0.0.1:8000/docs`。
 
-### 场景一：1972年 · 西安老巷
-黄昏的巷子里，皮影戏的光影透过纸窗。青年陈守义正在幕布后操纵皮影人偶。
+`DEEPSEEK_API_KEY` 是可选项。留空时游戏仍能完整启动和推进，只是对白使用
+本地降级内容。
 
-### 场景二：2024年 · 深圳城中村
-逼仄的出租屋里，77岁的陈守义坐在窗前，手里拿着刻刀，却迟迟没有落下。
+## 登录与存档
 
-### 场景三：2089年 · 拾忆实验室
-全息投影漂浮，孙女小雨坐在控制台前，手里攥着泛黄的全家福。
+- 浏览器只使用名为 `memory_session` 的 HttpOnly、SameSite=Lax Cookie。
+- 密码使用 Argon2id；数据库只保存会话令牌的 SHA-256 摘要。
+- 存档以 `(user_id, slot_id)` 隔离。
+- 每次写入都携带独立 `save_revision`，陈旧写入返回 HTTP 409，不能静默覆盖。
 
-## 角色
+本地开发默认 SQLite。腾讯云 PostgreSQL 可使用：
 
-| 角色 | 年龄 | 场景 | 简介 |
-|------|------|------|------|
-| 陈守义（青年）| 25岁 | 1972西安 | 第五代皮影戏传人，热爱手艺 |
-| 陈守义（老年）| 77岁 | 2024深圳 | 记忆开始模糊，孤独固执 |
-| 小雨 | 22岁 | 2089实验室 | 陈守义的孙女，计算机专业 |
+```dotenv
+DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DATABASE
+ENVIRONMENT=production
+CORS_ORIGINS=https://your-game.example.com
+```
 
-## 记忆碎片（9个）
+生产环境未显式设置 `COOKIE_SECURE` 时会自动启用 Secure Cookie；不能把
+Credentialed CORS 配成通配符。
 
-| 碎片 | 场景 | 解锁方式 |
-|------|------|----------|
-| 皮影戏台 | 1972 | 对话 |
-| 爷爷的刻刀 | 1972 | 探索 |
-| 三英战吕布 | 1972 | 信任度 |
-| 小雨的信 | 2024 | 对话 |
-| 泛黄的剧照 | 2024 | 探索 |
-| 最后一场演出 | 2024 | 信任度 |
-| 全家福照片 | 2089 | 对话 |
-| 非遗传承证书 | 2089 | 探索 |
-| 最后一个皮影人偶 | 2089 | 信任度 |
+## Docker Compose
 
-## 结局
+安装并启动 Docker daemon 后：
 
-- **结局一：光** — 记忆完全修复，温暖希望
-- **结局二：余温** — 部分记忆恢复，苦涩温暖
-- **结局三：消散** — 修复失败，深沉遗憾
+```powershell
+docker compose config --quiet
+docker compose up --build -d
+powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1
+docker compose down
+```
 
-## 作品亮点
+访问 `http://127.0.0.1:5173/`。Nginx 同域代理 `/api/` 与 `/tts/`；后端不向
+宿主机开放业务端口。容器启动会先执行 `alembic upgrade head`。
 
-1. **AI深度融入** — NPC对话完全由AI动态生成，不是预设选项
-2. **文化+公益** — 非遗技艺（皮影戏）+ 阿尔茨海默症关怀
-3. **情感叙事** — 跨代理解主题，玩家通过游戏体验老人的人生
-4. **技术完整** — 全栈Web应用，可部署到腾讯云
-5. **视觉呈现** — SVG动画场景，粒子效果，氛围光渲染
+## 质量门
 
-## 赛事信息
+```powershell
+python scripts/validate_content.py
+python -m compileall -q backend scripts
+python -m pytest backend/tests -q
 
-- 赛事：腾讯云黑客松 游戏开发挑战赛
-- 赛题：赛题三（叙事类游戏）+ 赛题一（公益）+ 赛题二（文化）
-- 工具：CodeBuddy（腾讯云AI编程助手）
+Set-Location frontend
+npm ci
+npm run typecheck
+npm run lint
+npm run check
+npm test
+npm run build
+npm audit --omit=dev --audit-level=high
+```
+
+CI 还会构建前后端镜像并运行 Compose 冒烟测试。最新本地证据见
+[TEST_REPORT.md](TEST_REPORT.md)，产品路线见 [UPGRADE_PLAN.md](UPGRADE_PLAN.md)，
+变更进度见 [CHANGELOG.md](CHANGELOG.md)。
+
+## 下一阶段
+
+P0-B 将先完成 1972 西安老巷的电影级纵向切片：东方皮影电影感、桌面
+2.39:1 全屏舞台、常态动画电影写实、记忆高潮超现实化，以及移动端独立构图。
+质量门与权威状态边界会继续保留。
