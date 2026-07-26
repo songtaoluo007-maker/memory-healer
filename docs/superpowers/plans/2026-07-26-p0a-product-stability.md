@@ -407,21 +407,23 @@ git commit -m "feat: make gameplay transitions deterministic"
 - Consumes: `ContentRegistry`, `GameState`, `NpcContent`.
 - Produces: `DialogueSuggestion`, `DeepSeekDialogueClient.suggest(context)`, `DialogueService.chat(state, npc_id, player_input, expected_revision) -> DialogueResult`.
 
-- [ ] **Step 1: Write DeepSeek adapter failure-mode tests**
+- [x] **Step 1: Write DeepSeek adapter failure-mode tests**
 
 Mock success, connection timeout, 429/5xx transient retries, invalid JSON, invalid enum/value ranges, and open-circuit behavior. Assert no raw provider response is returned and fallback dialogue matches the requested NPC.
 
-- [ ] **Step 2: Write dialogue state-effect tests**
+- [x] **Step 2: Write dialogue state-effect tests**
 
 Assert NPC belongs to current scene, player input is 1–500 characters, both player and NPC messages are appended, history is capped at 60 recent messages, trust remains `0..100`, only an NPC-owned fragment can be revealed, and revision increments once.
 
-- [ ] **Step 3: Run dialogue tests to verify RED**
+- [x] **Step 3: Run dialogue tests to verify RED**
 
 Run: `pytest backend/tests/integrations/test_deepseek.py backend/tests/application/test_dialogue_service.py -q`
 
 Expected: FAIL because the adapter and service do not exist.
 
-- [ ] **Step 4: Implement the structured adapter**
+Execution note: the focused run failed on the missing integration and application modules as expected. HTTP contract tests were then added and initially failed against the legacy route before the authoritative API mapping was implemented.
+
+- [x] **Step 4: Implement the structured adapter**
 
 Configure connect/read/total timeout values from settings, retry only timeout/429/5xx at most twice, open the circuit after five consecutive failures for 30 seconds, parse into:
 
@@ -434,21 +436,23 @@ class DialogueSuggestion(BaseModel):
     inner_thought: str = Field(default="", max_length=300)
 ```
 
-- [ ] **Step 5: Implement the authoritative dialogue service**
+- [x] **Step 5: Implement the authoritative dialogue service**
 
 Build the prompt from content plus a bounded state projection, invoke the adapter, replace invalid/failed suggestions with `npc.fallback_dialogue`, validate requested effects against registry ownership, mutate state, and return the full updated state plus reply metadata.
 
-- [ ] **Step 6: Replace the dialogue API contract**
+- [x] **Step 6: Replace the dialogue API contract**
 
 Accept `npc_id`, `player_input`, `game_state`, and `expected_revision`; return `state`, `reply`, `fragment_data`, `trust_change`, `npc_mood`, `inner_thought`, and `degraded`. Preserve SSE only if it can emit the same final authoritative result; otherwise remove the unused streaming endpoint during this task.
 
-- [ ] **Step 7: Run all backend tests**
+Execution note: `/api/dialogue/chat` now uses the authoritative service. The legacy streaming route remains only as a temporary compatibility endpoint for the current frontend and will be deleted as part of Task 6, when `ChatPanel` migrates to the canonical response.
+
+- [x] **Step 7: Run all backend tests**
 
 Run: `pytest backend/tests -q`
 
 Expected: PASS with DeepSeek network fully mocked.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add backend/integrations backend/application/dialogue_service.py backend/api/dialogue.py backend/engine/npc.py backend/config.py backend/tests
