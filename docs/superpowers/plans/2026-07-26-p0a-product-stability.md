@@ -480,21 +480,23 @@ git commit -m "feat: add authoritative degradable dialogue"
 - Consumes: Task 4/5 API responses and Task 3 TypeScript types.
 - Produces: `replaceAuthoritativeState(next: GameState)`, reactive `sceneView`, canonical `hotspots`, and intent methods `exploreHotspot`, `submitChoice`, `sendDialogue`.
 
-- [ ] **Step 1: Write a reactive scene/hotspot regression test**
+- [x] **Step 1: Write a reactive scene/hotspot regression test**
 
 Mount the game state/scene composables with scene 1972, replace state with scene 1990 and a new scene view, then assert visible hotspot IDs change and no 1972 hotspots remain.
 
-- [ ] **Step 2: Write state-writeback tests**
+- [x] **Step 2: Write state-writeback tests**
 
 Mock explore, choice, and dialogue responses with increasing revisions. Assert each response replaces local authoritative state, choice effects persist, both dialogue roles are present, stale response revisions are ignored with a diagnostic error, and no local rule mutation occurs before the response.
 
-- [ ] **Step 3: Run frontend flow tests to verify RED**
+- [x] **Step 3: Run frontend flow tests to verify RED**
 
 Run: `cd frontend && npm test -- src/__tests__/sceneFlow.test.ts src/__tests__/dialogueFlow.test.ts`
 
 Expected: FAIL because hotspots capture a plain scene string and choice/dialogue responses are not written back.
 
-- [ ] **Step 4: Implement strict response application**
+Execution note: the focused run failed because the fragment graph module and authoritative action methods did not exist; the legacy hotspot composable also returned no data when given a reactive scene view.
+
+- [x] **Step 4: Implement strict response application**
 
 ```ts
 function replaceAuthoritativeState(next: GameState): void {
@@ -507,15 +509,15 @@ function replaceAuthoritativeState(next: GameState): void {
 
 Keep only view-local state such as open panel, selected NPC, animation event queue, and sound preference outside `GameState`.
 
-- [ ] **Step 5: Derive hotspots and fragment graph from server data**
+- [x] **Step 5: Derive hotspots and fragment graph from server data**
 
 Accept `ComputedRef<SceneView | null>` in `useHotspots`; return `computed(() => sceneView.value?.hotspots ?? [])`. Build graph nodes from canonical fragments and relations rather than the nonexistent `puppet_stage`, `carving_knife`, and three-era arrays.
 
-- [ ] **Step 6: Simplify Game.vue orchestration**
+- [x] **Step 6: Simplify Game.vue orchestration**
 
 Load current scene whenever `gameState.current_scene` changes, pass canonical data to child components, call the authoritative endpoints, apply returned state, and queue returned presentation events. Remove fragment, trust, key-choice, and scene-transition mutations from the view.
 
-- [ ] **Step 7: Run all frontend gates**
+- [x] **Step 7: Run all frontend gates**
 
 Run:
 
@@ -530,7 +532,9 @@ npm run build
 
 Expected: all PASS and the build has no hard-coded invalid fragment IDs.
 
-- [ ] **Step 8: Commit**
+Execution note: browser verification at the app's real Vite URL confirmed the 1972 view exposes exactly three canonical hotspots, exploration changed the counter from 0/17 to 1/17, authoritative dialogue wrote both roles, and the `encourage_art` choice transitioned to 1990 with four different hotspots. Mobile verification also exposed and fixed two stacking regressions that had blocked hotspot and close-button clicks.
+
+- [x] **Step 8: Commit**
 
 ```powershell
 git add frontend/src

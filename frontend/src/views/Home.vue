@@ -10,7 +10,6 @@ const emit = defineEmits<{
 
 const showMenu = ref(true)
 const showLogin = ref(false)
-const loginRedirect = ref(false) // 登录后是否自动开始游戏
 const currentUser = ref<AuthUser | null>(null)
 
 onMounted(() => {
@@ -27,10 +26,6 @@ onMounted(() => {
 const handleLogin = (user: AuthUser) => {
   currentUser.value = user
   showLogin.value = false
-  if (loginRedirect.value) {
-    loginRedirect.value = false
-    emit('start')
-  }
 }
 
 const handleLogout = () => {
@@ -39,17 +34,11 @@ const handleLogout = () => {
 }
 
 const handleStart = () => {
-  if (!currentUser.value) {
-    loginRedirect.value = true
-    showLogin.value = true
-    return
-  }
   emit('start')
 }
 
 const handleLoad = () => {
   if (!currentUser.value) {
-    loginRedirect.value = false
     showLogin.value = true
     return
   }
@@ -57,7 +46,6 @@ const handleLoad = () => {
 }
 
 const openLogin = () => {
-  loginRedirect.value = false
   showLogin.value = true
 }
 </script>

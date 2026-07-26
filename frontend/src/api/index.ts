@@ -1,11 +1,13 @@
 import axios from 'axios'
 import type {
+  ActionResult,
   DialogueRequest,
   DialogueResponse,
-  SceneDetail,
-  NarrativeResult,
+  EndingContent,
   GameState,
+  NewGameResponse,
   SaveSlot,
+  SceneView,
 } from '../types/game'
 
 const api = axios.create({
@@ -25,18 +27,28 @@ api.interceptors.response.use(
   },
 )
 
-// 对话
+// 权威游戏与对话
+export const getNewGame = () => api.get<NewGameResponse>('/game/new')
+
+export const getSceneView = (gameState: GameState) =>
+  api.post<SceneView>('/game/scene', { game_state: gameState })
+
+export const exploreHotspot = (hotspotId: string, gameState: GameState, expectedRevision: number) =>
+  api.post<ActionResult>('/game/explore', {
+    hotspot_id: hotspotId,
+    game_state: gameState,
+    expected_revision: expectedRevision,
+  })
+
+export const recordChoice = (choiceId: string, gameState: GameState, expectedRevision: number) =>
+  api.post<ActionResult>('/game/choice', {
+    choice_id: choiceId,
+    game_state: gameState,
+    expected_revision: expectedRevision,
+  })
+
 export const chatWithNpc = (data: DialogueRequest) =>
   api.post<DialogueResponse>('/dialogue/chat', data)
-
-// 场景
-export const getSceneDetail = (sceneId: string, gameState: GameState) =>
-  api.post<SceneDetail>('/scene/detail', { scene_id: sceneId, game_state: gameState })
-
-export const advanceNarrative = (action: string, gameState: GameState) =>
-  api.post<NarrativeResult>('/scene/advance', { action, game_state: gameState })
-
-export const getInitialState = () => api.get<GameState>('/scene/initial-state')
 
 // 存档
 export const saveGame = (
@@ -71,89 +83,9 @@ export const deleteSave = (slotId: number) => api.delete(`/save/delete/${slotId}
 export const healthCheck = () =>
   api.get<{ status: string; game: string; has_ai_key: boolean }>('/health')
 
-// 结局评估
+// 权威结局评估
 export const evaluateEnding = (gameState: GameState) =>
-  api.post<{
-    type: string
-    collected: number
-    total: number
-    percent: number
-    butterfly_triggered: number
-    butterfly_total: number
-    key_trust_met: boolean
-  }>('/ending/evaluate', { game_state: gameState })
+  api.post<{ ending: EndingContent }>('/game/ending', { game_state: gameState })
 
 export const getEndingHint = (gameState: GameState) =>
   api.post<{ hint: string }>('/ending/hint', { game_state: gameState })
-
-// 蝴蝶效应: 记录玩家选择
-export const recordChoice = (scene: string, choice: string, gameState: GameState) =>
-  api.post('/dialogue/choice', { scene, choice, game_state: gameState })
-
-// SSE 流式对话（带重连）
-export function chatWithNpcStream(
-  data: DialogueRequest,
-  onToken: (token: string) => void,
-  onDone: (result: DialogueResponse) => void,
-  onError: (msg: string) => void,
-  maxRetries = 2,
-) {
-  const controller = new AbortController()
-
-  const attempt = (retriesLeft: number) => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-
-    fetch('/api/dialogue/chat/stream', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(data),
-      signal: controller.signal,
-      credentials: 'include',
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          if (res.status >= 500 && retriesLeft > 0) {
-            setTimeout(() => attempt(retriesLeft - 1), 1000)
-            return
-          }
-          onError(`HTTP ${res.status}`)
-          return
-        }
-        const reader = res.body?.getReader()
-        if (!reader) return
-        const decoder = new TextDecoder()
-        let buffer = ''
-
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split('\n')
-          buffer = lines.pop() || ''
-
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue
-            try {
-              const msg = JSON.parse(line.slice(6))
-              if (msg.type === 'token') onToken(msg.content)
-              else if (msg.type === 'done') onDone(msg as DialogueResponse)
-              else if (msg.type === 'error') onError(msg.content)
-            } catch {
-              // Ignore malformed SSE frames and continue reading the stream.
-            }
-          }
-        }
-      })
-      .catch((err) => {
-        if (err.name === 'AbortError') return
-        if (retriesLeft > 0) {
-          setTimeout(() => attempt(retriesLeft - 1), 1000)
-        } else {
-          onError(err.message)
-        }
-      })
-  }
-
-  attempt(maxRetries)
-  return controller
-}

@@ -14,6 +14,7 @@ export interface Scene {
   triggers?: Record<string, string>
   transition_in?: string
   transition_out?: string
+  fallback_asset: string
 }
 
 export interface Npc {
@@ -89,42 +90,103 @@ export interface NpcSummary {
   name: string
   title: string
   avatar: string
+  initial_trust: number
 }
 
-export interface SceneDetail {
+export interface SceneFragment {
+  id: string
+  name: string
+  scene: string
+  description: string
+  unlock_method: string
+  unlock_hint: string
+  memory_text: string
+  is_revealed: boolean
+  is_collected: boolean
+}
+
+export interface Hotspot {
+  id: string
+  scene_id: string
+  label: string
+  x: number
+  y: number
+  radius: number
+  fragment_id: string | null
+  npc_id: string | null
+  interaction: 'inspect' | 'collect' | 'talk'
+  presentation_event: string
+}
+
+export interface ChoiceEffects {
+  trust_changes: Record<string, number>
+  reveal_fragments: string[]
+  current_mood: string | null
+}
+
+export interface Choice {
+  id: string
+  scene_id: string
+  label: string
+  target_scene: string | null
+  is_key: boolean
+  effects: ChoiceEffects
+}
+
+export interface SceneView {
   scene: Scene
   npcs: NpcSummary[]
-  fragments: Array<Fragment & { is_collected: boolean }>
-  butterfly_mods?: SceneModifier[]
+  fragments: SceneFragment[]
+  hotspots: Hotspot[]
+  choices: Choice[]
+  content_version: number
 }
 
-export interface SceneModifier {
-  mod_type: string
-  mod_value: string
+export interface PresentationEvent {
+  type: string
+  content_id: string | null
+  payload: Record<string, unknown>
+}
+
+export interface ActionResult {
+  state: GameState
+  events: PresentationEvent[]
+}
+
+export interface NewGameResponse {
+  state: GameState
+  scene_view: SceneView
+  content_version: number
 }
 
 export interface DialogueRequest {
   npc_id: string
   player_input: string
   game_state: GameState
+  expected_revision: number
 }
 
 export interface DialogueResponse {
+  state: GameState
   reply: string
   fragment_revealed: string | null
   fragment_data: Fragment | null
   trust_change: number
   npc_mood: string
-  inner_thought?: string
+  inner_thought: string
+  degraded: boolean
 }
 
-export interface NarrativeResult {
-  scene_description: string
-  available_actions: string[]
-  mood: string
-  hints: string
-  trigger_event: string | null
-  narrative_callback?: string
+export interface EndingContent {
+  id: EndingType
+  title: string
+  description: string
+  priority: number
+  conditions: {
+    min_collected_ratio: number
+    min_key_choices: number
+    required_npc_trust: Record<string, number>
+  }
 }
 
 export interface SaveSlot {

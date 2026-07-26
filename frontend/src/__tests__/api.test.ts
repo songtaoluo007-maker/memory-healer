@@ -63,8 +63,9 @@ vi.mock('axios', () => ({
 // Import after mocking
 import {
   chatWithNpc,
-  getSceneDetail,
-  getInitialState,
+  exploreHotspot,
+  getNewGame,
+  getSceneView,
   saveGame,
   loadGame,
   listSaves,
@@ -95,6 +96,7 @@ describe('API Layer', () => {
       npc_id: 'li_yun',
       player_input: '你好',
       game_state: createGameState(),
+      expected_revision: 0,
     }
     mockPost.mockResolvedValue({ data: { reply: '你好！' } })
 
@@ -104,24 +106,34 @@ describe('API Layer', () => {
     expect(result.data.reply).toBe('你好！')
   })
 
-  it('getSceneDetail sends correct request', async () => {
+  it('getSceneView sends the authoritative state', async () => {
     const gameState = createGameState()
     mockPost.mockResolvedValue({ data: { scene: {} } })
 
-    await getSceneDetail('scene_1972', gameState)
+    await getSceneView(gameState)
 
-    expect(mockPost).toHaveBeenCalledWith('/scene/detail', {
-      scene_id: 'scene_1972',
-      game_state: gameState,
-    })
+    expect(mockPost).toHaveBeenCalledWith('/game/scene', { game_state: gameState })
   })
 
-  it('getInitialState sends GET request', async () => {
+  it('getNewGame sends GET request', async () => {
     mockGet.mockResolvedValue({ data: { current_scene: 'scene_1972' } })
 
-    await getInitialState()
+    await getNewGame()
 
-    expect(mockGet).toHaveBeenCalledWith('/scene/initial-state')
+    expect(mockGet).toHaveBeenCalledWith('/game/new')
+  })
+
+  it('exploreHotspot sends an expected revision', async () => {
+    const gameState = createGameState({ revision: 4 })
+    mockPost.mockResolvedValue({ data: { state: gameState, events: [] } })
+
+    await exploreHotspot('hotspot_1972_shadow_stage', gameState, 4)
+
+    expect(mockPost).toHaveBeenCalledWith('/game/explore', {
+      hotspot_id: 'hotspot_1972_shadow_stage',
+      game_state: gameState,
+      expected_revision: 4,
+    })
   })
 
   it('saveGame sends correct request', async () => {
@@ -174,13 +186,13 @@ describe('API Layer', () => {
   it('recordChoice sends correct request', async () => {
     mockPost.mockResolvedValue({ data: { success: true } })
 
-    const gameState = createGameState()
-    await recordChoice('scene_1972', 'encourage', gameState)
+    const gameState = createGameState({ revision: 2 })
+    await recordChoice('encourage_art', gameState, 2)
 
-    expect(mockPost).toHaveBeenCalledWith('/dialogue/choice', {
-      scene: 'scene_1972',
-      choice: 'encourage',
+    expect(mockPost).toHaveBeenCalledWith('/game/choice', {
+      choice_id: 'encourage_art',
       game_state: gameState,
+      expected_revision: 2,
     })
   })
 })

@@ -116,8 +116,16 @@
   border-color: rgba(232, 180, 80, 0.4);
 }
 .scene-nav {
+  position: fixed;
+  z-index: 70;
+  top: 82px;
+  left: 50%;
   display: flex;
+  width: min(760px, calc(100vw - 32px));
   gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  transform: translateX(-50%);
 }
 .nav-btn {
   background: rgba(232, 180, 80, 0.15);
@@ -289,15 +297,17 @@
 /* ===== 对话面板（右侧滑出） ===== */
 .dialogue-float {
   position: fixed;
-  z-index: 80;
+  z-index: 120;
   right: -440px;
   top: 70px;
   bottom: 28px;
   width: 420px;
   transition: right 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
 }
 .dialogue-float.open {
   right: 24px;
+  pointer-events: auto;
 }
 .dialogue-glass {
   height: 100%;
@@ -315,7 +325,10 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 .dialogue-header {
+  position: relative;
+  z-index: 2;
   display: flex;
+  flex: 0 0 auto;
   justify-content: space-between;
   align-items: center;
   padding: 14px 18px;
@@ -720,6 +733,10 @@
     width: 100%;
     justify-content: flex-end;
   }
+  .scene-nav {
+    top: 126px;
+    width: calc(100vw - 20px);
+  }
   .scene-title {
     font-size: 14px;
   }
@@ -754,13 +771,14 @@
   .dialogue-float {
     top: 0;
     bottom: 0;
-    left: 0;
+    left: 100%;
     width: 100%;
-    right: -100%;
-    transition: right 0.3s ease;
+    right: auto;
+    transition: left 0.3s ease;
   }
   .dialogue-float.open {
-    right: 0;
+    left: 0;
+    right: auto;
   }
   .dialogue-glass {
     border-radius: 0;
@@ -805,10 +823,12 @@
   }
   .dialogue-float {
     width: 100%;
-    right: -100%;
+    left: 100%;
+    right: auto;
   }
   .dialogue-float.open {
-    right: 0;
+    left: 0;
+    right: auto;
   }
   .narrative-float {
     left: 8px;
@@ -1209,19 +1229,6 @@ button,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-/* 移动端对话面板全屏 */
-@media (max-width: 768px) {
-  .chat-panel {
-    position: fixed;
-    inset: 0;
-    z-index: 200;
-    border-radius: 0;
-  }
-  .chat-input-area {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
 }
 
 /* 暗黑模式滚动条（移动端细滚动条） */

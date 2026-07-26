@@ -1,29 +1,41 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
-import { chatWithNpcStream } from '../api'
+import { computed, nextTick, ref } from 'vue'
+import NpcAvatar from './NpcAvatar.vue'
 import { useAudio } from '../composables/useAudio'
-import type { ChatMessage, EndingType, Fragment, GameState, NpcSummary } from '../types/game'
+import { useGameState } from '../composables/useGameState'
+import type { ChatMessage, DialogueResponse, GameState, NpcSummary } from '../types/game'
 
 const props = defineProps<{
   selectedNpc: NpcSummary | null
   gameState: GameState | null
-  totalFragments: number
 }>()
 
 const emit = defineEmits<{
-  trustChange: [npcId: string, change: number]
-  fragmentReveal: [fragmentId: string, fragmentData: Fragment]
-  ending: [type: EndingType]
-  choiceDetected: [msg: string, npcId: string]
+  dialogueComplete: [result: DialogueResponse]
 }>()
 
-const chatHistory = ref<ChatMessage[]>([])
 const chatContainer = ref<HTMLElement | null>(null)
 const playerInput = ref('')
 const chatLoading = ref(false)
-const presetOptions = ref<string[]>([])
+const visibleFromIndex = ref(0)
+const statusMessage = ref('')
 
 const { speak, stopSpeak, playSFX } = useAudio()
+const { sendDialogue } = useGameState()
+const chatHistory = computed<ChatMessage[]>(() =>
+  (props.gameState?.dialogue_history ?? []).slice(visibleFromIndex.value).map((message) => ({
+    role: message.role,
+    content: message.content,
+    npcId: message.npc_id ?? undefined,
+    npcName:
+      message.npc_id && message.npc_id === props.selectedNpc?.id
+        ? props.selectedNpc.name
+        : message.role === 'npc'
+          ? '记忆中的人'
+          : undefined,
+    emotion: message.emotion ?? undefined,
+  })),
+)
 
 function scrollToBottom() {
   nextTick(() => {
@@ -33,73 +45,37 @@ function scrollToBottom() {
   })
 }
 
-function detectAndRecordChoice(playerMsg: string, npcId: string) {
-  emit('choiceDetected', playerMsg, npcId)
-}
-
-function sendPreset(option: string) {
-  playSFX('click')
-  void sendMessage(option)
-}
-
 const sendMessage = async (text?: string) => {
   const msg = text || playerInput.value.trim()
   if (!msg || !props.selectedNpc || !props.gameState || chatLoading.value) return
 
+  const npc = props.selectedNpc
   playerInput.value = ''
   chatLoading.value = true
-
-  chatHistory.value.push({ role: 'player', content: msg })
-  detectAndRecordChoice(msg, props.selectedNpc.id)
+  statusMessage.value = ''
   scrollToBottom()
 
-  const npcMsgIndex = chatHistory.value.length
-  chatHistory.value.push({
-    role: 'npc',
-    content: '',
-    npcName: props.selectedNpc.name,
-    npcId: props.selectedNpc.id,
-    emotion: 'neutral',
-  })
-
   try {
-    chatWithNpcStream(
-      { npc_id: props.selectedNpc.id, player_input: msg, game_state: props.gameState },
-      (token) => {
-        chatHistory.value[npcMsgIndex].content += token
-        scrollToBottom()
-      },
-      (data) => {
-        chatHistory.value[npcMsgIndex].content = data.reply
-        chatHistory.value[npcMsgIndex].emotion = data.npc_mood || 'neutral'
-
-        speak(data.reply, props.selectedNpc!.id)
-
-        if (data.trust_change !== 0) {
-          emit('trustChange', props.selectedNpc!.id, data.trust_change)
-          playSFX(data.trust_change > 0 ? 'trust_up' : 'trust_down')
-        }
-
-        if (data.fragment_revealed && data.fragment_data) {
-          emit('fragmentReveal', data.fragment_revealed, data.fragment_data)
-        }
-
-        chatLoading.value = false
-      },
-      () => {
-        chatHistory.value[npcMsgIndex].content = '[连接中断]'
-        chatLoading.value = false
-      },
-    )
-  } catch {
-    chatHistory.value[npcMsgIndex].content = '[发送失败]'
+    const result = await sendDialogue(npc.id, msg)
+    speak(result.reply, npc.id)
+    if (result.trust_change !== 0) {
+      playSFX(result.trust_change > 0 ? 'trust_up' : 'trust_down')
+    }
+    if (result.degraded) {
+      statusMessage.value = '记忆回声暂时不稳定，已切换为角色本地对白。'
+    }
+    emit('dialogueComplete', result)
+    scrollToBottom()
+  } catch (caught: unknown) {
+    statusMessage.value = (caught as Error).message || '发送失败，请稍后重试。'
+  } finally {
     chatLoading.value = false
   }
 }
 
 function clearHistory() {
-  chatHistory.value = []
-  presetOptions.value = []
+  visibleFromIndex.value = props.gameState?.dialogue_history.length ?? 0
+  statusMessage.value = ''
   stopSpeak()
 }
 
@@ -144,19 +120,7 @@ defineExpose({ chatHistory, clearHistory })
           >
         </div>
       </div>
-    </div>
-
-    <!-- 预设选项 -->
-    <div class="preset-options" v-if="selectedNpc && presetOptions.length">
-      <button
-        v-for="opt in presetOptions"
-        :key="opt"
-        class="preset-btn"
-        @click="sendPreset(opt)"
-        :disabled="chatLoading"
-      >
-        {{ opt }}
-      </button>
+      <p v-if="statusMessage" class="chat-status" role="status">{{ statusMessage }}</p>
     </div>
 
     <!-- 输入框 -->
@@ -301,33 +265,12 @@ defineExpose({ chatHistory, clearHistory })
   }
 }
 
-/* 预设选项 */
-.preset-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.preset-btn {
-  background: rgba(232, 180, 80, 0.08);
-  border: 1px solid rgba(232, 180, 80, 0.15);
-  border-radius: 16px;
-  color: rgba(232, 180, 80, 0.8);
-  font-size: 12px;
-  padding: 6px 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: 'Noto Serif SC', serif;
-}
-.preset-btn:hover:not(:disabled) {
-  background: rgba(232, 180, 80, 0.15);
-  border-color: rgba(232, 180, 80, 0.3);
-}
-.preset-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.chat-status {
+  margin: 4px 36px 0;
+  color: rgba(224, 184, 115, 0.75);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
 }
 
 /* 输入区 */
@@ -389,14 +332,6 @@ defineExpose({ chatHistory, clearHistory })
     font-size: 14px;
     padding: 10px 14px;
   }
-  .preset-options {
-    padding: 8px 12px;
-  }
-  .preset-btn {
-    padding: 8px 16px;
-    font-size: 13px;
-    min-height: 36px;
-  }
   .input-area {
     padding: 10px 12px;
     padding-bottom: max(10px, env(safe-area-inset-bottom));
@@ -419,10 +354,6 @@ defineExpose({ chatHistory, clearHistory })
     width: 24px;
     height: 24px;
     font-size: 10px;
-  }
-  .preset-btn {
-    font-size: 12px;
-    padding: 6px 12px;
   }
 }
 </style>

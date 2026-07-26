@@ -5,7 +5,7 @@
  */
 import { ref, computed } from 'vue'
 import { useI18n } from '../composables/useI18n'
-import type { Hotspot } from '../composables/useHotspots'
+import type { Hotspot } from '../types/game'
 
 const { t } = useI18n()
 
@@ -20,6 +20,8 @@ const emit = defineEmits<{
 }>()
 
 const hoveredId = ref<string | null>(null)
+const VIEWBOX_WIDTH = 800
+const VIEWBOX_HEIGHT = 500
 
 // 根据场景年代决定光圈颜色
 const eraColor = computed(() => {
@@ -33,6 +35,10 @@ const handleClick = (hotspot: Hotspot) => {
     emit('explore', hotspot)
   }
 }
+
+const hotspotX = (hotspot: Hotspot) => hotspot.x * VIEWBOX_WIDTH
+const hotspotY = (hotspot: Hotspot) => hotspot.y * VIEWBOX_HEIGHT
+const hotspotRadius = (hotspot: Hotspot) => hotspot.radius * Math.min(VIEWBOX_WIDTH, VIEWBOX_HEIGHT)
 </script>
 
 <template>
@@ -77,24 +83,29 @@ const handleClick = (hotspot: Hotspot) => {
         hovered: hoveredId === hotspot.id,
       }"
       @click="handleClick(hotspot)"
+      @keydown.enter="handleClick(hotspot)"
+      @keydown.space.prevent="handleClick(hotspot)"
       @mouseenter="hoveredId = hotspot.id"
       @mouseleave="hoveredId = null"
+      role="button"
+      tabindex="0"
+      :aria-label="hotspot.label"
     >
       <!-- 脉冲光圈（未探索才显示） -->
       <circle
         v-if="!exploredIds.has(hotspot.id)"
-        :cx="hotspot.x"
-        :cy="hotspot.y"
-        :r="hotspot.radius * 1.8"
+        :cx="hotspotX(hotspot)"
+        :cy="hotspotY(hotspot)"
+        :r="hotspotRadius(hotspot) * 1.8"
         :fill="`url(#pulse-${sceneId})`"
         class="pulse-ring"
       />
 
       <!-- 主热区圆圈 -->
       <circle
-        :cx="hotspot.x"
-        :cy="hotspot.y"
-        :r="hotspot.radius"
+        :cx="hotspotX(hotspot)"
+        :cy="hotspotY(hotspot)"
+        :r="hotspotRadius(hotspot)"
         :fill="exploredIds.has(hotspot.id) ? 'rgba(100,100,100,0.2)' : eraColor.glow"
         :stroke="exploredIds.has(hotspot.id) ? 'rgba(100,100,100,0.3)' : eraColor.main"
         stroke-width="2"
@@ -104,10 +115,10 @@ const handleClick = (hotspot: Hotspot) => {
 
       <!-- 热区图标 -->
       <text
-        :x="hotspot.x"
-        :y="hotspot.y + 5"
+        :x="hotspotX(hotspot)"
+        :y="hotspotY(hotspot) + 5"
         text-anchor="middle"
-        :font-size="hotspot.radius * 0.7"
+        :font-size="hotspotRadius(hotspot) * 0.7"
         :fill="exploredIds.has(hotspot.id) ? 'rgba(150,150,150,0.5)' : '#fff'"
         class="hotspot-icon"
       >
@@ -117,8 +128,8 @@ const handleClick = (hotspot: Hotspot) => {
       <!-- 悬浮提示 -->
       <g v-if="hoveredId === hotspot.id && !exploredIds.has(hotspot.id)">
         <rect
-          :x="hotspot.x - 100"
-          :y="hotspot.y - hotspot.radius - 35"
+          :x="hotspotX(hotspot) - 100"
+          :y="hotspotY(hotspot) - hotspotRadius(hotspot) - 35"
           width="200"
           height="28"
           rx="6"
@@ -127,14 +138,14 @@ const handleClick = (hotspot: Hotspot) => {
           stroke-width="1"
         />
         <text
-          :x="hotspot.x"
-          :y="hotspot.y - hotspot.radius - 17"
+          :x="hotspotX(hotspot)"
+          :y="hotspotY(hotspot) - hotspotRadius(hotspot) - 17"
           text-anchor="middle"
           font-size="12"
           fill="#e0e0ff"
           font-family="'Noto Serif SC', serif"
         >
-          {{ hotspot.hint.length > 18 ? hotspot.hint.substring(0, 18) + '...' : hotspot.hint }}
+          {{ hotspot.label.length > 18 ? hotspot.label.substring(0, 18) + '...' : hotspot.label }}
         </text>
       </g>
     </g>

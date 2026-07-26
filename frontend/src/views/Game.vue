@@ -1,16 +1,22 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, defineAsyncComponent } from 'vue'
-import { useGameState } from '../composables/useGameState'
-import { useTypewriter } from '../composables/useTypewriter'
+import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
+import { evaluateEnding, saveGame } from '../api'
 import { useAudio } from '../composables/useAudio'
-import { useScene } from '../composables/useScene'
-import { saveGame, recordChoice, evaluateEnding } from '../api'
+import { useGameState } from '../composables/useGameState'
 import { useHotspots } from '../composables/useHotspots'
 import { useI18n } from '../composables/useI18n'
-import type { Hotspot } from '../composables/useHotspots'
-import type { EndingType, Fragment, NpcSummary } from '../types/game'
+import { useScene } from '../composables/useScene'
+import { useTypewriter } from '../composables/useTypewriter'
+import type {
+  ChatMessage,
+  Choice,
+  DialogueResponse,
+  EndingType,
+  Fragment,
+  Hotspot,
+  NpcSummary,
+} from '../types/game'
 
-// 懒加载组件
 const SceneIllustration = defineAsyncComponent(() => import('../components/SceneIllustration.vue'))
 const NpcAvatar = defineAsyncComponent(() => import('../components/NpcAvatar.vue'))
 const HotspotOverlay = defineAsyncComponent(() => import('../components/HotspotOverlay.vue'))
@@ -28,23 +34,24 @@ const ChatPanel = defineAsyncComponent(() => import('../components/ChatPanel.vue
 const emit = defineEmits<{ ending: [type: EndingType] }>()
 const props = defineProps<{ loadSlotId?: number | null }>()
 
-// 核心状态
 const {
   gameState,
   initGame,
   loadFromSlot,
-  updateTrust,
-  collectFragment,
-  revealFragment,
-  addDialogue,
+  exploreHotspot,
+  submitChoice,
   collectedCount,
   totalFragments,
 } = useGameState()
 const {
+  sceneView,
   currentScene,
   currentNpcs,
+  sceneFragments,
+  choices,
   narrativeText,
   sceneTransitioning,
+  replaceSceneView,
   loadScene: loadSceneData,
 } = useScene()
 const {
@@ -55,11 +62,10 @@ const {
 } = useTypewriter(25)
 const { playBGM, playSFX, isMuted, toggleMute, stopSpeak } = useAudio()
 const { lang, toggleLang } = useI18n()
-const { hotspots, exploredIds, exploreHotspot, explorationProgress } = useHotspots(
-  gameState.value?.current_scene || 'scene_1972',
+const { hotspots, exploredIds, markExplored, explorationProgress } = useHotspots(
+  computed(() => sceneView.value),
 )
 
-// UI 状态
 const selectedNpc = ref<NpcSummary | null>(null)
 const showFragmentPopup = ref(false)
 const popupFragment = ref<(Fragment & { just_collected: boolean }) | null>(null)
@@ -68,9 +74,11 @@ const showMemoryPanel = ref(false)
 const showButterfly = ref(false)
 const showStoryLog = ref(false)
 const showTimeline = ref(false)
-const chatPanelRef = ref<InstanceType<typeof ChatPanel> | null>(null)
+const actionPending = ref(false)
+const mounted = ref(false)
+const endingPending = ref(false)
+const chatPanelRef = ref<{ clearHistory: () => void; chatHistory: ChatMessage[] } | null>(null)
 
-// 游戏时间
 const getPlayTime = () => {
   if (!gameState.value) return 0
   const startedAt = Date.parse(gameState.value.started_at)
@@ -78,216 +86,204 @@ const getPlayTime = () => {
   return gameState.value.play_time_seconds + Math.floor((Date.now() - startedAt) / 1000)
 }
 
-// 自动存档
 const autoSave = async () => {
   if (!gameState.value) return
+  if (!localStorage.getItem('mh_user')) return
   try {
     await saveGame(0, '自动存档', gameState.value, gameState.value.current_scene, getPlayTime())
   } catch {
-    // Autosave is best-effort and must not interrupt gameplay.
+    // 自动存档属于增强能力，不阻断主流程。
   }
 }
 
-// 加载场景（包装useScene）
-const loadScene = async () => {
+const presentScene = () => {
+  if (!currentScene.value || !gameState.value) return
+  narrativeText.value = currentScene.value.description
+  typeStart(narrativeText.value)
+  playBGM(gameState.value.current_scene)
+}
+
+const loadCurrentScene = async () => {
   if (!gameState.value) return
   sceneTransitioning.value = true
   try {
-    const desc = await loadSceneData(gameState.value)
-    if (desc) typeStart(desc)
-  } catch {
-    narrativeText.value = currentScene.value?.description || '场景加载中...'
+    await loadSceneData(gameState.value)
+    presentScene()
+  } catch (caught: unknown) {
+    narrativeText.value = (caught as Error).message || '记忆场景暂时无法载入。'
     typeStart(narrativeText.value)
   } finally {
-    setTimeout(() => {
+    window.setTimeout(() => {
       sceneTransitioning.value = false
-    }, 600)
-    playBGM(gameState.value.current_scene)
+    }, 450)
   }
 }
 
-// 场景切换
-const switchScene = async (targetScene: string) => {
-  if (!gameState.value || sceneTransitioning.value) return
-  playSFX('scene_transition')
-  sceneTransitioning.value = true
-  gameState.value.current_scene = targetScene
-  selectedNpc.value = null
-  chatPanelRef.value?.clearHistory()
-  await autoSave()
-  await loadScene()
-}
-
-// NPC选择
 const selectNpc = (npc: NpcSummary) => {
   stopSpeak()
   selectedNpc.value = npc
   playSFX('dialogue_start')
 }
 
-// 热区探索
-const handleExplore = async (hotspot: Hotspot) => {
-  playSFX('explore')
-  const result = exploreHotspot(hotspot.id)
-  if (!result) return
+const fragmentForPopup = (fragmentId: string): Fragment | null => {
+  const fragment = sceneFragments.value.find((candidate) => candidate.id === fragmentId)
+  if (!fragment) return null
+  return {
+    id: fragment.id,
+    name: fragment.name,
+    scene: fragment.scene,
+    description: fragment.description,
+    unlock_method: fragment.unlock_method,
+    unlock_hint: fragment.unlock_hint,
+    memory_text: fragment.memory_text,
+    collected: gameState.value?.collected_fragments.includes(fragment.id) ?? false,
+  }
+}
 
-  if (hotspot.fragment_id && gameState.value) {
-    const fragStates = gameState.value.fragment_states
-    if (fragStates?.[hotspot.fragment_id]) {
-      const fragState = fragStates[hotspot.fragment_id]
-      if (!fragState.revealed) {
-        revealFragment(hotspot.fragment_id)
-        fragState.revealed = true
-      }
-      if (!fragState.collected) {
-        collectFragment(hotspot.fragment_id)
+const handleExplore = async (hotspot: Hotspot) => {
+  if (actionPending.value) return
+  actionPending.value = true
+  try {
+    const result = await exploreHotspot(hotspot.id)
+    markExplored(hotspot.id)
+    playSFX('explore')
+    narrativeText.value = hotspot.label
+    typeStart(hotspot.label)
+
+    const collectedEvent = result.events.find((event) => event.type === 'fragment.collected')
+    if (collectedEvent?.content_id) {
+      const fragment = fragmentForPopup(collectedEvent.content_id)
+      if (fragment) {
         playSFX('fragment_found')
-        popupFragment.value = {
-          id: hotspot.fragment_id,
-          name: fragState.name || hotspot.hint,
-          scene: hotspot.scene,
-          description: hotspot.hint,
-          unlock_method: '探索发现',
-          unlock_hint: '',
-          memory_text: '',
-          collected: true,
-          just_collected: true,
-        }
+        popupFragment.value = { ...fragment, just_collected: true }
         showFragmentPopup.value = true
       }
     }
-  }
-
-  if (hotspot.npc_id) {
-    const npc = currentNpcs.value.find((candidate) => candidate.id === hotspot.npc_id)
-    if (npc) selectNpc(npc)
-  }
-
-  narrativeText.value = hotspot.hint
-  typeStart(hotspot.hint)
-}
-
-// 蝴蝶效应: 检测关键选择
-const detectAndRecordChoice = (playerMsg: string, npcId: string) => {
-  if (!gameState.value) return
-  const scene = gameState.value.current_scene
-  if (scene === 'scene_1972' && npcId === 'chen_shouyi_young') {
-    if (/坚持|继续|别放弃|加油|很好|厉害|手艺/.test(playerMsg))
-      recordChoice(scene, 'encourage_art', gameState.value)
-    else if (/放弃|转行|没前途|别做了|算了/.test(playerMsg))
-      recordChoice(scene, 'discourage_art', gameState.value)
-    if (/小雨|孙女|家人/.test(playerMsg)) recordChoice(scene, 'mention_xiaoyu', gameState.value)
-  }
-  if (scene === 'scene_2024') {
-    if (npcId === 'chen_shouyi_old' && /帮你|照顾|陪伴|不孤单|我在这里/.test(playerMsg))
-      recordChoice(scene, 'help_elderly', gameState.value)
-    if (npcId === 'xiaoyu' && /信|找到了|给你|爷爷的/.test(playerMsg))
-      recordChoice(scene, 'found_letter', gameState.value)
+    if (hotspot.npc_id) {
+      const npc = currentNpcs.value.find((candidate) => candidate.id === hotspot.npc_id)
+      if (npc) selectNpc(npc)
+    }
+    void autoSave()
+  } catch (caught: unknown) {
+    narrativeText.value = (caught as Error).message || '这段记忆暂时无法触碰。'
+    typeStart(narrativeText.value)
+  } finally {
+    actionPending.value = false
   }
 }
 
-// ChatPanel 事件处理
-const onTrustChange = (npcId: string, change: number) => {
-  updateTrust(npcId, change)
-}
-const onFragmentReveal = (fragmentId: string, fragmentData: Fragment) => {
-  revealFragment(fragmentId)
-  const selectedNpcId = selectedNpc.value?.id
-  const trust = selectedNpcId ? gameState.value?.npc_trust[selectedNpcId] || 30 : 30
-  if (trust >= 60) {
-    collectFragment(fragmentId)
-    popupFragment.value = { ...fragmentData, just_collected: true }
-    playSFX('fragment_found')
-  } else {
-    popupFragment.value = { ...fragmentData, just_collected: false }
+const showEnding = async () => {
+  if (!gameState.value || endingPending.value) return
+  endingPending.value = true
+  try {
+    const { data } = await evaluateEnding(gameState.value)
+    narrativeText.value = data.ending.description
+    typeStart(narrativeText.value)
+    playSFX(`ending_${data.ending.id}`)
+    window.setTimeout(() => emit('ending', data.ending.id), 4200)
+  } catch (caught: unknown) {
+    narrativeText.value = (caught as Error).message || '结局仍在记忆雾中。'
+    typeStart(narrativeText.value)
+  } finally {
+    endingPending.value = false
   }
-  showFragmentPopup.value = true
-}
-const onChoiceDetected = (msg: string, npcId: string) => {
-  addDialogue('player', msg)
-  detectAndRecordChoice(msg, npcId)
 }
 
-const collectCurrentFragment = (fragmentId: string) => {
-  collectFragment(fragmentId)
-  showFragmentPopup.value = false
+const handleChoice = async (choice: Choice) => {
+  if (actionPending.value) return
+  actionPending.value = true
+  const previousScene = gameState.value?.current_scene
+  try {
+    await submitChoice(choice.id)
+    playSFX('scene_transition')
+    narrativeText.value = choice.label
+    typeStart(choice.label)
+    void autoSave()
+    if (!choice.target_scene && gameState.value?.current_scene === 'scene_2089') {
+      await showEnding()
+    } else if (previousScene === gameState.value?.current_scene) {
+      await loadCurrentScene()
+    }
+  } catch (caught: unknown) {
+    narrativeText.value = (caught as Error).message || '这项选择没有被记忆接受。'
+    typeStart(narrativeText.value)
+  } finally {
+    actionPending.value = false
+  }
 }
+
+const navigateTimeline = (targetScene: string) => {
+  if (targetScene === gameState.value?.current_scene) return
+  const routeChoice = choices.value.find((choice) => choice.target_scene === targetScene)
+  if (routeChoice) {
+    void handleChoice(routeChoice)
+    return
+  }
+  narrativeText.value = '记忆只能沿着当前因果继续，无法从这里直接跳转。'
+  typeStart(narrativeText.value)
+}
+
+const onDialogueComplete = (result: DialogueResponse) => {
+  if (result.fragment_revealed && result.fragment_data) {
+    popupFragment.value = {
+      ...result.fragment_data,
+      collected: gameState.value?.collected_fragments.includes(result.fragment_revealed) ?? false,
+      just_collected: false,
+    }
+    showFragmentPopup.value = true
+  }
+  void autoSave()
+}
+
 const getTrustLevel = (npcId: string) => {
-  const trust = gameState.value?.npc_trust[npcId] || 30
+  const trust = gameState.value?.npc_trust[npcId] ?? 30
   if (trust >= 80) return { label: '完全信任', color: '#4ade80' }
   if (trust >= 60) return { label: '比较信任', color: '#60a5fa' }
   if (trust >= 30) return { label: '初识', color: '#facc15' }
   return { label: '警惕', color: '#f87171' }
 }
 
-// 结局监控
 watch(
-  () => gameState.value?.collected_fragments?.length,
-  async (newVal) => {
-    if (!newVal || !gameState.value) return
-    autoSave()
-    if (gameState.value.current_scene === 'scene_2089') {
-      try {
-        const { data } = await evaluateEnding(gameState.value)
-        const endingType = data.type as EndingType
-        const endingTexts: Record<string, string> = {
-          hope: '记忆修复程序启动……碎片正在聚合……那些消散的光影，重新聚合成完整的画面。',
-          bittersweet: '记忆修复程序启动……部分碎片聚合了。虽然不完整，但温暖还在。',
-          tragic: '记忆碎片太少了……修复程序难以启动……但也许还有希望。',
-          legacy:
-            '所有记忆碎片收集完毕，蝴蝶效应全部激活。跨越五个时代的记忆被完整修复——这不只是修复，是传承。',
-        }
-        narrativeText.value = endingTexts[endingType] || endingTexts.hope
-        typeStart(narrativeText.value)
-        setTimeout(
-          () => {
-            playSFX(`ending_${endingType}`)
-            emit('ending', endingType)
-          },
-          endingType === 'legacy' ? 6000 : 5000,
-        )
-      } catch {
-        const percent = totalFragments.value > 0 ? (newVal / totalFragments.value) * 100 : 0
-        emit('ending', percent >= 80 ? 'hope' : percent >= 40 ? 'bittersweet' : 'tragic')
-      }
-    } else if (newVal >= totalFragments.value && totalFragments.value > 0) {
-      narrativeText.value = '所有记忆碎片已经收集完毕……去最后一幕完成修复吧。'
+  () => gameState.value?.current_scene,
+  async (nextScene, previousScene) => {
+    if (!mounted.value || !nextScene || nextScene === previousScene) return
+    selectedNpc.value = null
+    chatPanelRef.value?.clearHistory()
+    await loadCurrentScene()
+  },
+)
+
+watch(
+  () => gameState.value?.collected_fragments.length,
+  (count) => {
+    if (!count) return
+    void autoSave()
+    if (count === totalFragments.value && gameState.value?.current_scene !== 'scene_2089') {
+      narrativeText.value = '所有记忆碎片已经归位。沿着因果前往最后一幕吧。'
       typeStart(narrativeText.value)
     }
   },
 )
 
-watch(
-  () => gameState.value?.current_scene,
-  async (newScene) => {
-    if (newScene !== 'scene_2089' || !gameState.value) return
-    if ((gameState.value.collected_fragments?.length || 0) === 0) return
-    try {
-      const { data } = await evaluateEnding(gameState.value)
-      if (data.type === 'tragic') {
-        narrativeText.value = '记忆碎片太少了……修复程序难以启动……'
-        typeStart(narrativeText.value)
-        setTimeout(() => {
-          playSFX('ending_tragic')
-          emit('ending', 'tragic')
-        }, 5000)
-      }
-    } catch {
-      // The regular fragment-count watcher will retry ending evaluation.
-    }
-  },
-)
-
 onMounted(async () => {
-  if (props.loadSlotId != null) await loadFromSlot(props.loadSlotId)
-  else await initGame()
-  await loadScene()
+  sceneTransitioning.value = true
+  if (props.loadSlotId != null) {
+    await loadFromSlot(props.loadSlotId)
+    await loadCurrentScene()
+  } else {
+    const initial = await initGame()
+    if (initial) {
+      replaceSceneView(initial.scene_view)
+      presentScene()
+    }
+  }
+  mounted.value = true
+  sceneTransitioning.value = false
 })
 </script>
 
 <template>
-  <div class="game" v-if="gameState">
-    <!-- 加载遮罩 -->
+  <div v-if="gameState" class="game">
     <Transition name="fade">
       <div v-if="sceneTransitioning" class="loading-overlay">
         <div class="loading-spinner"></div>
@@ -295,7 +291,6 @@ onMounted(async () => {
       </div>
     </Transition>
 
-    <!-- 全屏背景图 + 视差 + 光影 -->
     <div class="bg-layer">
       <ParallaxBg :scene-id="gameState.current_scene">
         <template #layer-0>
@@ -307,7 +302,6 @@ onMounted(async () => {
       <InkParticles :scene-id="gameState.current_scene" trigger="idle" />
     </div>
 
-    <!-- 热区叠加层（在背景之上） -->
     <HotspotOverlay
       :hotspots="hotspots"
       :explored-ids="exploredIds"
@@ -315,7 +309,6 @@ onMounted(async () => {
       @explore="handleExplore"
     />
 
-    <!-- 顶部状态栏（悬浮） -->
     <header class="top-bar" role="banner" aria-label="游戏状态栏">
       <div class="scene-info">
         <span class="scene-time">{{ currentScene?.time_period || '...' }}</span>
@@ -325,56 +318,37 @@ onMounted(async () => {
       <div class="status-right">
         <button
           class="lang-btn"
-          @click="toggleLang"
           :title="lang === 'zh' ? 'Switch to English' : '切换到中文'"
           aria-label="语言切换"
+          @click="toggleLang"
         >
           {{ lang === 'zh' ? 'EN' : '中' }}
         </button>
+        <button class="icon-btn" title="记忆档案" @click="showMemoryPanel = true">📜</button>
         <button
           class="icon-btn"
-          @click="showMemoryPanel = true"
-          title="记忆档案"
-          aria-label="打开记忆档案"
-        >
-          📜
-        </button>
-        <button
-          class="icon-btn"
-          @click="toggleMute"
           :title="isMuted ? '取消静音' : '静音'"
           :aria-label="isMuted ? '取消静音' : '静音'"
+          @click="toggleMute"
         >
           {{ isMuted ? '🔇' : '🔊' }}
         </button>
-        <div class="scene-nav" v-if="currentScene?.exits">
-          <button
-            v-for="(target, dir) in currentScene.exits"
-            :key="dir"
-            class="nav-btn"
-            @click="switchScene(target)"
-            :disabled="sceneTransitioning"
-          >
-            {{ dir === 'back' ? '◂ 返回' : '前进 ▸' }}
-          </button>
-        </div>
         <div class="fragment-counter" @click="showInventory = !showInventory">
           🧩 {{ collectedCount }}/{{ totalFragments }}
         </div>
         <div class="butterfly-btn" @click="showButterfly = !showButterfly">🦋 蝴蝶效应</div>
         <div class="timeline-btn" @click="showTimeline = !showTimeline">🕰 时光地图</div>
         <div class="log-btn" @click="showStoryLog = !showStoryLog">📜 日志</div>
-        <span class="explore-badge" v-if="explorationProgress < 100"
-          >探索 {{ explorationProgress }}%</span
-        >
-        <span class="explore-badge done" v-else>✦ 已完全探索</span>
+        <span v-if="explorationProgress < 100" class="explore-badge">
+          探索 {{ explorationProgress }}%
+        </span>
+        <span v-else class="explore-badge done">✦ 已完全探索</span>
       </div>
     </header>
 
-    <!-- 叙事文本（左下悬浮） -->
     <div
-      class="narrative-float"
       v-if="narrativeText"
+      class="narrative-float"
       role="complementary"
       aria-label="叙事文本"
       aria-live="polite"
@@ -384,7 +358,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- NPC选择条（底部悬浮） -->
     <div class="npc-dock" role="toolbar" aria-label="NPC角色选择">
       <div
         v-for="npc in currentNpcs"
@@ -404,20 +377,30 @@ onMounted(async () => {
             <div
               class="trust-bar"
               :style="{
-                width: (gameState?.npc_trust?.[npc.id] || 0) + '%',
+                width: (gameState.npc_trust[npc.id] || 0) + '%',
                 background: getTrustLevel(npc.id).color,
               }"
             />
           </div>
-          <span class="npc-chip-trust" :style="{ color: getTrustLevel(npc.id).color }">{{
-            getTrustLevel(npc.id).label
-          }}</span>
+          <span class="npc-chip-trust" :style="{ color: getTrustLevel(npc.id).color }">
+            {{ getTrustLevel(npc.id).label }}
+          </span>
         </div>
       </div>
     </div>
 
-    <!-- 对话面板（右侧悬浮） -->
-    <!-- 对话面板（ChatPanel组件） -->
+    <div v-if="choices.length" class="scene-nav" aria-label="剧情选择">
+      <button
+        v-for="choice in choices"
+        :key="choice.id"
+        class="nav-btn"
+        :disabled="actionPending"
+        @click="handleChoice(choice)"
+      >
+        {{ choice.label }}
+      </button>
+    </div>
+
     <div
       class="dialogue-float"
       :class="{ open: selectedNpc }"
@@ -426,97 +409,75 @@ onMounted(async () => {
       aria-modal="false"
     >
       <div class="dialogue-glass">
-        <div class="dialogue-header" v-if="selectedNpc">
+        <div v-if="selectedNpc" class="dialogue-header">
           <span>与 {{ selectedNpc.name }} 对话</span>
           <button class="close-btn" @click="selectedNpc = null">✕</button>
         </div>
-        <div class="dialogue-header" v-else>
+        <div v-else class="dialogue-header">
           <span>选择下方角色开始对话</span>
         </div>
         <ChatPanel
           ref="chatPanelRef"
           :selected-npc="selectedNpc"
           :game-state="gameState"
-          :total-fragments="totalFragments"
-          @trust-change="onTrustChange"
-          @fragment-reveal="onFragmentReveal"
-          @choice-detected="onChoiceDetected"
+          @dialogue-complete="onDialogueComplete"
         />
       </div>
     </div>
-    <!-- 场景切换动画 -->
-    <SceneTransition :active="sceneTransitioning" :scene-id="gameState?.current_scene || ''" />
 
-    <!-- 碎片弹窗 -->
+    <SceneTransition :active="sceneTransitioning" :scene-id="gameState.current_scene" />
+
     <div
-      class="popup-overlay"
       v-if="showFragmentPopup"
-      @click.self="showFragmentPopup = false"
+      class="popup-overlay"
       role="dialog"
       aria-label="记忆碎片"
       aria-modal="true"
+      @click.self="showFragmentPopup = false"
     >
       <div class="fragment-popup">
         <div class="popup-icon">🧩</div>
         <h3>{{ popupFragment?.just_collected ? '获得记忆碎片！' : '发现记忆碎片线索' }}</h3>
         <h2>{{ popupFragment?.name }}</h2>
         <p class="fragment-desc">{{ popupFragment?.description }}</p>
-        <p
-          class="fragment-memory"
-          v-if="popupFragment?.memory_text && popupFragment?.just_collected"
-        >
+        <p v-if="popupFragment?.memory_text" class="fragment-memory">
           「{{ popupFragment.memory_text }}」
         </p>
-        <button
-          class="btn-close"
-          @click="
-            popupFragment?.just_collected
-              ? (showFragmentPopup = false)
-              : collectCurrentFragment(popupFragment?.id || '')
-          "
-        >
-          {{ popupFragment?.just_collected ? '继续探索' : '收集碎片' }}
+        <button class="btn-close" @click="showFragmentPopup = false">
+          {{ popupFragment?.just_collected ? '继续探索' : '记住这条线索' }}
         </button>
       </div>
     </div>
 
-    <!-- 背包面板 -->
     <InventoryPanel
-      v-if="showInventory && gameState"
+      v-if="showInventory"
       :game-state="gameState"
       :collected-count="collectedCount"
       :total-fragments="totalFragments"
       @close="showInventory = false"
     />
-
-    <!-- 记忆档案面板 -->
     <MemoryPanel
-      v-if="showMemoryPanel && gameState"
+      v-if="showMemoryPanel"
       :fragment-states="gameState.fragment_states"
       :current-scene="gameState.current_scene"
-      :collected-count="gameState.collected_fragments?.length || 0"
-      :total-fragments="Object.keys(gameState.fragment_states || {}).length"
+      :collected-count="gameState.collected_fragments.length"
+      :total-fragments="Object.keys(gameState.fragment_states).length"
       @close="showMemoryPanel = false"
     />
-    <!-- 剧情日志 -->
     <StoryLog
       v-if="showStoryLog"
       :game-state="gameState"
       :chat-history="chatPanelRef?.chatHistory || []"
       @close="showStoryLog = false"
     />
-
-    <!-- 时光地图 -->
     <SceneTimeline
-      v-if="showTimeline && gameState"
+      v-if="showTimeline"
       :current-scene="gameState.current_scene"
       :visited-scenes="gameState.visited_scenes"
-      @navigate="switchScene"
+      @navigate="navigateTimeline"
       @close="showTimeline = false"
     />
-
-    <!-- 蝴蝶效应面板 -->
-    <div class="butterfly-overlay" v-if="showButterfly" @click.self="showButterfly = false">
+    <div v-if="showButterfly" class="butterfly-overlay" @click.self="showButterfly = false">
       <ButterflyPanel :game-state="gameState" />
     </div>
   </div>

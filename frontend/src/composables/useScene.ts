@@ -1,75 +1,42 @@
-import { ref } from 'vue'
-import { getSceneDetail, advanceNarrative } from '../api'
-import type { Fragment, GameState, NpcSummary, Scene } from '../types/game'
+import { computed, ref } from 'vue'
+import { getSceneView } from '../api'
+import type { GameState, SceneView } from '../types/game'
+
+const sceneView = ref<SceneView | null>(null)
+const narrativeText = ref('')
+const sceneTransitioning = ref(false)
 
 export function useScene() {
-  const currentScene = ref<Scene | null>(null)
-  const currentNpcs = ref<NpcSummary[]>([])
-  const sceneFragments = ref<Array<Fragment & { is_collected: boolean }>>([])
-  const narrativeText = ref('')
-  const sceneTransitioning = ref(false)
+  const currentScene = computed(() => sceneView.value?.scene ?? null)
+  const currentNpcs = computed(() => sceneView.value?.npcs ?? [])
+  const sceneFragments = computed(() => sceneView.value?.fragments ?? [])
+  const choices = computed(() => sceneView.value?.choices ?? [])
 
-  async function loadScene(gameState: GameState | null): Promise<string> {
-    if (!gameState) return ''
-    const res = await getSceneDetail(gameState.current_scene, gameState)
-    currentScene.value = res.data.scene
-    currentNpcs.value = res.data.npcs || []
-    sceneFragments.value = (res.data.fragments || []).map((f: Fragment) => ({
-      ...f,
-      is_collected: gameState.collected_fragments?.includes(f.id),
-    }))
-
-    const narrRes = await advanceNarrative('进入场景', gameState)
-    let sceneDesc = narrRes.data.scene_description
-
-    const butterflyMods = res.data.butterfly_mods || []
-    if (butterflyMods.length > 0) {
-      const modDescs = butterflyMods
-        .filter((modifier) => modifier.mod_type === 'scene_description')
-        .map((modifier) => modifier.mod_value)
-      if (modDescs.length > 0) {
-        sceneDesc += '\n\n' + modDescs.join('\n')
-      }
-    }
-
-    narrativeText.value = sceneDesc
-    return sceneDesc
+  const replaceSceneView = (nextView: SceneView) => {
+    sceneView.value = structuredClone(nextView)
+    narrativeText.value = nextView.scene.description
   }
 
-  async function switchScene(
-    targetScene: string,
-    gameState: GameState | null,
-    emit: (e: 'scene-change', v: string) => void,
-    playSFX: (s: string) => void,
-    playBGM: (m: string) => void,
-    typeStart: (t: string) => void,
-  ) {
-    if (!gameState || sceneTransitioning.value) return
-    sceneTransitioning.value = true
-    playSFX('scene_transition')
-
-    const scenes = gameState.visited_scenes
-    if (!scenes.includes(gameState.current_scene)) {
-      scenes.push(gameState.current_scene)
+  async function loadScene(gameState: GameState | null): Promise<SceneView | null> {
+    if (!gameState) return null
+    const requestedScene = gameState.current_scene
+    const response = await getSceneView(gameState)
+    if (response.data.scene.id !== requestedScene) {
+      throw new Error(`场景响应不匹配：请求 ${requestedScene}，收到 ${response.data.scene.id}`)
     }
-
-    emit('scene-change', targetScene)
-    gameState.current_scene = targetScene
-
-    await new Promise((r) => setTimeout(r, 200))
-    const desc = await loadScene(gameState)
-    if (desc) typeStart(desc)
-    playBGM(gameState.current_scene.replace('scene_', ''))
-    sceneTransitioning.value = false
+    replaceSceneView(response.data)
+    return response.data
   }
 
   return {
+    sceneView,
     currentScene,
     currentNpcs,
     sceneFragments,
+    choices,
     narrativeText,
     sceneTransitioning,
+    replaceSceneView,
     loadScene,
-    switchScene,
   }
 }

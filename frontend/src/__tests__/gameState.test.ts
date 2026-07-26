@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useGameState } from '../composables/useGameState'
+import { StateRevisionError, useGameState } from '../composables/useGameState'
 import type { GameState } from '../types/game'
 
 const createGameState = (overrides: Partial<GameState> = {}): GameState => ({
@@ -68,40 +68,30 @@ describe('useGameState', () => {
     ])
   })
 
-  it('collectFragment adds fragment to collected list', () => {
-    const { gameState, collectFragment } = useGameState()
-    gameState.value = createGameState()
+  it('rejects an older same-game snapshot', () => {
+    const { gameState, replaceAuthoritativeState } = useGameState()
+    gameState.value = createGameState({ revision: 5 })
 
-    collectFragment('f1')
-
-    expect(gameState.value.collected_fragments).toContain('f1')
+    expect(() => replaceAuthoritativeState(createGameState({ revision: 4 }))).toThrow(
+      StateRevisionError,
+    )
+    expect(gameState.value.revision).toBe(5)
   })
 
-  it('collectFragment does not add duplicate fragment', () => {
-    const { gameState, collectFragment } = useGameState()
-    gameState.value = createGameState({ collected_fragments: ['f1'] })
+  it('accepts a loaded snapshot from a different game', () => {
+    const { gameState, replaceAuthoritativeState } = useGameState()
+    gameState.value = createGameState({ revision: 5 })
 
-    collectFragment('f1')
+    replaceAuthoritativeState(
+      createGameState({
+        game_id: '00000000-0000-0000-0000-000000000002',
+        revision: 1,
+        current_scene: 'scene_1990',
+      }),
+    )
 
-    expect(gameState.value.collected_fragments).toHaveLength(1)
-  })
-
-  it('updateTrust updates NPC trust value', () => {
-    const { gameState, updateTrust } = useGameState()
-    gameState.value = createGameState()
-
-    updateTrust('li_yun', 10)
-
-    expect(gameState.value.npc_trust.li_yun).toBe(40)
-  })
-
-  it('changeScene changes current scene', () => {
-    const { gameState, changeScene } = useGameState()
-    gameState.value = createGameState()
-
-    changeScene('scene_2024')
-
-    expect(gameState.value.current_scene).toBe('scene_2024')
+    expect(gameState.value.game_id).toBe('00000000-0000-0000-0000-000000000002')
+    expect(gameState.value.current_scene).toBe('scene_1990')
   })
 
   it('collectedCount returns correct count', () => {
