@@ -327,11 +327,11 @@ git commit -m "feat: version authoritative game state"
 - Consumes: `ContentRegistry`, `GameState`.
 - Produces: `GameService.create_game()`, `get_scene_view(state)`, `explore(state, hotspot_id, expected_revision)`, `record_choice(state, choice_id, expected_revision)`, `evaluate_ending(state)`, `ActionResult(state, events)`.
 
-- [ ] **Step 1: Write exploration and revision failure tests**
+- [x] **Step 1: Write exploration and revision failure tests**
 
 Assert wrong-scene hotspot yields `HOTSPOT_INVALID`, stale revisions yield `GAME_REVISION_CONFLICT`, fragment hotspots reveal/collect only their canonical fragment, repeated idempotent exploration does not duplicate state, and successful mutations increment revision exactly once.
 
-- [ ] **Step 2: Write choice and four-ending reachability tests**
+- [x] **Step 2: Write choice and four-ending reachability tests**
 
 For every shipping choice, assert source-scene enforcement, standard `KeyChoiceRecord`, derived `butterfly_choices`, target transition, and revision increment. Build one legal state-machine path per ending and assert all four ending IDs are returned.
 
@@ -344,13 +344,15 @@ def test_every_ending_has_a_legal_path(service, path, ending_id):
     assert service.evaluate_ending(state).id == ending_id
 ```
 
-- [ ] **Step 3: Run application tests to verify RED**
+- [x] **Step 3: Run application tests to verify RED**
 
 Run: `pytest backend/tests/application/test_game_service.py backend/tests/application/test_ending_paths.py -q`
 
 Expected: FAIL because `GameService` and typed results do not exist.
 
-- [ ] **Step 4: Implement pure deterministic mutations**
+Execution note: the first focused run returned 11 PASS because the service and route files had already landed in the same active implementation batch. The files were inspected line by line, the HTTP revision-conflict contract was exercised through `TestClient`, and the full backend suite then passed 117 tests.
+
+- [x] **Step 4: Implement pure deterministic mutations**
 
 Copy the validated Pydantic state before mutation; validate `expected_revision`; apply content-declared effects only; append newly visited scenes once; recompute chapter/current mood; increment revision once; return presentation events without embedding UI implementation.
 
@@ -360,7 +362,7 @@ class ActionResult(BaseModel):
     events: list[PresentationEvent] = Field(default_factory=list)
 ```
 
-- [ ] **Step 5: Map scene and ending routes to services**
+- [x] **Step 5: Map scene and ending routes to services**
 
 Expose:
 
@@ -374,13 +376,13 @@ POST /api/game/ending
 
 Keep legacy routes only as thin deprecated aliases until the frontend migration in Task 6 is complete. Errors use `{"error":{"code":"...","message":"..."}}`.
 
-- [ ] **Step 6: Run old and new backend tests**
+- [x] **Step 6: Run old and new backend tests**
 
 Run: `pytest backend/tests -q`
 
 Expected: PASS, including all four legal ending paths and legacy engine regression tests.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add backend/application backend/api backend/engine backend/tests/application

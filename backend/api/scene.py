@@ -7,6 +7,7 @@ from backend.engine.world import (
     get_all_scene_ids, create_initial_state,
 )
 from backend.engine.butterfly import get_scene_modifiers, get_npc_modifiers
+from backend.engine.world import CONTENT_REGISTRY
 
 router = APIRouter(prefix="/api/scene", tags=["scene"])
 
@@ -73,7 +74,20 @@ def scene_detail(req: SceneRequest):
         "scene": scene,
         "npcs": [{"id": n["id"], "name": n["name"], "title": n["title"], "avatar": n["avatar"]} for n in npcs],
         "fragments": fragment_list,
-        "butterfly_mods": get_scene_modifiers(req.game_state, req.scene_id),
+        "hotspots": [
+            hotspot.model_dump(mode="json")
+            for hotspot in CONTENT_REGISTRY.hotspots.values()
+            if hotspot.scene_id == req.scene_id
+        ],
+        "choices": [
+            choice.model_dump(mode="json")
+            for choice in CONTENT_REGISTRY.choices.values()
+            if choice.scene_id == req.scene_id
+        ],
+        "butterfly_mods": [
+            {"mod_type": "scene_description", "mod_value": modifier}
+            for modifier in get_scene_modifiers(req.game_state, req.scene_id)
+        ],
     }
 
 

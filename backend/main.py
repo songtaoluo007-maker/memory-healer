@@ -23,7 +23,9 @@ from backend.api.auth import router as auth_router
 from backend.api.tts import router as tts_router
 from backend.api.ending import router as ending_router
 from backend.api.butterfly import router as butterfly_router
+from backend.api.game import router as game_router
 from backend.config import settings
+from backend.domain.errors import DomainError
 
 
 # ── 日志配置 ──
@@ -95,6 +97,29 @@ app.add_exception_handler(RateLimitExceeded, lambda req, exc: JSONResponse(
     content={"error": "请求过于频繁，请稍后再试", "retry_after": exc.detail},
 ))
 
+
+@app.exception_handler(DomainError)
+async def handle_domain_error(_request: Request, exc: DomainError):
+    status_by_code = {
+        "GAME_REVISION_CONFLICT": 409,
+        "SCENE_NOT_FOUND": 404,
+        "NPC_NOT_FOUND": 404,
+        "FRAGMENT_NOT_FOUND": 404,
+        "AI_UNAVAILABLE": 503,
+        "TTS_UNAVAILABLE": 503,
+        "RATE_LIMITED": 429,
+    }
+    return JSONResponse(
+        status_code=status_by_code.get(exc.code, 400),
+        content={
+            "error": {
+                "code": exc.code,
+                "message": exc.message,
+                "details": exc.details,
+            }
+        },
+    )
+
 # ── CORS（从配置读取）──
 app.add_middleware(
     CORSMiddleware,
@@ -129,6 +154,7 @@ app.include_router(auth_router)
 app.include_router(tts_router)
 app.include_router(ending_router)
 app.include_router(butterfly_router)
+app.include_router(game_router)
 
 
 @app.get("/api/health", tags=["health"])
