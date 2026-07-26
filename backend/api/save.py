@@ -5,7 +5,7 @@ from pydantic import BaseModel, validator
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.save import SaveSlot
-from backend.models.user import User
+from backend.persistence.models import User
 from backend.api.auth import get_current_user
 
 router = APIRouter(prefix="/api/save", tags=["save"])

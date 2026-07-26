@@ -27,14 +27,21 @@ class Settings(BaseSettings):
     BACKEND_HOST: str = "127.0.0.1"
     BACKEND_PORT: int = 8000
     LOG_LEVEL: str = "INFO"
-    CORS_ORIGINS: str = "*"
+    DATABASE_URL: str = f"sqlite:///{(ROOT_DIR / 'data' / 'game.db').as_posix()}"
+    CORS_ORIGINS: str = "http://127.0.0.1:5173,http://localhost:5173"
     API_PREFIX: str = "/api"
     DEBUG: bool = False
     ENVIRONMENT: str = "development"  # development | staging | production
+    SESSION_COOKIE_NAME: str = "memory_session"
+    SESSION_TTL_SECONDS: int = Field(default=2_592_000, ge=300, le=31_536_000)
+    COOKIE_SECURE: bool = False
 
     @property
     def cors_origins_list(self) -> List[str]:
-        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+        origins = [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+        if "*" in origins:
+            raise ValueError("CORS_ORIGINS cannot contain '*' when Cookie auth is enabled")
+        return origins
 
     @property
     def is_production(self) -> bool:

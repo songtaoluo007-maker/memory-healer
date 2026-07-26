@@ -39,7 +39,7 @@ const handleSubmit = async () => {
 
     if (!res.ok) {
       const data = await res.json()
-      throw new Error(data.detail || '操作失败')
+      throw new Error(data.error?.message || data.detail || '操作失败')
     }
 
     const data = await res.json()
@@ -92,8 +92,8 @@ const switchMode = () => {
           <input
             v-model="password"
             type="password"
-            placeholder="至少6位"
-            autocomplete="current-password"
+            placeholder="8-128位"
+            :autocomplete="mode === 'register' ? 'new-password' : 'current-password'"
           />
         </div>
 

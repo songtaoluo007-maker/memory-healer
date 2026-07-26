@@ -1,13 +1,16 @@
-"""数据库初始化"""
+"""Database engine and request-scoped SQLAlchemy session."""
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
-from pathlib import Path
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-DB_PATH = Path(__file__).resolve().parent.parent / "data" / "game.db"
-DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+from backend.config import settings
 
-engine = create_engine(f"sqlite:///{DB_PATH}", echo=False)
-SessionLocal = sessionmaker(bind=engine)
+_engine_options: dict[str, object] = {"pool_pre_ping": True}
+if settings.DATABASE_URL.startswith("sqlite"):
+    _engine_options["connect_args"] = {"check_same_thread": False}
+
+engine = create_engine(settings.DATABASE_URL, **_engine_options)
+SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 
 class Base(DeclarativeBase):
@@ -23,15 +26,9 @@ def get_db():
 
 
 def init_db():
+    # Local development may bootstrap an empty SQLite database directly. All
+    # deployed environments use Alembic migrations.
+    from backend.persistence import models as _persistence
     from backend.models import save as _save
-    from backend.models import user as _user
-    from backend.models import token as _token
-    Base.metadata.create_all(bind=engine)
 
-    # SQLite迁移：给save_slots加user_id列（如果缺失）
-    import sqlalchemy
-    with engine.connect() as conn:
-        cols = [r[1] for r in conn.execute(sqlalchemy.text("PRAGMA table_info(save_slots)")).fetchall()]
-        if 'user_id' not in cols:
-            conn.execute(sqlalchemy.text("ALTER TABLE save_slots ADD COLUMN user_id INTEGER DEFAULT 0"))
-            conn.commit()
+    Base.metadata.create_all(bind=engine)

@@ -564,35 +564,35 @@ git commit -m "refactor: use canonical gameplay state in frontend"
 - Consumes: SQLAlchemy session dependency and application settings.
 - Produces: `PasswordHasher`, `hash_session_token(raw: str) -> str`, `get_current_user(request, db)`, `SessionRepository.create/revoke/resolve`, and Cookie name `memory_session`.
 
-- [ ] **Step 1: Write authentication integration tests**
+- [x] **Step 1: Write authentication integration tests**
 
 Use a temporary SQLite database dependency override. Assert registration sets an HttpOnly SameSite=Lax Cookie without returning a token body, passwords are Argon2 hashes, the database stores only SHA-256 session-token hashes, `/me` works by Cookie, logout revokes the current session and clears the Cookie, expired sessions fail, duplicate usernames return a stable error, and invalid credentials do not disclose which field was wrong.
 
-- [ ] **Step 2: Run auth tests to verify RED**
+- [x] **Step 2: Run auth tests to verify RED**
 
 Run: `pytest backend/tests/api/test_auth.py backend/tests/persistence/test_sessions.py -q`
 
 Expected: FAIL because bearer tokens and unsalted password SHA-256 are still active.
 
-- [ ] **Step 3: Add locked runtime dependencies**
+- [x] **Step 3: Add locked runtime dependencies**
 
 Add `argon2-cffi`, `alembic`, `psycopg[binary]`, and `edge-tts`; update vulnerable direct packages to versions reported non-vulnerable by their authoritative advisories. Install from `requirements.txt` and record exact pins.
 
-- [ ] **Step 4: Implement password and session primitives**
+- [x] **Step 4: Implement password and session primitives**
 
 Use `argon2.PasswordHasher` defaults compatible with Argon2id, generate 32 random bytes with `secrets.token_urlsafe(32)`, hash raw session tokens with SHA-256 for lookup, compare with `secrets.compare_digest`, and use timezone-aware UTC at the API boundary.
 
-- [ ] **Step 5: Implement Cookie auth routes**
+- [x] **Step 5: Implement Cookie auth routes**
 
 Set `memory_session` with `httponly=True`, `samesite="lax"`, `secure=settings.COOKIE_SECURE`, `max_age=settings.SESSION_TTL_SECONDS`, and `path="/"`. Configure CORS credentials only for explicit configured origins; never use wildcard origins with credentials.
 
-- [ ] **Step 6: Run auth and full backend tests**
+- [x] **Step 6: Run auth and full backend tests**
 
 Run: `pytest backend/tests -q`
 
 Expected: PASS; no test sends an Authorization header.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add requirements.txt backend

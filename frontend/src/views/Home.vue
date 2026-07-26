@@ -12,7 +12,7 @@ const showMenu = ref(true)
 const showLogin = ref(false)
 const currentUser = ref<AuthUser | null>(null)
 
-onMounted(() => {
+onMounted(async () => {
   const saved = localStorage.getItem('mh_user')
   if (saved) {
     try {
@@ -21,6 +21,17 @@ onMounted(() => {
       localStorage.removeItem('mh_user')
     }
   }
+
+  try {
+    const response = await fetch('/api/auth/me', { credentials: 'include' })
+    if (!response.ok) throw new Error('session unavailable')
+    const user = (await response.json()) as AuthUser
+    currentUser.value = user
+    localStorage.setItem('mh_user', JSON.stringify(user))
+  } catch {
+    currentUser.value = null
+    localStorage.removeItem('mh_user')
+  }
 })
 
 const handleLogin = (user: AuthUser) => {
@@ -28,9 +39,16 @@ const handleLogin = (user: AuthUser) => {
   showLogin.value = false
 }
 
-const handleLogout = () => {
-  localStorage.removeItem('mh_user')
-  currentUser.value = null
+const handleLogout = async () => {
+  try {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    })
+  } finally {
+    localStorage.removeItem('mh_user')
+    currentUser.value = null
+  }
 }
 
 const handleStart = () => {

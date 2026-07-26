@@ -1,154 +1,172 @@
-"""认证API"""
-import hashlib
-import secrets
-from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, HTTPException, Depends, Header
-from pydantic import BaseModel, validator
+"""Cookie-only authentication API."""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, Request, Response
+from pydantic import BaseModel, ConfigDict, field_validator
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+
+from backend.config import settings
 from backend.database import get_db
-from backend.models.user import User
-from backend.models.token import Token
+from backend.domain.errors import DomainError
+from backend.persistence.models import User
+from backend.persistence.repositories import SessionRepository
+from backend.security import DUMMY_PASSWORD_HASH, hash_password, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-TOKEN_EXPIRE_DAYS = 30  # token有效期30天
-
-
-def _hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
-
-
-def _generate_token() -> str:
-    return secrets.token_hex(32)
-
-
-def get_current_user(
-    authorization: str = Header(None),
-    db: Session = Depends(get_db),
-) -> User:
-    """鉴权依赖：从Authorization header解析token，返回User对象"""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="未登录")
-
-    token = authorization[7:]  # 去掉 "Bearer "
-    token_row = db.query(Token).filter(Token.token == token).first()
-    if not token_row:
-        raise HTTPException(status_code=401, detail="token无效或已过期")
-
-    # 检查过期
-    if token_row.expires_at and token_row.expires_at < datetime.now(timezone.utc):
-        db.delete(token_row)
-        db.commit()
-        raise HTTPException(status_code=401, detail="token已过期，请重新登录")
-
-    user = db.query(User).filter(User.id == token_row.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
-
-    return user
-
 
 class RegisterRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     username: str
     password: str
     nickname: str = ""
 
-    @validator('username')
-    def validate_username(cls, v):
-        if len(v) < 3 or len(v) > 20:
-            raise ValueError('用户名长度需在3-20之间')
-        if not v.isalnum():
-            raise ValueError('用户名只能包含字母和数字')
-        return v
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, value: str) -> str:
+        value = value.strip()
+        if not 3 <= len(value) <= 20:
+            raise ValueError("用户名长度需在3-20之间")
+        if not value.isalnum():
+            raise ValueError("用户名只能包含字母和数字")
+        return value
 
-    @validator('password')
-    def validate_password(cls, v):
-        if len(v) < 6:
-            raise ValueError('密码长度不能少于6')
-        return v
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        if len(value) < 8 or len(value) > 128:
+            raise ValueError("密码长度需在8-128之间")
+        return value
+
+    @field_validator("nickname")
+    @classmethod
+    def validate_nickname(cls, value: str) -> str:
+        value = value.strip()
+        if len(value) > 50:
+            raise ValueError("昵称长度不能超过50")
+        return value
 
 
 class LoginRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     username: str
     password: str
 
 
 class AuthResponse(BaseModel):
-    token: str
     user_id: int
     username: str
     nickname: str
 
 
-def _create_token(db: Session, user_id: int) -> str:
-    """创建持久化token"""
-    token = _generate_token()
-    expires = datetime.now(timezone.utc) + timedelta(days=TOKEN_EXPIRE_DAYS)
-    db.add(Token(token=token, user_id=user_id, expires_at=expires))
-    db.commit()
-    return token
+def _auth_response(user: User) -> AuthResponse:
+    return AuthResponse(
+        user_id=user.id,
+        username=user.username,
+        nickname=user.nickname or user.username,
+    )
+
+
+def _set_session_cookie(response: Response, raw_token: str) -> None:
+    response.set_cookie(
+        key=settings.SESSION_COOKIE_NAME,
+        value=raw_token,
+        max_age=settings.SESSION_TTL_SECONDS,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite="lax",
+        path="/",
+    )
+
+
+def _clear_session_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=settings.SESSION_COOKIE_NAME,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite="lax",
+        path="/",
+    )
+
+
+def get_current_user(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> User:
+    raw_token = request.cookies.get(settings.SESSION_COOKIE_NAME, "")
+    user = SessionRepository(db).resolve(raw_token)
+    if user is None:
+        raise DomainError("AUTH_REQUIRED", "请先登录")
+    return user
 
 
 @router.post("/register", response_model=AuthResponse)
-def register(req: RegisterRequest, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.username == req.username).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="用户名已存在")
-
+def register(
+    req: RegisterRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> AuthResponse:
     user = User(
         username=req.username,
-        password_hash=_hash_password(req.password),
+        password_hash=hash_password(req.password),
         nickname=req.nickname or req.username,
     )
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise DomainError("USERNAME_TAKEN", "用户名已存在") from exc
     db.refresh(user)
 
-    token = _create_token(db, user.id)
-
-    return AuthResponse(
-        token=token,
-        user_id=user.id,
-        username=user.username,
-        nickname=user.nickname or user.username,
+    raw_token, _session = SessionRepository(db).create(
+        user.id,
+        ttl_seconds=settings.SESSION_TTL_SECONDS,
     )
+    _set_session_cookie(response, raw_token)
+    return _auth_response(user)
 
 
 @router.post("/login", response_model=AuthResponse)
-def login(req: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == req.username).first()
-    if not user or user.password_hash != _hash_password(req.password):
-        raise HTTPException(status_code=401, detail="用户名或密码错误")
+def login(
+    req: LoginRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> AuthResponse:
+    user = db.scalar(select(User).where(User.username == req.username.strip()))
+    password_hash = user.password_hash if user is not None else DUMMY_PASSWORD_HASH
+    if not verify_password(password_hash, req.password) or user is None:
+        raise DomainError("INVALID_CREDENTIALS", "用户名或密码错误")
 
     user.last_login = datetime.now(timezone.utc)
     db.commit()
-
-    token = _create_token(db, user.id)
-
-    return AuthResponse(
-        token=token,
-        user_id=user.id,
-        username=user.username,
-        nickname=user.nickname or user.username,
+    raw_token, _session = SessionRepository(db).create(
+        user.id,
+        ttl_seconds=settings.SESSION_TTL_SECONDS,
     )
+    _set_session_cookie(response, raw_token)
+    return _auth_response(user)
 
 
-@router.get("/me")
-def me(user: User = Depends(get_current_user)):
-    return {
-        "user_id": user.id,
-        "username": user.username,
-        "nickname": user.nickname or user.username,
-    }
+@router.get("/me", response_model=AuthResponse)
+def me(user: User = Depends(get_current_user)) -> AuthResponse:
+    return _auth_response(user)
 
 
 @router.post("/logout")
 def logout(
-    authorization: str = Header(None),
+    request: Request,
+    response: Response,
     db: Session = Depends(get_db),
-):
-    if authorization and authorization.startswith("Bearer "):
-        token = authorization[7:]
-        db.query(Token).filter(Token.token == token).delete()
-        db.commit()
+) -> dict[str, str]:
+    raw_token = request.cookies.get(settings.SESSION_COOKIE_NAME, "")
+    SessionRepository(db).revoke(raw_token)
+    _clear_session_cookie(response)
     return {"status": "ok"}

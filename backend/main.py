@@ -102,6 +102,9 @@ app.add_exception_handler(RateLimitExceeded, lambda req, exc: JSONResponse(
 async def handle_domain_error(_request: Request, exc: DomainError):
     status_by_code = {
         "GAME_REVISION_CONFLICT": 409,
+        "USERNAME_TAKEN": 409,
+        "AUTH_REQUIRED": 401,
+        "INVALID_CREDENTIALS": 401,
         "SCENE_NOT_FOUND": 404,
         "NPC_NOT_FOUND": 404,
         "FRAGMENT_NOT_FOUND": 404,
@@ -124,9 +127,9 @@ async def handle_domain_error(_request: Request, exc: DomainError):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type"],
 )
 
 
