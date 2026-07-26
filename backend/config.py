@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import List
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     DEEPSEEK_MAX_RETRIES: int = Field(default=2, ge=0, le=5)
     DEEPSEEK_FAILURE_THRESHOLD: int = Field(default=5, ge=1, le=20)
     DEEPSEEK_COOLDOWN_SECONDS: float = Field(default=30, ge=1, le=300)
-    BACKEND_HOST: str = "127.0.0.1"
+    BACKEND_HOST: str = "0.0.0.0"
     BACKEND_PORT: int = 8000
     LOG_LEVEL: str = "INFO"
     DATABASE_URL: str = f"sqlite:///{(ROOT_DIR / 'data' / 'game.db').as_posix()}"
@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"  # development | staging | production
     SESSION_COOKIE_NAME: str = "memory_session"
     SESSION_TTL_SECONDS: int = Field(default=2_592_000, ge=300, le=31_536_000)
-    COOKIE_SECURE: bool = False
+    COOKIE_SECURE: bool | None = None
     TTS_CACHE_DIR: Path = ROOT_DIR / "data" / "tts_cache"
     TTS_MAX_TEXT_LENGTH: int = Field(default=500, ge=1, le=2_000)
     TTS_MAX_CONCURRENCY: int = Field(default=2, ge=1, le=16)
@@ -47,14 +47,27 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> List[str]:
-        origins = [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
-        if "*" in origins:
-            raise ValueError("CORS_ORIGINS cannot contain '*' when Cookie auth is enabled")
-        return origins
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT == "production"
+
+    @property
+    def cookie_secure(self) -> bool:
+        if self.COOKIE_SECURE is not None:
+            return self.COOKIE_SECURE
+        return self.is_production
+
+    @model_validator(mode="after")
+    def validate_cookie_transport(self) -> "Settings":
+        if "*" in self.cors_origins_list:
+            raise ValueError(
+                "CORS_ORIGINS cannot contain '*' when Cookie authentication is enabled"
+            )
+        if self.is_production and not self.cors_origins_list:
+            raise ValueError("CORS_ORIGINS must be explicit in production")
+        return self
 
 
 settings = Settings()

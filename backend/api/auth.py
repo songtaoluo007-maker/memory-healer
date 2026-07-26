@@ -80,7 +80,7 @@ def _set_session_cookie(response: Response, raw_token: str) -> None:
         value=raw_token,
         max_age=settings.SESSION_TTL_SECONDS,
         httponly=True,
-        secure=settings.COOKIE_SECURE,
+        secure=settings.cookie_secure,
         samesite="lax",
         path="/",
     )
@@ -90,7 +90,7 @@ def _clear_session_cookie(response: Response) -> None:
     response.delete_cookie(
         key=settings.SESSION_COOKIE_NAME,
         httponly=True,
-        secure=settings.COOKIE_SECURE,
+        secure=settings.cookie_secure,
         samesite="lax",
         path="/",
     )

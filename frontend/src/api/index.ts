@@ -74,7 +74,7 @@ export const deleteSave = (slotId: number) => api.delete(`/save/delete/${slotId}
 
 // 健康检查
 export const healthCheck = () =>
-  api.get<{ status: string; game: string; has_ai_key: boolean }>('/health')
+  api.get<{ status: string; service: string; version: string; database: string }>('/health')
 
 // 权威结局评估
 export const evaluateEnding = (gameState: GameState) =>

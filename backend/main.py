@@ -165,24 +165,22 @@ app.mount("/tts", StaticFiles(directory=settings.TTS_CACHE_DIR), name="tts-cache
 
 @app.get("/api/health", tags=["health"])
 def health():
-    """健康检查（含诊断信息）"""
-    from backend.database import get_db
+    """Return operational readiness without exposing configuration."""
+    from backend.database import SessionLocal
     from sqlalchemy import text
-    
+
     db_ok = True
     try:
-        db = next(get_db())
-        db.execute(text("SELECT 1"))
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
     except Exception:
         db_ok = False
-    
+
     return {
         "status": "ok" if db_ok else "degraded",
-        "game": "拾忆",
+        "service": "memory-healer-api",
         "version": "1.0.0",
-        "has_ai_key": bool(settings.DEEPSEEK_API_KEY and "your_" not in settings.DEEPSEEK_API_KEY),
         "database": "ok" if db_ok else "error",
-        "debug": settings.DEBUG,
     }
 
 

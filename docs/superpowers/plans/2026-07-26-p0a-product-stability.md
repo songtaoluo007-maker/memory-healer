@@ -738,33 +738,39 @@ git commit -m "feat: make tts bounded and nonblocking"
 - Consumes: `/api/health`, frontend static output, Alembic migration command.
 - Produces: one-command `docker compose up --build`, backend listening on `0.0.0.0`, Nginx proxy for `/api/` and `/tts/`, and browser bundles with no localhost API.
 
-- [ ] **Step 1: Write configuration tests**
+- [x] **Step 1: Write configuration tests**
 
 Assert production rejects wildcard credentialed origins, Cookie Secure follows environment, default database is SQLite, supplied PostgreSQL URL is preserved, backend default container host is `0.0.0.0`, and no secret value is included in health responses.
 
-- [ ] **Step 2: Run config tests to verify RED**
+- [x] **Step 2: Run config tests to verify RED**
 
 Run: `pytest backend/tests/test_config.py -q`
 
 Expected: FAIL on current host/CORS/health behavior.
 
-- [ ] **Step 3: Implement container startup and health behavior**
+- [x] **Step 3: Implement container startup and health behavior**
 
 Run `alembic upgrade head` before Uvicorn; listen on `0.0.0.0`; use Python rather than unavailable `curl` for backend healthcheck unless curl is explicitly installed; return only status, service name, version, and database status from `/api/health`.
 
-- [ ] **Step 4: Configure same-origin Nginx**
+- [x] **Step 4: Configure same-origin Nginx**
 
 Serve the SPA with history fallback, proxy `/api/` to `backend:8000`, proxy `/tts/` to the backend with bounded caching, forward standard proxy headers, and never embed a browser-facing backend hostname.
 
-- [ ] **Step 5: Make Compose independent of a missing `.env`**
+- [x] **Step 5: Make Compose independent of a missing `.env`**
 
 Provide safe local defaults via `${NAME:-default}`, make `.env` optional, mount persistent database/TTS volumes, order health-dependent services, and keep DeepSeek optional so the game boots in degraded mode.
 
-- [ ] **Step 6: Add a deterministic smoke script**
+- [x] **Step 6: Add a deterministic smoke script**
 
 `scripts/smoke.ps1` must request the frontend root, `/api/health`, `/api/scene/list`, and `/api/game/new`, assert status codes and the five-scene count, then exit nonzero on any failure.
 
-- [ ] **Step 7: Validate and run containers**
+- [x] **Step 7: Validate and run containers**
+
+Environment note: `docker compose config` passed and the smoke script passed
+against the local same-origin stack. Container build/start could not run because
+the installed Docker CLI could not connect to
+`npipe:////./pipe/dockerDesktopLinuxEngine`; no Docker daemon/Desktop service
+is present in this environment.
 
 Run:
 
@@ -778,7 +784,7 @@ docker compose down
 
 Expected: config/build/start/smoke/stop all succeed. If Docker is unavailable, record that exact environment limitation and still run `docker compose config` if the CLI supports it; do not claim container verification.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add Dockerfile frontend/Dockerfile frontend/nginx.conf docker-compose.yml .env.example scripts backend/tests/test_config.py backend/config.py backend/main.py

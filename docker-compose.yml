@@ -1,27 +1,44 @@
+name: shiyi
+
 services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.backend
-    ports:
-      - "8000:8000"
+      dockerfile: Dockerfile
     env_file:
-      - .env
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: "${DATABASE_URL:-sqlite:////app/data/game.db}"
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:-}"
+      DEEPSEEK_BASE_URL: "${DEEPSEEK_BASE_URL:-https://api.deepseek.com}"
+      DEEPSEEK_MODEL: "${DEEPSEEK_MODEL:-deepseek-v4-flash}"
+      ENVIRONMENT: "${ENVIRONMENT:-development}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-http://127.0.0.1:5173,http://localhost:5173}"
+      COOKIE_SECURE: "${COOKIE_SECURE:-false}"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      TTS_CACHE_DIR: "/app/data/tts_cache"
     volumes:
       - db-data:/app/data
+      - tts-cache:/app/data/tts_cache
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
-      interval: 30s
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"
+      interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 6
+      start_period: 10s
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "5173:80"
+      - "${FRONTEND_PORT:-5173}:80"
     depends_on:
       backend:
         condition: service_healthy
@@ -29,3 +46,4 @@ services:
 
 volumes:
   db-data:
+  tts-cache:
