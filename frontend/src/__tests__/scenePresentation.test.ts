@@ -39,8 +39,19 @@ describe('cinematic scene presentation registry', () => {
     }
   })
 
+  it('registers the rain-soaked 2024 room and elderly Chen Shouyi', () => {
+    const scene = getScenePresentation('scene_2024')
+
+    expect(scene).not.toBeNull()
+    if (scene) {
+      expect(scene.background).toContain('scene-2024-urban-village-room')
+      expect(scene.portraits).toHaveProperty('chen_shouyi_old')
+      expect(scene.palette).toBe('rain')
+      expect(scene.composition.mobileFocus).toEqual([0.57, 0.5])
+    }
+  })
+
   it('falls back cleanly for eras that do not have final cinematic art yet', () => {
-    expect(getScenePresentation('scene_2024')).toBeNull()
     expect(getScenePresentation('scene_2089')).toBeNull()
   })
 })
