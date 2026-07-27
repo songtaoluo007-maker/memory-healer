@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import endingBackdrop from '../assets/cinematic/scene-1972-xian-alley.png'
-import chenPortrait from '../assets/cinematic/chen-shouyi-1972.png'
+import chenPortrait from '../assets/cinematic/chen-shouyi-1972-solid.webp'
 import { useGameState } from '../composables/useGameState'
 import type { EndingType } from '../types/game'
 

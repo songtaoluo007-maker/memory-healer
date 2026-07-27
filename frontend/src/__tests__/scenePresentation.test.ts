@@ -91,4 +91,20 @@ describe('cinematic scene presentation registry', () => {
       getScenePresentation('scene_2089')?.palette,
     ]).toEqual(['amber', 'rail', 'rain', 'ceremony', 'memory'])
   })
+
+  it('registers seven distinct solid character plates', () => {
+    const solidPortraits = [
+      getScenePresentation('scene_1972')?.portraits.chen_shouyi_young,
+      getScenePresentation('scene_1990')?.portraits.chen_shouyi_1990,
+      getScenePresentation('scene_1990')?.portraits.stranger_1990,
+      getScenePresentation('scene_2024')?.portraits.chen_shouyi_old,
+      getScenePresentation('scene_2050')?.portraits.xiaoyu_2050,
+      getScenePresentation('scene_2050')?.portraits.journalist_2050,
+      getScenePresentation('scene_2089')?.portraits.xiaoyu,
+    ]
+
+    expect(solidPortraits).toHaveLength(7)
+    expect(solidPortraits.every((portrait) => portrait?.includes('-solid'))).toBe(true)
+    expect(new Set(solidPortraits).size).toBe(7)
+  })
 })
