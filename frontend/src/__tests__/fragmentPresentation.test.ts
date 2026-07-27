@@ -91,4 +91,16 @@ describe('fragment presentation registry', () => {
       expect(getFragmentPresentation(id)?.image).toContain(filename)
     }
   })
+
+  it('registers all three additional 2050 interaction inserts', () => {
+    const expected = {
+      old_photos_wall_fragment: 'fragment-2050-photo-wall',
+      hologram_stage_fragment: 'fragment-2050-hologram-stage',
+      audience_reactions_fragment: 'fragment-2050-audience-tears',
+    }
+
+    for (const [id, filename] of Object.entries(expected)) {
+      expect(getFragmentPresentation(id)?.image).toContain(filename)
+    }
+  })
 })

@@ -9,6 +9,9 @@ import xiaoyuLetter2024 from '../assets/cinematic/fragment-2024-xiaoyu-letter.we
 import oldPhotos2024 from '../assets/cinematic/fragment-2024-old-photos.webp'
 import lastShowPoster2024 from '../assets/cinematic/fragment-2024-last-show-poster.webp'
 import awardTrophy2050 from '../assets/cinematic/fragment-2050-award-trophy.webp'
+import photoWall2050 from '../assets/cinematic/fragment-2050-photo-wall.webp'
+import hologramStage2050 from '../assets/cinematic/fragment-2050-hologram-stage.webp'
+import audienceTears2050 from '../assets/cinematic/fragment-2050-audience-tears.webp'
 import lastPuppet2089 from '../assets/cinematic/fragment-2089-last-puppet.webp'
 
 export interface FragmentPresentation {
@@ -84,6 +87,24 @@ const presentations: Record<string, FragmentPresentation> = {
     image: awardTrophy2050,
     alt: '折射暖金光晕的水晶奖杯，内部映出一枚皮影轮廓。',
     focus: '50% 48%',
+  },
+  old_photos_wall_fragment: {
+    id: 'old_photos_wall_fragment',
+    image: photoWall2050,
+    alt: '从旧作坊到典礼舞台的照片沿着时光墙延伸，实体相片与柔光框彼此连接。',
+    focus: '50% 48%',
+  },
+  hologram_stage_fragment: {
+    id: 'hologram_stage_fragment',
+    image: hologramStage2050,
+    alt: '保留手工刻纹的全息皮影在象牙金舞台上重新活动。',
+    focus: '50% 50%',
+  },
+  audience_reactions_fragment: {
+    id: 'audience_reactions_fragment',
+    image: audienceTears2050,
+    alt: '观众席暗处有人轻轻拭去泪水，皮影暖光映在一排安静的眼睛里。',
+    focus: '50% 46%',
   },
   fragment_last_puppet: {
     id: 'fragment_last_puppet',
