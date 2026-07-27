@@ -7,6 +7,7 @@ import { useHotspots } from '../composables/useHotspots'
 import { useI18n } from '../composables/useI18n'
 import { useScene } from '../composables/useScene'
 import { useTypewriter } from '../composables/useTypewriter'
+import { useUiStore, type CinematicOverlay } from '../stores/ui'
 import type {
   ChatMessage,
   Choice,
@@ -18,6 +19,7 @@ import type {
 } from '../types/game'
 
 const SceneIllustration = defineAsyncComponent(() => import('../components/SceneIllustration.vue'))
+const CinematicStage = defineAsyncComponent(() => import('../components/CinematicStage.vue'))
 const NpcAvatar = defineAsyncComponent(() => import('../components/NpcAvatar.vue'))
 const HotspotOverlay = defineAsyncComponent(() => import('../components/HotspotOverlay.vue'))
 const SceneTransition = defineAsyncComponent(() => import('../components/SceneTransition.vue'))
@@ -26,9 +28,6 @@ const StoryLog = defineAsyncComponent(() => import('../components/StoryLog.vue')
 const SceneTimeline = defineAsyncComponent(() => import('../components/SceneTimeline.vue'))
 const MemoryPanel = defineAsyncComponent(() => import('../components/MemoryPanel.vue'))
 const InventoryPanel = defineAsyncComponent(() => import('../components/InventoryPanel.vue'))
-const ShadowLighting = defineAsyncComponent(() => import('../components/ShadowLighting.vue'))
-const InkParticles = defineAsyncComponent(() => import('../components/InkParticles.vue'))
-const ParallaxBg = defineAsyncComponent(() => import('../components/ParallaxBg.vue'))
 const ChatPanel = defineAsyncComponent(() => import('../components/ChatPanel.vue'))
 
 const emit = defineEmits<{ ending: [type: EndingType] }>()
@@ -63,6 +62,7 @@ const {
 } = useTypewriter(25)
 const { playBGM, playSFX, isMuted, toggleMute, stopSpeak } = useAudio()
 const { lang, toggleLang } = useI18n()
+const ui = useUiStore()
 const { hotspots, exploredIds, markExplored, explorationProgress } = useHotspots(
   computed(() => sceneView.value),
 )
@@ -70,11 +70,6 @@ const { hotspots, exploredIds, markExplored, explorationProgress } = useHotspots
 const selectedNpc = ref<NpcSummary | null>(null)
 const showFragmentPopup = ref(false)
 const popupFragment = ref<(Fragment & { just_collected: boolean }) | null>(null)
-const showInventory = ref(false)
-const showMemoryPanel = ref(false)
-const showButterfly = ref(false)
-const showStoryLog = ref(false)
-const showTimeline = ref(false)
 const actionPending = ref(false)
 const mounted = ref(false)
 const endingPending = ref(false)
@@ -116,7 +111,26 @@ const loadCurrentScene = async () => {
 const selectNpc = (npc: NpcSummary) => {
   stopSpeak()
   selectedNpc.value = npc
+  ui.setStageMode('dialogue')
   playSFX('dialogue_start')
+}
+
+const closeDialogue = () => {
+  selectedNpc.value = null
+  ui.setStageMode('observe')
+}
+
+const toggleOverlay = (overlay: CinematicOverlay) => {
+  if (ui.activeOverlay === overlay) {
+    ui.closeOverlay(overlay)
+  } else {
+    ui.openOverlay(overlay)
+  }
+}
+
+const closeFragment = () => {
+  showFragmentPopup.value = false
+  ui.setStageMode(selectedNpc.value ? 'dialogue' : 'observe')
 }
 
 const fragmentForPopup = (fragmentId: string): Fragment | null => {
@@ -151,6 +165,7 @@ const handleExplore = async (hotspot: Hotspot) => {
         playSFX('fragment_found')
         popupFragment.value = { ...fragment, just_collected: true }
         showFragmentPopup.value = true
+        ui.setStageMode('fragment')
       }
     }
     if (hotspot.npc_id) {
@@ -241,7 +256,7 @@ watch(
   () => gameState.value?.current_scene,
   async (nextScene, previousScene) => {
     if (!mounted.value || !nextScene || nextScene === previousScene) return
-    selectedNpc.value = null
+    closeDialogue()
     chatPanelRef.value?.clearHistory()
     await loadCurrentScene()
   },
@@ -260,6 +275,8 @@ watch(
 )
 
 onMounted(async () => {
+  ui.closeOverlay()
+  ui.setStageMode('observe')
   sceneTransitioning.value = true
   if (props.loadSlotId != null) {
     await loadFromSlot(props.loadSlotId)
@@ -277,68 +294,92 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="gameState" class="game">
+  <div v-if="gameState" class="game game-cinema" :data-stage-mode="ui.stageMode">
     <Transition name="fade">
       <div v-if="sceneTransitioning" class="loading-overlay">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">记忆碎片正在重组...</div>
+        <span class="loading-code">MEMORY FIELD / {{ gameState.current_scene }}</span>
+        <div class="loading-line"><i /></div>
+        <div class="loading-text">正在重组记忆</div>
       </div>
     </Transition>
 
     <div class="bg-layer">
-      <ParallaxBg :scene-id="gameState.current_scene">
-        <template #layer-0>
+      <CinematicStage :scene-id="gameState.current_scene" :active-npc-id="selectedNpc?.id ?? null">
+        <template #default>
           <SceneIllustration :scene-id="gameState.current_scene" />
         </template>
-      </ParallaxBg>
-      <div class="bg-vignette"></div>
-      <ShadowLighting :scene-id="gameState.current_scene" :intensity="0.6" />
-      <InkParticles :scene-id="gameState.current_scene" trigger="idle" />
+      </CinematicStage>
     </div>
 
-    <HotspotOverlay
-      :hotspots="hotspots"
-      :explored-ids="exploredIds"
-      :scene-id="gameState.current_scene"
-      @explore="handleExplore"
-    />
+    <div class="interaction-plane" :class="{ obscured: selectedNpc }">
+      <HotspotOverlay
+        :hotspots="hotspots"
+        :explored-ids="exploredIds"
+        :scene-id="gameState.current_scene"
+        @explore="handleExplore"
+      />
+    </div>
 
-    <header class="top-bar" role="banner" aria-label="游戏状态栏">
+    <header class="top-bar cinematic-hud" role="banner" aria-label="记忆场状态">
+      <div class="brand-lockup" aria-label="拾忆">
+        <span class="brand-mark">拾</span>
+        <span class="brand-name">拾忆</span>
+        <span class="brand-index">MEMORY HEALER</span>
+      </div>
       <div class="scene-info">
-        <span class="scene-time">{{ currentScene?.time_period || '...' }}</span>
-        <span class="scene-title">{{ currentScene?.title || '加载中...' }}</span>
-        <span class="scene-location">{{ currentScene?.location || '' }}</span>
+        <span class="scene-eyebrow">CHAPTER 01 · MEMORY FIELD</span>
+        <strong class="scene-title">{{ currentScene?.title || '正在载入' }}</strong>
+        <span class="scene-meta">
+          {{ currentScene?.time_period || '····' }}
+          <i />
+          {{ currentScene?.location || '未知坐标' }}
+        </span>
       </div>
       <div class="status-right">
         <button
-          class="lang-btn"
+          class="hud-action compact"
           :title="lang === 'zh' ? 'Switch to English' : '切换到中文'"
           aria-label="语言切换"
           @click="toggleLang"
         >
           {{ lang === 'zh' ? 'EN' : '中' }}
         </button>
-        <button class="icon-btn" title="记忆档案" @click="showMemoryPanel = true">📜</button>
         <button
-          class="icon-btn"
+          class="hud-action compact"
           :title="isMuted ? '取消静音' : '静音'"
           :aria-label="isMuted ? '取消静音' : '静音'"
           @click="toggleMute"
         >
-          {{ isMuted ? '🔇' : '🔊' }}
+          {{ isMuted ? '静' : '声' }}
         </button>
-        <div class="fragment-counter" @click="showInventory = !showInventory">
-          🧩 {{ collectedCount }}/{{ totalFragments }}
-        </div>
-        <div class="butterfly-btn" @click="showButterfly = !showButterfly">🦋 蝴蝶效应</div>
-        <div class="timeline-btn" @click="showTimeline = !showTimeline">🕰 时光地图</div>
-        <div class="log-btn" @click="showStoryLog = !showStoryLog">📜 日志</div>
-        <span v-if="explorationProgress < 100" class="explore-badge">
-          探索 {{ explorationProgress }}%
-        </span>
-        <span v-else class="explore-badge done">✦ 已完全探索</span>
+        <button
+          class="fragment-counter"
+          type="button"
+          aria-label="打开记忆碎片"
+          @click="toggleOverlay('inventory')"
+        >
+          <span>碎片</span>
+          <strong>{{ String(collectedCount).padStart(2, '0') }}</strong>
+          <i>/</i>
+          <span>{{ String(totalFragments).padStart(2, '0') }}</span>
+        </button>
       </div>
     </header>
+
+    <aside class="tool-rail" aria-label="记忆工具">
+      <button type="button" @click="toggleOverlay('memory')">
+        <span class="rail-glyph">档</span><small>档案</small>
+      </button>
+      <button type="button" @click="toggleOverlay('timeline')">
+        <span class="rail-glyph">时</span><small>时序</small>
+      </button>
+      <button type="button" @click="toggleOverlay('butterfly')">
+        <span class="rail-glyph">因</span><small>因果</small>
+      </button>
+      <button type="button" @click="toggleOverlay('story')">
+        <span class="rail-glyph">录</span><small>记录</small>
+      </button>
+    </aside>
 
     <div
       v-if="narrativeText"
@@ -347,17 +388,20 @@ onMounted(async () => {
       aria-label="叙事文本"
       aria-live="polite"
     >
+      <span class="narrative-kicker">MEMORY TRANSCRIPT</span>
       <div class="narrative-text" @click="isTyping ? typeSkip() : null">
         {{ typewriterText }}<span v-if="isTyping" class="cursor">|</span>
       </div>
+      <span v-if="isTyping" class="skip-hint">单击显现全文</span>
     </div>
 
     <div class="npc-dock" role="toolbar" aria-label="NPC角色选择">
-      <div
+      <button
         v-for="npc in currentNpcs"
         :key="npc.id"
         class="npc-chip"
         :class="{ active: selectedNpc?.id === npc.id }"
+        type="button"
         @click="selectNpc(npc)"
       >
         <NpcAvatar
@@ -366,6 +410,7 @@ onMounted(async () => {
           :size="36"
         />
         <div class="npc-chip-info">
+          <span class="npc-chip-role">{{ npc.title }}</span>
           <span class="npc-chip-name">{{ npc.name }}</span>
           <div class="trust-bar-container">
             <div
@@ -380,18 +425,21 @@ onMounted(async () => {
             {{ getTrustLevel(npc.id).label }}
           </span>
         </div>
-      </div>
+      </button>
     </div>
 
     <div v-if="choices.length" class="scene-nav" aria-label="剧情选择">
+      <span class="choice-kicker">CAUSAL DECISION</span>
       <button
-        v-for="choice in choices"
+        v-for="(choice, index) in choices"
         :key="choice.id"
         class="nav-btn"
         :disabled="actionPending"
         @click="handleChoice(choice)"
       >
-        {{ choice.label }}
+        <span class="choice-index">0{{ index + 1 }}</span>
+        <span>{{ choice.label }}</span>
+        <span aria-hidden="true">→</span>
       </button>
     </div>
 
@@ -404,11 +452,14 @@ onMounted(async () => {
     >
       <div class="dialogue-glass">
         <div v-if="selectedNpc" class="dialogue-header">
-          <span>与 {{ selectedNpc.name }} 对话</span>
-          <button class="close-btn" @click="selectedNpc = null">✕</button>
+          <div>
+            <span class="dialogue-kicker">LIVE MEMORY / {{ selectedNpc.title }}</span>
+            <strong>{{ selectedNpc.name }}</strong>
+          </div>
+          <button class="close-btn" aria-label="结束对话" @click="closeDialogue">结束对话</button>
         </div>
         <div v-else class="dialogue-header">
-          <span>选择下方角色开始对话</span>
+          <span>选择人物，进入这段记忆</span>
         </div>
         <ChatPanel
           ref="chatPanelRef"
@@ -427,56 +478,67 @@ onMounted(async () => {
       role="dialog"
       aria-label="记忆碎片"
       aria-modal="true"
-      @click.self="showFragmentPopup = false"
+      @click.self="closeFragment"
     >
       <div class="fragment-popup">
-        <div class="popup-icon">🧩</div>
-        <h3>{{ popupFragment?.just_collected ? '获得记忆碎片！' : '发现记忆碎片线索' }}</h3>
+        <span class="fragment-serial">ARCHIVE / {{ popupFragment?.id }}</span>
+        <div class="popup-icon" aria-hidden="true"><i /></div>
+        <h3>{{ popupFragment?.just_collected ? '记忆已归档' : '发现记忆线索' }}</h3>
         <h2>{{ popupFragment?.name }}</h2>
         <p class="fragment-desc">{{ popupFragment?.description }}</p>
         <p v-if="popupFragment?.memory_text" class="fragment-memory">
           「{{ popupFragment.memory_text }}」
         </p>
-        <button class="btn-close" @click="showFragmentPopup = false">
+        <button class="btn-close" @click="closeFragment">
           {{ popupFragment?.just_collected ? '继续探索' : '记住这条线索' }}
         </button>
       </div>
     </div>
 
     <InventoryPanel
-      v-if="showInventory"
+      v-if="ui.activeOverlay === 'inventory'"
       :game-state="gameState"
       :collected-count="collectedCount"
       :total-fragments="totalFragments"
-      @close="showInventory = false"
+      @close="ui.closeOverlay('inventory')"
     />
     <MemoryPanel
-      v-if="showMemoryPanel"
+      v-if="ui.activeOverlay === 'memory'"
       :fragment-states="gameState.fragment_states"
       :current-scene="gameState.current_scene"
       :collected-count="gameState.collected_fragments.length"
       :total-fragments="Object.keys(gameState.fragment_states).length"
-      @close="showMemoryPanel = false"
+      @close="ui.closeOverlay('memory')"
     />
     <StoryLog
-      v-if="showStoryLog"
+      v-if="ui.activeOverlay === 'story'"
       :game-state="gameState"
       :chat-history="chatPanelRef?.chatHistory || []"
-      @close="showStoryLog = false"
+      @close="ui.closeOverlay('story')"
     />
     <SceneTimeline
-      v-if="showTimeline"
+      v-if="ui.activeOverlay === 'timeline'"
       :current-scene="gameState.current_scene"
       :visited-scenes="gameState.visited_scenes"
       @navigate="navigateTimeline"
-      @close="showTimeline = false"
+      @close="ui.closeOverlay('timeline')"
     />
-    <div v-if="showButterfly" class="butterfly-overlay" @click.self="showButterfly = false">
+    <div
+      v-if="ui.activeOverlay === 'butterfly'"
+      class="butterfly-overlay"
+      @click.self="ui.closeOverlay('butterfly')"
+    >
       <ButterflyPanel :game-state="gameState" />
+    </div>
+
+    <div class="exploration-meter" aria-label="场景探索进度">
+      <span>{{ explorationProgress === 100 ? '场景已校准' : '场景校准中' }}</span>
+      <i><b :style="{ width: `${explorationProgress}%` }" /></i>
+      <strong>{{ String(explorationProgress).padStart(2, '0') }}%</strong>
     </div>
   </div>
 </template>
 
 <style scoped>
-@import '../styles/game.css';
+@import '../styles/cinematic-game.css';
 </style>

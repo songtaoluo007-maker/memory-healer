@@ -1,238 +1,164 @@
 <script setup lang="ts">
-import { ref, onErrorCaptured, defineAsyncComponent } from 'vue'
-import type { EndingType } from './types/game'
+import { computed, onErrorCaptured, ref } from 'vue'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useWebVitals } from './composables/useWebVitals'
+import type { EndingType } from './types/game'
 
-// 懒加载视图组件
-const Home = defineAsyncComponent(() => import('./views/Home.vue'))
-const Intro = defineAsyncComponent(() => import('./views/Intro.vue'))
-const Game = defineAsyncComponent(() => import('./views/Game.vue'))
-const Ending = defineAsyncComponent(() => import('./views/Ending.vue'))
-const Saves = defineAsyncComponent(() => import('./views/Saves.vue'))
-const GameTutorial = defineAsyncComponent(() => import('./components/GameTutorial.vue'))
-
-type View = 'home' | 'intro' | 'tutorial' | 'game' | 'ending'
-
-const currentView = ref<View>('home')
-const showSaves = ref(false)
-const endingType = ref<EndingType>('hope')
-const loadSlotId = ref<number | null>(null)
+const router = useRouter()
+const route = useRoute()
 const globalError = ref<string | null>(null)
 
-// 全局错误捕获
-onErrorCaptured((err, _instance, info) => {
-  console.error('[拾忆错误]', err, info)
-  globalError.value = err.message || '发生了未知错误'
-  return false // 阻止错误向上传播
-})
-
-// Web Vitals 性能监控
 useWebVitals()
 
-const clearError = () => {
-  globalError.value = null
-}
+onErrorCaptured((error, _instance, info) => {
+  console.error('[拾忆错误]', error, info)
+  globalError.value = error.message || '记忆场暂时失去连接'
+  return false
+})
 
-const startGame = () => {
-  loadSlotId.value = null
-  currentView.value = 'intro'
-}
+const loadSlotId = computed(() => {
+  const raw = route.query.slot
+  if (typeof raw !== 'string') return null
+  const slot = Number.parseInt(raw, 10)
+  return Number.isInteger(slot) ? slot : null
+})
 
-const introComplete = () => {
-  // 首次游玩显示教程，否则直接进游戏
-  if (localStorage.getItem('mh_tutorial_done')) {
-    currentView.value = 'game'
-  } else {
-    currentView.value = 'tutorial'
+const endingType = computed<EndingType>(() => {
+  const type = route.params.type
+  return type === 'legacy' || type === 'bittersweet' || type === 'tragic' ? type : 'hope'
+})
+
+const startGame = () => router.push({ name: 'prologue' })
+
+const completeStep = () => {
+  if (route.name === 'prologue') {
+    return router.push({
+      name: localStorage.getItem('mh_tutorial_done') ? 'memory' : 'tutorial',
+    })
   }
+  return router.push({ name: 'memory' })
 }
 
-const tutorialComplete = () => {
-  currentView.value = 'game'
+const loadGame = (slotId?: number) => {
+  if (typeof slotId === 'number') {
+    return router.push({ name: 'memory', query: { slot: String(slotId) } })
+  }
+  return router.push({ name: 'saves' })
 }
 
-const loadGame = () => {
-  showSaves.value = true
-}
-
-const loadFromSlot = async (slotId: number) => {
-  showSaves.value = false
-  loadSlotId.value = slotId
-  currentView.value = 'game'
-}
-
-const onEnding = (type: EndingType) => {
-  endingType.value = type
-  currentView.value = 'ending'
-}
-
-const restart = () => {
-  loadSlotId.value = null
-  currentView.value = 'home'
-}
+const showEnding = (type: EndingType) => router.push({ name: 'ending', params: { type } })
+const goHome = () => router.push({ name: 'home' })
 </script>
 
 <template>
-  <div id="app">
-    <!-- 全局错误提示 -->
-    <div v-if="globalError" class="error-overlay" @click="clearError">
-      <div class="error-box">
-        <div class="error-icon">⚠️</div>
-        <div class="error-title">游戏遇到问题</div>
-        <div class="error-msg">{{ globalError }}</div>
-        <button class="error-btn" @click="clearError">确定</button>
+  <main class="app-shell">
+    <Transition name="error-fade">
+      <div v-if="globalError" class="error-overlay" role="alertdialog" aria-modal="true">
+        <div class="error-box">
+          <span class="error-kicker">MEMORY FIELD / SIGNAL LOST</span>
+          <h2>记忆场暂时中断</h2>
+          <p>{{ globalError }}</p>
+          <button type="button" @click="globalError = null">返回画面</button>
+        </div>
       </div>
-    </div>
-
-    <!-- 视图切换动画 -->
-    <Transition name="view-fade" mode="out-in">
-      <!-- 开场动画 -->
-      <Intro v-if="currentView === 'intro'" key="intro" @complete="introComplete" />
-
-      <!-- 主菜单 -->
-      <Home v-else-if="currentView === 'home'" key="home" @start="startGame" @load="loadGame" />
-
-      <!-- 新手教程 -->
-      <GameTutorial
-        v-else-if="currentView === 'tutorial'"
-        key="tutorial"
-        @complete="tutorialComplete"
-      />
-
-      <!-- 游戏主界面 -->
-      <Game
-        v-else-if="currentView === 'game'"
-        key="game"
-        :load-slot-id="loadSlotId"
-        @ending="onEnding"
-      />
-
-      <!-- 结局 -->
-      <Ending
-        v-else-if="currentView === 'ending'"
-        key="ending"
-        :ending-type="endingType"
-        @restart="restart"
-      />
     </Transition>
 
-    <!-- 存档管理弹窗 -->
-    <Transition name="modal-fade">
-      <Saves v-if="showSaves" @load="loadFromSlot" @close="showSaves = false" />
-    </Transition>
-  </div>
+    <RouterView v-slot="{ Component, route: activeRoute }">
+      <Transition name="film-cut" mode="out-in">
+        <component
+          :is="Component"
+          :key="activeRoute.fullPath"
+          :load-slot-id="loadSlotId"
+          :ending-type="endingType"
+          @start="startGame"
+          @load="loadGame"
+          @complete="completeStep"
+          @ending="showEnding"
+          @restart="goHome"
+          @close="goHome"
+        />
+      </Transition>
+    </RouterView>
+  </main>
 </template>
 
-<style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  background: #0a0a1a;
+<style scoped>
+.app-shell {
+  width: 100%;
+  height: 100%;
   overflow: hidden;
+  background: var(--ink-950);
 }
 
-#app {
-  width: 100vw;
-  height: 100vh;
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(100, 150, 255, 0.2);
-  border-radius: 3px;
-}
-
-/* 全局错误提示 */
 .error-overlay {
   position: fixed;
-  inset: 0;
   z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(4, 5, 5, 0.84);
+  backdrop-filter: blur(16px);
 }
+
 .error-box {
-  background: linear-gradient(135deg, #1a1a2e, #16213e);
-  border: 1px solid rgba(232, 180, 80, 0.3);
-  border-radius: 12px;
-  padding: 32px;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  width: min(30rem, 100%);
+  padding: clamp(1.5rem, 4vw, 3rem);
+  border: 1px solid rgba(214, 173, 102, 0.26);
+  background:
+    linear-gradient(135deg, rgba(185, 73, 54, 0.08), transparent 46%), rgba(13, 14, 15, 0.96);
+  box-shadow: 0 2rem 6rem rgba(0, 0, 0, 0.6);
 }
-.error-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
+
+.error-kicker {
+  color: var(--gold-300);
+  font:
+    600 0.65rem/1.2 ui-monospace,
+    monospace;
+  letter-spacing: 0.2em;
 }
-.error-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #e8b450;
-  margin-bottom: 12px;
+
+.error-box h2 {
+  margin: 1rem 0 0.6rem;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 500;
 }
-.error-msg {
-  font-size: 14px;
-  color: #a0a0a0;
-  margin-bottom: 24px;
-  line-height: 1.6;
+
+.error-box p {
+  margin: 0 0 1.5rem;
+  color: var(--paper-300);
+  line-height: 1.8;
 }
-.error-btn {
-  background: linear-gradient(135deg, #e8b450, #d4a03c);
-  color: #1a1a2e;
-  border: none;
-  padding: 10px 32px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
+
+.error-box button {
+  min-height: 2.75rem;
+  padding: 0 1.4rem;
+  border: 1px solid var(--gold-500);
+  color: var(--paper-100);
+  background: transparent;
   cursor: pointer;
-  transition: all 0.2s;
-}
-.error-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(232, 180, 80, 0.3);
 }
 
-/* 视图切换动画 */
-.view-fade-enter-active,
-.view-fade-leave-active {
+.film-cut-enter-active,
+.film-cut-leave-active {
   transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
-}
-.view-fade-enter-from {
-  opacity: 0;
-  transform: translateY(8px);
-}
-.view-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
+    opacity 480ms var(--ease-cinema),
+    filter 480ms var(--ease-cinema);
 }
 
-/* 弹窗动画 */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.25s ease;
-}
-.modal-fade-enter-from,
-.modal-fade-leave-to {
+.film-cut-enter-from,
+.film-cut-leave-to {
   opacity: 0;
+  filter: brightness(0.45) blur(3px);
 }
 
-/* 防止FOUC */
-[v-cloak] {
-  display: none !important;
+.error-fade-enter-active,
+.error-fade-leave-active {
+  transition: opacity 180ms ease;
+}
+
+.error-fade-enter-from,
+.error-fade-leave-to {
+  opacity: 0;
 }
 </style>

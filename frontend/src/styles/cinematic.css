@@ -1,0 +1,78 @@
+:root {
+  --ink-950: #060708;
+  --ink-900: #0d0e0f;
+  --ink-800: #171615;
+  --paper-100: #f1e5ce;
+  --paper-300: #d7c4a2;
+  --paper-500: #a58e69;
+  --gold-300: #d6ad66;
+  --gold-500: #a66d2c;
+  --cinnabar-400: #b94936;
+  --cinnabar-600: #7d2a20;
+  --dusk-700: #263144;
+  --safe-inline: clamp(1.25rem, 4vw, 5rem);
+  --safe-block: clamp(1rem, 3vh, 2.5rem);
+  --focus-ring: 0 0 0 2px var(--ink-950), 0 0 0 4px var(--gold-300);
+  --ease-cinema: cubic-bezier(0.22, 1, 0.36, 1);
+  color: var(--paper-100);
+  background: var(--ink-950);
+  font-family: 'Noto Serif SC', 'Songti SC', 'STSong', serif;
+  font-synthesis: none;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  min-width: 320px;
+  height: 100%;
+  margin: 0;
+  background: var(--ink-950);
+}
+
+body {
+  overflow: hidden;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+::selection {
+  color: var(--ink-950);
+  background: var(--gold-300);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--paper-300) 30%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
