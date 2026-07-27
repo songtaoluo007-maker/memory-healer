@@ -49,3 +49,6 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Local isolated worktrees
+.worktrees/
