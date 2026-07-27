@@ -5,8 +5,11 @@ import chenShouyi1990Portrait from '../assets/cinematic/chen-shouyi-1990.webp'
 import stranger1990Portrait from '../assets/cinematic/stranger-1990.webp'
 import scene2024Background from '../assets/cinematic/scene-2024-urban-village-room.webp'
 import chenShouyi2024Portrait from '../assets/cinematic/chen-shouyi-2024.webp'
+import scene2050Background from '../assets/cinematic/scene-2050-award-ceremony.webp'
+import xiaoyu2050Portrait from '../assets/cinematic/xiaoyu-2050.webp'
+import journalist2050Portrait from '../assets/cinematic/journalist-2050.webp'
 
-export type CinematicPalette = 'amber' | 'rail' | 'rain' | 'neon' | 'memory'
+export type CinematicPalette = 'amber' | 'rail' | 'rain' | 'ceremony' | 'neon' | 'memory'
 
 export interface ScenePresentation {
   id: string
@@ -67,6 +70,22 @@ const presentations: Record<string, ScenePresentation> = {
     composition: {
       desktopFocus: [0.5, 0.5],
       mobileFocus: [0.57, 0.5],
+    },
+  },
+  scene_2050: {
+    id: 'scene_2050',
+    eraLabel: '庚午年 · 典礼',
+    locationLabel: '北京 · 国家大剧院',
+    palette: 'ceremony',
+    background: scene2050Background,
+    portraits: {
+      xiaoyu_2050: xiaoyu2050Portrait,
+      journalist_2050: journalist2050Portrait,
+    },
+    alt: '2050年北京的非遗传承颁奖舞台，水晶奖杯、时光照片墙与全息皮影在象牙金灯光中彼此呼应。',
+    composition: {
+      desktopFocus: [0.5, 0.5],
+      mobileFocus: [0.53, 0.48],
     },
   },
 }

@@ -51,6 +51,22 @@ describe('cinematic scene presentation registry', () => {
     }
   })
 
+  it('registers the 2050 ceremony and both interview participants', () => {
+    const scene = getScenePresentation('scene_2050')
+
+    expect(scene).not.toBeNull()
+    if (scene) {
+      expect(scene.background).toContain('scene-2050-award-ceremony')
+      expect(Object.keys(scene.portraits).sort()).toEqual([
+        'journalist_2050',
+        'xiaoyu_2050',
+      ])
+      expect(scene.portraits.xiaoyu_2050).not.toBe(scene.portraits.journalist_2050)
+      expect(scene.palette).toBe('ceremony')
+      expect(scene.composition.mobileFocus).toEqual([0.53, 0.48])
+    }
+  })
+
   it('falls back cleanly for eras that do not have final cinematic art yet', () => {
     expect(getScenePresentation('scene_2089')).toBeNull()
   })

@@ -1,5 +1,6 @@
 import trainTicket1990 from '../assets/cinematic/fragment-1990-train-ticket.webp'
 import xiaoyuLetter2024 from '../assets/cinematic/fragment-2024-xiaoyu-letter.webp'
+import awardTrophy2050 from '../assets/cinematic/fragment-2050-award-trophy.webp'
 
 export interface FragmentPresentation {
   id: string
@@ -20,6 +21,12 @@ const presentations: Record<string, FragmentPresentation> = {
     image: xiaoyuLetter2024,
     alt: '被反复折叠的小雨来信，放在旧刻刀和泛黄皮影剧照旁。',
     focus: '50% 50%',
+  },
+  award_trophy_fragment: {
+    id: 'award_trophy_fragment',
+    image: awardTrophy2050,
+    alt: '折射暖金光晕的水晶奖杯，内部映出一枚皮影轮廓。',
+    focus: '50% 48%',
   },
 }
 

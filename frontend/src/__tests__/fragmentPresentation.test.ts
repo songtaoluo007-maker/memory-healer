@@ -22,6 +22,16 @@ describe('fragment presentation registry', () => {
     }
   })
 
+  it('registers the 2050 award-trophy insert', () => {
+    const fragment = getFragmentPresentation('award_trophy_fragment')
+
+    expect(fragment).not.toBeNull()
+    if (fragment) {
+      expect(fragment.image).toContain('fragment-2050-award-trophy')
+      expect(fragment.alt).toContain('水晶奖杯')
+    }
+  })
+
   it('returns null for a fragment without bespoke art', () => {
     expect(getFragmentPresentation('fragment_grandpa_knife')).toBeNull()
   })
