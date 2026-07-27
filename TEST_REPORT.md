@@ -1,4 +1,4 @@
-# 拾忆 P0-A / P0-B 验证报告
+# 拾忆 P0 / P1 核心电影美术验证报告
 
 验证日期：2026-07-27
 
@@ -9,25 +9,31 @@ Alembic 1.18.5、Microsoft Edge
 
 ## 结论
 
-P0-A 稳定产品底座与 P0-B“1972 西安老巷”电影级纵向切片均已通过本地验收。
-1972 已达到当前产品的代表性画质与交互标准；1990、2024、2050、2089 仍使用
-旧插画回退，不声称已完成最终电影美术。
+P0-A 稳定产品底座、P0-B“1972 西安老巷”纵向切片与 P1 的 1990—2089
+核心电影美术实现均已通过自动化质量门。后四幕现已具备独立主场景、NPC 立绘、
+代表碎片插镜与年代调色；共新增 14 张 WebP，不再以旧插画作为正常路径。
+
+应用内浏览器的自动控制策略拒绝接管本机 URL，因此本轮未执行 1990—2089 的
+四视口人工截图巡检，不将其记录为已通过。前后端本地服务与全部新增资源均可访问，
+用户可直接刷新 `http://127.0.0.1:5173/` 进行最终视觉签收。
 
 | 验证项 | 结果 |
 | --- | --- |
 | 内容注册表 | 5 场景、7 NPC、17 碎片、17 热区、10 选择、4 结局 |
 | 后端测试 | 168 passed |
-| 前端测试 | 8 files / 37 tests passed |
+| 前端测试 | 11 files / 52 tests passed |
 | TypeScript / ESLint / Prettier | passed |
-| Vite 生产构建 | passed，863 modules transformed |
+| Vite 生产构建 | passed，880 modules transformed |
 | Python 全量编译 | passed |
 | Alembic | `20260726_0001 (head)`；`alembic check` 无漂移 |
 | 生产依赖审计 | 高危 0；1 个仅影响 Windows 开发服务器的 low 通告 |
 | 同域冒烟 | 首页、健康检查、5 场景、新游戏全部 passed |
 | Docker Compose 配置 | `docker compose config --quiet` passed |
-| 浏览器视觉验收 | 390×844、768×1024、1440×900、1920×1080 passed |
+| P0-B 浏览器视觉验收 | 390×844、768×1024、1440×900、1920×1080 passed |
+| P1 四视口视觉验收 | 待人工签收；自动接管本机 URL 被浏览器策略拒绝 |
+| P1 资源可达性 | 14/14 WebP 返回 200 与 `image/webp` |
 | 无障碍显示边界 | reduced-motion、200% 文字缩放、语义化按钮与对话 passed |
-| 美术加载降级 | 主 PNG 被拦截时自动回退可操作 SVG，页面无异常 |
+| 美术加载降级 | 场景回退旧插画、碎片自隐藏均有组件测试 |
 
 ## 自动化证据
 
@@ -51,15 +57,16 @@ python -m pytest backend/tests -q
 npm run typecheck     passed
 npm run lint          passed
 npm run check         passed
-npm test              8 files, 37 tests passed
-npm run build         Vite build passed; 863 modules transformed
+npm test              11 files, 52 tests passed
+npm run build         Vite build passed; 880 modules transformed
 npm audit --omit=dev --audit-level=high
 exit 0; no high-severity vulnerability
 ```
 
-生产构建按页面与能力拆包。PixiJS 电影舞台 chunk 为 202.83 kB
-（gzip 59.65 kB）；1972 主场景与人物立绘合计约 4.27 MB，后续 P1 应接入
-对象存储/CDN 与现代图片格式，而不是继续扩大首包。
+生产构建按页面与能力拆包。PixiJS 电影舞台 chunk 为 204.70 kB
+（gzip 60.66 kB）。1990—2089 的 14 张新增 WebP 合计 2,373,882 bytes
+（2.26 MiB），每张 66,548—280,540 bytes；1972 两张 PNG 仍合计约 4.27 MB，
+后续应优先转换并接入对象存储/CDN。
 
 数据库与同域协议：
 
@@ -76,6 +83,47 @@ exit 0
 powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1
 Smoke checks passed: frontend, health, 5 scenes, and authoritative new game.
 ```
+
+## P1 1990—2089 电影美术验收
+
+本轮交付四张主场景、六张 NPC 立绘和四张代表碎片插镜。陈守义覆盖 43 岁与
+77 岁，小雨覆盖 48 岁与大学时期记忆投影；同场景 NPC 使用独立 canonical ID
+选择立绘。五幕调色顺序由测试锁定为 `amber`、`rail`、`rain`、`ceremony`、
+`memory`。
+
+| 资产 | bytes |
+| --- | ---: |
+| `chen-shouyi-1990.webp` | 117,770 |
+| `chen-shouyi-2024.webp` | 107,020 |
+| `fragment-1990-train-ticket.webp` | 216,390 |
+| `fragment-2024-xiaoyu-letter.webp` | 151,150 |
+| `fragment-2050-award-trophy.webp` | 195,070 |
+| `fragment-2089-last-puppet.webp` | 180,270 |
+| `journalist-2050.webp` | 66,548 |
+| `scene-1990-shenzhen-station.webp` | 280,540 |
+| `scene-2024-urban-village-room.webp` | 235,212 |
+| `scene-2050-award-ceremony.webp` | 194,066 |
+| `scene-2089-memory-lab.webp` | 233,518 |
+| `stranger-1990.webp` | 126,700 |
+| `xiaoyu-2050.webp` | 104,984 |
+| `xiaoyu-2089-projection.webp` | 164,644 |
+| **合计** | **2,373,882** |
+
+自动化验证包括：
+
+- 14 个开发服务器资产请求均返回 200、`image/webp` 与预期字节数。
+- 五个场景注册、六个后续 NPC 映射、四个代表碎片注册与各年代移动焦点通过单测。
+- 场景图片加载拒绝后渲染 legacy 插画；未知场景也进入同一可操作回退路径。
+- 碎片图片触发 `error` 后自隐藏，弹窗标题、说明与继续按钮由父层保留。
+- 插镜使用 16:9、桌面 `34vh` / 窄屏 `26vh` 上限；reduced-motion 关闭图片过渡。
+
+未自动完成：
+
+- 390×844、768×1024、1440×900、1920×1080 的 P1 页面截图巡检。
+- 各幕人物、字幕、热点与选择叠层的最终人工视觉确认。
+
+原因是应用内浏览器拒绝自动控制本机 URL；没有改用其他浏览器控制方式绕过策略。
+这两项保持为人工签收，不影响自动化功能、构建、内容和故障降级结论。
 
 ## P0-B 浏览器验收
 
@@ -113,3 +161,5 @@ Smoke checks passed: frontend, health, 5 scenes, and authoritative new game.
   依赖升级时迁移。
 - 本机仍没有可用 Docker daemon，因此不声称镜像构建或容器启动已通过；Compose
   配置已通过，GitHub Actions 的 docker/smoke job 会在具备 daemon 的 runner 上执行。
+- 本轮 P1 四视口视觉巡检受应用内浏览器本机 URL 接管策略限制，未冒充为通过；
+  本机服务当前可访问，可由用户刷新页面完成最终目测签收。

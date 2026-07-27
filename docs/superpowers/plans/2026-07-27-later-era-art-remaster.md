@@ -1,6 +1,10 @@
 # 拾忆 · 1990—2089 电影美术重制 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+>
+> **执行状态（2026-07-27）：** Tasks 1—7 与 Task 9 自动化质量门已完成；
+> Task 8 的本机服务检查已完成，应用内浏览器因本机 URL 接管策略拒绝自动控制，
+> 故完整剧情截图与四视口人工视觉签收仍保持未勾选。
 
 **Goal:** 生成并接入 1990、2024、2050、2089 的 4 张电影主场景、6 张 NPC
 立绘和 4 张代表碎片插片，使后续四幕达到与 1972 一致的电影品质。
@@ -41,7 +45,7 @@ imagegen、FFmpeg 8.1/libwebp、Playwright/Edge 浏览器验收。
 - Produces: `ScenePresentation.portraits: Readonly<Record<string, string>>`
 - Produces: `activePortrait: ComputedRef<string | null>` inside `CinematicStage.vue`
 
-- [ ] **Step 1: Write the failing 1972 contract test**
+- [x] **Step 1: Write the failing 1972 contract test**
 
 Replace the portrait assertions in
 `frontend/src/__tests__/scenePresentation.test.ts` with:
@@ -54,7 +58,7 @@ expect(scene).not.toHaveProperty('portrait')
 expect(scene).not.toHaveProperty('portraitNpcIds')
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run:
 
@@ -65,7 +69,7 @@ npm test -- --run src/__tests__/scenePresentation.test.ts
 
 Expected: FAIL because `portraits` does not exist and the legacy portrait fields remain.
 
-- [ ] **Step 3: Replace the single-portrait interface**
+- [x] **Step 3: Replace the single-portrait interface**
 
 In `frontend/src/stage/presentation.ts`, change the interface fields to:
 
@@ -83,7 +87,7 @@ portraits: {
 
 Delete `portrait` and `portraitNpcIds`.
 
-- [ ] **Step 4: Select the portrait by canonical NPC ID**
+- [x] **Step 4: Select the portrait by canonical NPC ID**
 
 In `frontend/src/components/CinematicStage.vue`, add:
 
@@ -106,7 +110,7 @@ Replace the portrait `<img>` condition and source with:
 />
 ```
 
-- [ ] **Step 5: Verify GREEN**
+- [x] **Step 5: Verify GREEN**
 
 Run:
 
@@ -118,7 +122,7 @@ npm run typecheck
 
 Expected: 2 tests passed; typecheck passed.
 
-- [ ] **Step 6: Commit the contract refactor**
+- [x] **Step 6: Commit the contract refactor**
 
 ```powershell
 git add frontend/src/__tests__/scenePresentation.test.ts frontend/src/stage/presentation.ts frontend/src/components/CinematicStage.vue
@@ -144,7 +148,7 @@ git commit -m "refactor: support per-NPC cinematic portraits"
 - Produces: `FragmentPresentation { id: string; image: string; alt: string; focus: string }`
 - Produces: registered `scene_1990`, `chen_shouyi_1990`, `stranger_1990`
 
-- [ ] **Step 1: Generate the 1990 main scene with built-in imagegen**
+- [x] **Step 1: Generate the 1990 main scene with built-in imagegen**
 
 Use one built-in imagegen call with no input image:
 
@@ -161,7 +165,7 @@ Constraints: environmental crowd only, no clear front-facing hero character, no 
 Inspect the result. Reject it if the train is modern, the clock/trunk is missing, or a clear hero
 duplicates the portrait layer.
 
-- [ ] **Step 2: Generate middle-aged Chen Shouyi using the 1972 portrait as identity reference**
+- [x] **Step 2: Generate middle-aged Chen Shouyi using the 1972 portrait as identity reference**
 
 Use `frontend/src/assets/cinematic/chen-shouyi-1972.png` as a reference image:
 
@@ -176,7 +180,7 @@ Lighting/mood: cool station ambient light with warm tungsten rim light
 Constraints: natural aging only; no beard unless subtle stubble; no text, logo, watermark, extra people, train ticket covering the face
 ```
 
-- [ ] **Step 3: Generate the 1990 platform stranger**
+- [x] **Step 3: Generate the 1990 platform stranger**
 
 Use one built-in imagegen call with no identity reference:
 
@@ -190,7 +194,7 @@ Lighting/mood: smoky green station ambience with tungsten edge light, open and c
 Constraints: no modern business suit, smartphone, logo, text, watermark, extra people
 ```
 
-- [ ] **Step 4: Generate the 1990 representative fragment**
+- [x] **Step 4: Generate the 1990 representative fragment**
 
 ```text
 Use case: historical-scene
@@ -202,7 +206,7 @@ Lighting/mood: warm tungsten against cool train green, intimate and nostalgic
 Constraints: no readable ticket text, no gibberish characters, no logo, no watermark, no modern QR code
 ```
 
-- [ ] **Step 5: Convert the selected images to WebP and enforce budgets**
+- [x] **Step 5: Convert the selected images to WebP and enforce budgets**
 
 For each selected PNG path returned by imagegen, run:
 
@@ -220,7 +224,7 @@ If a background exceeds 1.5 MB or another asset exceeds its budget, retry that f
 `-quality 84`; do not resize below the generated source dimensions unless the long edge exceeds
 2560 px.
 
-- [ ] **Step 6: Write failing registry tests**
+- [x] **Step 6: Write failing registry tests**
 
 Add to `scenePresentation.test.ts`:
 
@@ -258,7 +262,7 @@ describe('fragment presentation registry', () => {
 
 Run both focused tests and confirm they fail before registration.
 
-- [ ] **Step 7: Register 1990 scene, portraits, and fragment**
+- [x] **Step 7: Register 1990 scene, portraits, and fragment**
 
 Import the three scene/person WebP files in `presentation.ts`:
 
@@ -317,7 +321,7 @@ export function getFragmentPresentation(fragmentId: string): FragmentPresentatio
 
 Add `rail` to `CinematicPalette`.
 
-- [ ] **Step 8: Verify and commit the 1990 package**
+- [x] **Step 8: Verify and commit the 1990 package**
 
 Run focused tests, typecheck, and build. Then:
 
@@ -342,7 +346,7 @@ git commit -m "feat: add 1990 cinematic art package"
 **Interfaces:**
 - Produces: registered `scene_2024`, `chen_shouyi_old`, `fragment_letter`
 
-- [ ] **Step 1: Generate the 2024 room**
+- [x] **Step 1: Generate the 2024 room**
 
 ```text
 Use case: historical-scene
@@ -354,7 +358,7 @@ Lighting/mood: rain blue, old-wall gray, distant Shenzhen neon, one weak warm de
 Constraints: no clear person in the room, no readable poster or letter text, no logos, no watermark, no luxury apartment, no cyberpunk excess
 ```
 
-- [ ] **Step 2: Generate elderly Chen Shouyi from the 1972 identity reference**
+- [x] **Step 2: Generate elderly Chen Shouyi from the 1972 identity reference**
 
 ```text
 Use case: identity-preserve
@@ -367,7 +371,7 @@ Lighting/mood: cool rain-window light with faint warm desk-lamp rim
 Constraints: dignified natural aging, no exaggerated illness, no medical equipment, no text, logo, watermark, extra people
 ```
 
-- [ ] **Step 3: Generate the folded letter fragment**
+- [x] **Step 3: Generate the folded letter fragment**
 
 ```text
 Use case: illustration-story
@@ -379,7 +383,7 @@ Lighting/mood: weak warm lamp surrounded by rainy blue darkness, tender and pain
 Constraints: no readable sentence, no gibberish text, no logo, no watermark, no modern printed stationery
 ```
 
-- [ ] **Step 4: Convert and visually validate**
+- [x] **Step 4: Convert and visually validate**
 
 For each selected imagegen output, run FFmpeg separately:
 
@@ -393,7 +397,7 @@ Here each angle-bracket value means the absolute output path returned by that im
 preceding built-in imagegen call; record the returned value before invoking FFmpeg. Inspect both
 desktop-wide and portrait crops; the desk letter, left photos, chair and rain window must survive.
 
-- [ ] **Step 5: Add failing tests, then register**
+- [x] **Step 5: Add failing tests, then register**
 
 Tests must assert:
 
@@ -441,7 +445,7 @@ fragment_letter: {
 },
 ```
 
-- [ ] **Step 6: Verify and commit**
+- [x] **Step 6: Verify and commit**
 
 Run both registry tests, typecheck, and build, then commit:
 
@@ -468,7 +472,7 @@ git commit -m "feat: add 2024 cinematic art package"
   `award_trophy_fragment`
 - Produces: identity reference for Task 5 `xiaoyu-2050.webp`
 
-- [ ] **Step 1: Generate the 2050 ceremony**
+- [x] **Step 1: Generate the 2050 ceremony**
 
 ```text
 Use case: stylized-concept
@@ -480,7 +484,7 @@ Lighting/mood: ivory white, ceremonial gold, restrained digital red; solemn forw
 Constraints: no readable event title, no logos, no watermark, no clear presenter on stage, no fantasy palace, no excessive neon
 ```
 
-- [ ] **Step 2: Generate 48-year-old Xiaoyu**
+- [x] **Step 2: Generate 48-year-old Xiaoyu**
 
 ```text
 Use case: historical-scene
@@ -492,7 +496,7 @@ Lighting/mood: warm ceremonial key light with ivory-gold rim, dignified and huma
 Constraints: no logo, text, watermark, microphone covering face, crown, fantasy costume, extra people
 ```
 
-- [ ] **Step 3: Generate the 2050 journalist**
+- [x] **Step 3: Generate the 2050 journalist**
 
 ```text
 Use case: stylized-concept
@@ -504,7 +508,7 @@ Lighting/mood: ivory stage spill and soft digital-red rim
 Constraints: no logos, text, watermark, helmet, cyberpunk implants, exaggerated holographic gadgets, extra people
 ```
 
-- [ ] **Step 4: Generate the trophy fragment**
+- [x] **Step 4: Generate the trophy fragment**
 
 ```text
 Use case: product-mockup
@@ -516,7 +520,7 @@ Lighting/mood: warm, solemn, emotionally earned
 Constraints: blank base with no readable engraving, no logo, no watermark, no brand trophy shape
 ```
 
-- [ ] **Step 5: Convert, test, register, and commit**
+- [x] **Step 5: Convert, test, register, and commit**
 
 Convert with FFmpeg and enforce budgets. Add RED assertions for both distinct NPC IDs,
 `ceremony` palette, and `award_trophy_fragment`; then add:
@@ -576,7 +580,7 @@ git commit -m "feat: add 2050 cinematic art package"
 - Consumes: `frontend/src/assets/cinematic/xiaoyu-2050.webp` as identity reference
 - Produces: registered `scene_2089`, `xiaoyu`, `fragment_last_puppet`
 
-- [ ] **Step 1: Generate the 2089 memory laboratory**
+- [x] **Step 1: Generate the 2089 memory laboratory**
 
 ```text
 Use case: stylized-concept
@@ -588,7 +592,7 @@ Lighting/mood: deep ink black, holographic cyan, memory purple, one warm amber m
 Constraints: no clear human operator, no readable screens or certificate text, no logos, no watermark, no sterile white spaceship, no excessive HUD clutter
 ```
 
-- [ ] **Step 2: Generate young Xiaoyu as a projection from the 2050 identity**
+- [x] **Step 2: Generate young Xiaoyu as a projection from the 2050 identity**
 
 Use `xiaoyu-2050.webp` as the identity reference:
 
@@ -603,7 +607,7 @@ Lighting/mood: cyan and memory-purple rim with warm family-photo reflection
 Constraints: clearly a projection, not a child; no text, logo, watermark, helmet, cyberpunk implants, extra people
 ```
 
-- [ ] **Step 3: Generate the final puppet fragment**
+- [x] **Step 3: Generate the final puppet fragment**
 
 ```text
 Use case: illustration-story
@@ -615,7 +619,7 @@ Lighting/mood: intimate, sacred and hopeful, final emotional reward
 Constraints: no readable inscription, no logo, no watermark, no plastic toy appearance, no extra hands
 ```
 
-- [ ] **Step 4: Convert, test, register, and commit**
+- [x] **Step 4: Convert, test, register, and commit**
 
 Convert with FFmpeg. Add RED assertions for the `xiaoyu` portrait, `memory` palette and
 `fragment_last_puppet`; replace the old “2024/2089 returns null” test with:
@@ -680,7 +684,7 @@ git commit -m "feat: add 2089 cinematic art package"
 - Consumes: `FragmentPresentation`
 - Produces: `<FragmentArtwork :presentation="..." />`, self-hiding after image load failure
 
-- [ ] **Step 1: Complete the four-entry registry test**
+- [x] **Step 1: Complete the four-entry registry test**
 
 Add:
 
@@ -698,7 +702,7 @@ it('registers exactly the four approved representative inserts', () => {
 
 Run the focused test; it should already pass after Tasks 2–5 and protect the exact scope.
 
-- [ ] **Step 2: Create a focused image-error boundary component**
+- [x] **Step 2: Create a focused image-error boundary component**
 
 Create `FragmentArtwork.vue`:
 
@@ -730,7 +734,7 @@ watch(
 </template>
 ```
 
-- [ ] **Step 3: Wire the popup**
+- [x] **Step 3: Wire the popup**
 
 In `Game.vue`, import `computed` if not already present, `FragmentArtwork`, and
 `getFragmentPresentation`. Add:
@@ -753,13 +757,13 @@ Inside `.fragment-popup`, after `.fragment-serial`, render:
 
 Remove the unconditional legacy `.popup-icon`.
 
-- [ ] **Step 4: Add responsive cinematic insert styles**
+- [x] **Step 4: Add responsive cinematic insert styles**
 
 Add `.fragment-artwork` rules: 16:9 visible frame, `max-height: 34vh`, one-pixel gold border,
 dark gradient overlay, `object-fit: cover`; on max-width 900 px use `max-height: 26vh` and reduce
 popup padding. Under reduced motion, disable image transitions.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 Run fragment tests, all frontend tests, typecheck, lint, format check, and build. Commit:
 
@@ -781,7 +785,7 @@ git commit -m "feat: add cinematic fragment inserts"
 - Consumes: `CinematicPalette = 'amber' | 'rail' | 'rain' | 'ceremony' | 'memory'`
 - Produces: `.palette-rail`, `.palette-rain`, `.palette-ceremony`, `.palette-memory`
 
-- [ ] **Step 1: Add a failing palette coverage assertion**
+- [x] **Step 1: Add a failing palette coverage assertion**
 
 ```ts
 expect([
@@ -793,7 +797,7 @@ expect([
 ]).toEqual(['amber', 'rail', 'rain', 'ceremony', 'memory'])
 ```
 
-- [ ] **Step 2: Add the palette grades**
+- [x] **Step 2: Add the palette grades**
 
 Use only CSS gradients/blending:
 
@@ -804,7 +808,7 @@ Use only CSS gradients/blending:
 
 Do not add new Canvas loops. Keep grain stopped under `prefers-reduced-motion`.
 
-- [ ] **Step 3: Verify and commit**
+- [x] **Step 3: Verify and commit**
 
 Run the focused test, typecheck and build, then commit:
 
@@ -816,6 +820,10 @@ git commit -m "feat: add cinematic era color grades"
 ---
 
 ### Task 8: Browser-QA all four eras and failure paths
+
+> 自动化补充证据：14/14 WebP 经开发服务器返回 200 与 `image/webp`；
+> Vitest 已覆盖场景资源失败回退旧插画、未知场景回退和碎片资源失败自隐藏。
+> 这些证据不替代下面未完成的真实页面视觉步骤。
 
 **Files:**
 - Review: `frontend/src/stage/presentation.ts`
@@ -829,7 +837,7 @@ git commit -m "feat: add cinematic era color grades"
 - Consumes: running backend `http://127.0.0.1:8000`
 - Produces: visual acceptance evidence for four eras and four viewports
 
-- [ ] **Step 1: Start or confirm local services**
+- [x] **Step 1: Start or confirm local services**
 
 Confirm `/` and `/api/health` both return 200. Start Vite and FastAPI in hidden windows only if
 needed.
@@ -894,7 +902,7 @@ Skip the commit if no files changed.
 **Interfaces:**
 - Produces: final acceptance record with exact asset sizes, tests and known limits
 
-- [ ] **Step 1: Run the frontend gate**
+- [x] **Step 1: Run the frontend gate**
 
 ```powershell
 cd frontend
@@ -909,7 +917,7 @@ npm audit --omit=dev --audit-level=high
 Expected: all commands exit 0; audit may report the already documented low-severity esbuild
 Windows dev-server advisory but no high severity.
 
-- [ ] **Step 2: Run backend/content/deployment gates**
+- [x] **Step 2: Run backend/content/deployment gates**
 
 ```powershell
 python scripts/validate_content.py
@@ -924,7 +932,7 @@ powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1
 Expected: 5 scenes/7 NPCs/17 fragments/17 hotspots/10 choices/4 endings; 168 backend tests;
 Alembic head with no drift; Compose and smoke exit 0.
 
-- [ ] **Step 3: Record exact build and asset evidence**
+- [x] **Step 3: Record exact build and asset evidence**
 
 Document:
 
@@ -937,14 +945,14 @@ Document:
 
 Change the design spec status to “Completed and verified” and check every completed plan box.
 
-- [ ] **Step 4: Commit the acceptance record**
+- [x] **Step 4: Commit the acceptance record**
 
 ```powershell
 git add CHANGELOG.md TEST_REPORT.md UPGRADE_PLAN.md docs/superpowers/specs/2026-07-27-later-era-art-remaster-design.md docs/superpowers/plans/2026-07-27-later-era-art-remaster.md
 git commit -m "docs: record later-era cinematic acceptance"
 ```
 
-- [ ] **Step 5: Verify the final handoff**
+- [x] **Step 5: Verify the final handoff**
 
 ```powershell
 git status --porcelain
