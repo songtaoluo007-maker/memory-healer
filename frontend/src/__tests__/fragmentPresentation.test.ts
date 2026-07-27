@@ -53,7 +53,19 @@ describe('fragment presentation registry', () => {
     expect(ids.every((id) => getFragmentPresentation(id) !== null)).toBe(true)
   })
 
-  it('returns null for a fragment without bespoke art', () => {
-    expect(getFragmentPresentation('fragment_grandpa_knife')).toBeNull()
+  it('returns null for an unknown fragment', () => {
+    expect(getFragmentPresentation('unknown_fragment')).toBeNull()
+  })
+
+  it('registers all three 1972 interaction inserts', () => {
+    const expected = {
+      fragment_shadow_puppet: 'fragment-1972-shadow-stage',
+      fragment_grandpa_knife: 'fragment-1972-carving-knife',
+      fragment_three_kings: 'fragment-1972-three-kings',
+    }
+
+    for (const [id, filename] of Object.entries(expected)) {
+      expect(getFragmentPresentation(id)?.image).toContain(filename)
+    }
   })
 })

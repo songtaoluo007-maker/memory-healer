@@ -1,3 +1,6 @@
+import shadowStage1972 from '../assets/cinematic/fragment-1972-shadow-stage.webp'
+import carvingKnife1972 from '../assets/cinematic/fragment-1972-carving-knife.webp'
+import threeKings1972 from '../assets/cinematic/fragment-1972-three-kings.webp'
 import trainTicket1990 from '../assets/cinematic/fragment-1990-train-ticket.webp'
 import xiaoyuLetter2024 from '../assets/cinematic/fragment-2024-xiaoyu-letter.webp'
 import awardTrophy2050 from '../assets/cinematic/fragment-2050-award-trophy.webp'
@@ -11,6 +14,24 @@ export interface FragmentPresentation {
 }
 
 const presentations: Record<string, FragmentPresentation> = {
+  fragment_shadow_puppet: {
+    id: 'fragment_shadow_puppet',
+    image: shadowStage1972,
+    alt: '暖灯后的皮影戏幕上，手工皮影人物与竹制操纵杆在尘埃中显出轮廓。',
+    focus: '50% 50%',
+  },
+  fragment_grandpa_knife: {
+    id: 'fragment_grandpa_knife',
+    image: carvingKnife1972,
+    alt: '被岁月磨亮手柄的旧刻刀，安静地横在木制皮影工具箱上。',
+    focus: '50% 52%',
+  },
+  fragment_three_kings: {
+    id: 'fragment_three_kings',
+    image: threeKings1972,
+    alt: '三英战吕布的四枚皮影人物在暖色戏幕前定格成一场未完的交锋。',
+    focus: '50% 50%',
+  },
   train_ticket_fragment: {
     id: 'train_ticket_fragment',
     image: trainTicket1990,
