@@ -10,6 +10,7 @@ const props = defineProps<{
 
 const host = ref<HTMLDivElement | null>(null)
 const assetFailed = ref(false)
+const portraitFailed = ref(false)
 const presentation = computed(() => getScenePresentation(props.sceneId))
 const activePortrait = computed(() => {
   if (!props.activeNpcId) return null
@@ -166,6 +167,9 @@ watch(
   () => void buildStage(),
   { flush: 'post' },
 )
+watch(activePortrait, () => {
+  portraitFailed.value = false
+})
 
 onMounted(() => void buildStage())
 onBeforeUnmount(destroyStage)
@@ -185,14 +189,15 @@ onBeforeUnmount(destroyStage)
     <div class="stage-grade" aria-hidden="true" />
     <div class="stage-vignette" aria-hidden="true" />
     <div class="stage-grain" aria-hidden="true" />
-    <Transition name="portrait-reveal">
+    <Transition v-if="!portraitFailed" name="portrait-reveal">
       <img
-        v-if="activePortrait"
+        v-if="activePortrait && !portraitFailed"
         class="character-portrait"
         :data-character-treatment="characterTreatment"
         :src="activePortrait"
         alt=""
         aria-hidden="true"
+        @error="portraitFailed = true"
       />
     </Transition>
   </figure>

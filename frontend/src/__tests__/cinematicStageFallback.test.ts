@@ -83,4 +83,19 @@ describe('CinematicStage fallback', () => {
       host.querySelector('.character-portrait')?.getAttribute('data-character-treatment'),
     ).toBe('projection')
   })
+
+  it('hides a failed character image without removing the stage', async () => {
+    assetLoad.mockRejectedValueOnce(new Error('background unavailable'))
+    const host = mountStage('scene_1990', 'stranger_1990')
+    await nextTick()
+    await new Promise((resolve) => window.setTimeout(resolve, 0))
+    await nextTick()
+
+    host.querySelector<HTMLImageElement>('.character-portrait')?.dispatchEvent(new Event('error'))
+    await nextTick()
+
+    expect(host.querySelector('.cinematic-stage')).not.toBeNull()
+    expect(host.querySelector('.legacy-art')).not.toBeNull()
+    expect(host.querySelector('.character-portrait')).toBeNull()
+  })
 })
