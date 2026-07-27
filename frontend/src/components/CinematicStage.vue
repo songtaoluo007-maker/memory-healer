@@ -328,9 +328,9 @@ onBeforeUnmount(destroyStage)
 .character-portrait {
   position: absolute;
   right: clamp(-2.5rem, -1vw, -0.5rem);
-  bottom: -2vh;
-  width: min(34vw, 30rem);
-  height: 88vh;
+  bottom: -1%;
+  width: min(31vw, 27rem);
+  height: 96%;
   object-fit: contain;
   object-position: bottom right;
   opacity: 1;

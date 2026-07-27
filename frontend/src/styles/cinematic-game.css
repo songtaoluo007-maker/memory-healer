@@ -962,7 +962,7 @@
     bottom: 0;
     left: 0;
     width: 100%;
-    height: min(65vh, 35rem);
+    height: min(45vh, 26rem);
     padding-bottom: env(safe-area-inset-bottom);
     transform: translateY(100%);
     background: rgba(4, 5, 5, 0.9);
