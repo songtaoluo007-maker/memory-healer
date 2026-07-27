@@ -24,6 +24,21 @@ describe('cinematic scene presentation registry', () => {
     expect(scene?.alt.length).toBeGreaterThan(20)
   })
 
+  it('registers the 1990 scene and both distinct NPC portraits', () => {
+    const scene = getScenePresentation('scene_1990')
+
+    expect(scene).not.toBeNull()
+    if (scene) {
+      expect(scene.background).toContain('scene-1990-shenzhen-station')
+      expect(Object.keys(scene.portraits).sort()).toEqual([
+        'chen_shouyi_1990',
+        'stranger_1990',
+      ])
+      expect(scene.portraits.chen_shouyi_1990).not.toBe(scene.portraits.stranger_1990)
+      expect(scene.composition.mobileFocus).toBeDefined()
+    }
+  })
+
   it('falls back cleanly for eras that do not have final cinematic art yet', () => {
     expect(getScenePresentation('scene_2024')).toBeNull()
     expect(getScenePresentation('scene_2089')).toBeNull()
