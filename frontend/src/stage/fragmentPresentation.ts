@@ -6,6 +6,8 @@ import puppetTrunk1990 from '../assets/cinematic/fragment-1990-puppet-trunk.webp
 import farewellLetter1990 from '../assets/cinematic/fragment-1990-farewell-letter.webp'
 import stationClock1990 from '../assets/cinematic/fragment-1990-station-clock.webp'
 import xiaoyuLetter2024 from '../assets/cinematic/fragment-2024-xiaoyu-letter.webp'
+import oldPhotos2024 from '../assets/cinematic/fragment-2024-old-photos.webp'
+import lastShowPoster2024 from '../assets/cinematic/fragment-2024-last-show-poster.webp'
 import awardTrophy2050 from '../assets/cinematic/fragment-2050-award-trophy.webp'
 import lastPuppet2089 from '../assets/cinematic/fragment-2089-last-puppet.webp'
 
@@ -64,6 +66,18 @@ const presentations: Record<string, FragmentPresentation> = {
     image: xiaoyuLetter2024,
     alt: '被反复折叠的小雨来信，放在旧刻刀和泛黄皮影剧照旁。',
     focus: '50% 50%',
+  },
+  fragment_old_photos: {
+    id: 'fragment_old_photos',
+    image: oldPhotos2024,
+    alt: '卷边泛黄的皮影演出剧照铺在旧工作台上，雨夜蓝光切过照片边缘。',
+    focus: '50% 50%',
+  },
+  fragment_last_show: {
+    id: 'fragment_last_show',
+    image: lastShowPoster2024,
+    alt: '最后一场演出的旧海报只剩皮影轮廓、雨渍与被岁月磨掉的字块。',
+    focus: '50% 48%',
   },
   award_trophy_fragment: {
     id: 'award_trophy_fragment',

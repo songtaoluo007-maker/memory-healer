@@ -80,4 +80,15 @@ describe('fragment presentation registry', () => {
       expect(getFragmentPresentation(id)?.image).toContain(filename)
     }
   })
+
+  it('registers both additional 2024 interaction inserts', () => {
+    const expected = {
+      fragment_old_photos: 'fragment-2024-old-photos',
+      fragment_last_show: 'fragment-2024-last-show-poster',
+    }
+
+    for (const [id, filename] of Object.entries(expected)) {
+      expect(getFragmentPresentation(id)?.image).toContain(filename)
+    }
+  })
 })
