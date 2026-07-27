@@ -1,5 +1,7 @@
 # 实体人物与全交互物美术 Implementation Plan
 
+> **Status:** 已于 2026-07-27 完成；最终门禁与四档视口浏览器验收均通过。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 把七名可对话人物升级为带透明通道的实体角色层，并为全部十七个
@@ -45,7 +47,7 @@ Pillow 11.3、内置 imagegen、FFmpeg 8.1/libwebp。
 - Produces: CLI flags `--portrait PATH` and `--fragment PATH`, repeatable
 - Enforces: WebP format, actual alpha range, aspect ratio, and byte budgets
 
-- [ ] **Step 1: Write failing validator tests**
+- [x] **Step 1: Write failing validator tests**
 
 Create `backend/tests/test_cinematic_assets.py` with synthetic images:
 
@@ -87,7 +89,7 @@ def test_fragment_rejects_wrong_aspect_ratio(tmp_path: Path) -> None:
     assert "fragment aspect ratio must be 4:3 ± 0.03" in validate_fragment(path)
 ```
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run:
 
@@ -97,7 +99,7 @@ python -m pytest backend/tests/test_cinematic_assets.py -q
 
 Expected: collection fails because `scripts.validate_cinematic_assets` does not exist.
 
-- [ ] **Step 3: Add Pillow and implement the validator**
+- [x] **Step 3: Add Pillow and implement the validator**
 
 Add to `requirements.txt`:
 
@@ -189,7 +191,7 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 4: Run focused tests and compile**
+- [x] **Step 4: Run focused tests and compile**
 
 Run:
 
@@ -200,7 +202,7 @@ python -m compileall -q scripts/validate_cinematic_assets.py
 
 Expected: 4 tests pass; compile exits 0.
 
-- [ ] **Step 5: Commit the validator**
+- [x] **Step 5: Commit the validator**
 
 ```powershell
 git add requirements.txt scripts/validate_cinematic_assets.py backend/tests/test_cinematic_assets.py
@@ -229,7 +231,7 @@ git commit -m "test: add cinematic asset validation"
 - Produces: seven vertical alpha WebP character plates
 - Produces: unchanged `ScenePresentation.portraits` canonical ID mapping
 
-- [ ] **Step 1: Write the failing solid-portrait registry assertions**
+- [x] **Step 1: Write the failing solid-portrait registry assertions**
 
 Update `frontend/src/__tests__/scenePresentation.test.ts` so the seven mappings contain
 `-solid`:
@@ -249,7 +251,7 @@ expect(solidPortraits.every((portrait) => portrait?.includes('-solid'))).toBe(tr
 expect(new Set(solidPortraits).size).toBe(7)
 ```
 
-- [ ] **Step 2: Run the registry test and verify RED**
+- [x] **Step 2: Run the registry test and verify RED**
 
 ```powershell
 cd frontend
@@ -258,7 +260,7 @@ npm test -- --run src/__tests__/scenePresentation.test.ts
 
 Expected: the `-solid` assertion fails for all current mappings.
 
-- [ ] **Step 3: Inspect all seven identity references**
+- [x] **Step 3: Inspect all seven identity references**
 
 Use `view_image` with original detail on:
 
@@ -274,7 +276,7 @@ frontend/src/assets/cinematic/xiaoyu-2089-projection.webp
 
 Record face shape, clothing, pose, lighting, and unwanted baked background before generation.
 
-- [ ] **Step 4: Generate 25-year-old Chen Shouyi**
+- [x] **Step 4: Generate 25-year-old Chen Shouyi**
 
 Call built-in imagegen once with the current 1972 portrait as reference:
 
@@ -290,7 +292,7 @@ Background: true transparent background with alpha channel, no scenery, no wall,
 Constraints: one person only, no text, logo, watermark, props covering face, cropped hands, fog, ghost transparency or hologram effects
 ```
 
-- [ ] **Step 5: Generate 43-year-old Chen Shouyi**
+- [x] **Step 5: Generate 43-year-old Chen Shouyi**
 
 Use both the current 1972 and 1990 portraits as references:
 
@@ -306,7 +308,7 @@ Background: true transparent background with alpha channel, no station, train, p
 Constraints: one person only, no readable marks on trunk, no text, logo, watermark, cropped hands, fog, ghost transparency or hologram effects
 ```
 
-- [ ] **Step 6: Generate the 1990 platform stranger**
+- [x] **Step 6: Generate the 1990 platform stranger**
 
 Use the current stranger portrait as reference:
 
@@ -322,7 +324,7 @@ Background: true transparent background with alpha channel, no station, train, s
 Constraints: one person only, no earbuds, modern phone, logos, text, watermark, cropped hands, fog, ghost transparency or hologram effects
 ```
 
-- [ ] **Step 7: Generate 77-year-old Chen Shouyi**
+- [x] **Step 7: Generate 77-year-old Chen Shouyi**
 
 Use the 1972 identity anchor and current 2024 portrait:
 
@@ -338,7 +340,7 @@ Background: true transparent background with alpha channel, no room, window, sce
 Constraints: one person only, carving knife not raised, no text, logo, watermark, cropped hands, fog, ghost transparency or hologram effects
 ```
 
-- [ ] **Step 8: Generate 48-year-old Xiaoyu**
+- [x] **Step 8: Generate 48-year-old Xiaoyu**
 
 Use the current 2050 portrait:
 
@@ -354,7 +356,7 @@ Background: true transparent background with alpha channel, no stage, shadow scr
 Constraints: one person only, no microphone, crown, logo, text, watermark, cropped hands, fog, ghost transparency or hologram effects
 ```
 
-- [ ] **Step 9: Generate the 2050 journalist**
+- [x] **Step 9: Generate the 2050 journalist**
 
 Use the current journalist portrait:
 
@@ -370,7 +372,7 @@ Background: true transparent background with alpha channel, no auditorium, stage
 Constraints: one person only, no earbuds, logos, text, watermark, helmet, implants, cropped hands, fog, ghost transparency or exaggerated gadgets
 ```
 
-- [ ] **Step 10: Generate young Xiaoyu as a solid memory projection**
+- [x] **Step 10: Generate young Xiaoyu as a solid memory projection**
 
 Use current 2050 Xiaoyu and 2089 projection portraits:
 
@@ -386,7 +388,7 @@ Background: true transparent background with alpha channel, no laboratory, conso
 Constraints: clearly an adult projection; body and face at least 90% visually opaque; one person only; no text, logo, watermark, helmet, implants, cropped hands, fog or full-body ghost transparency
 ```
 
-- [ ] **Step 11: Convert and validate all seven portraits**
+- [x] **Step 11: Convert and validate all seven portraits**
 
 For each selected PNG, convert with alpha preserved:
 
@@ -410,12 +412,12 @@ python scripts/validate_cinematic_assets.py `
 Expected: `Validated 7 portraits and 0 fragments.` If any image lacks alpha or exceeds budget,
 reject it and call imagegen again with only that defect named.
 
-- [ ] **Step 12: Register the seven solid portraits**
+- [x] **Step 12: Register the seven solid portraits**
 
 Update imports and canonical mappings in `frontend/src/stage/presentation.ts` to the seven
 `-solid.webp` filenames. Do not change NPC IDs or scene composition data.
 
-- [ ] **Step 13: Verify, remove superseded portraits, and commit**
+- [x] **Step 13: Verify, remove superseded portraits, and commit**
 
 Run:
 
@@ -447,7 +449,7 @@ git commit -m "feat: replace portraits with solid character plates"
 - Produces: `data-character-treatment="solid" | "projection"`
 - Keeps: image failure independent from background and dialogue state
 
-- [ ] **Step 1: Write failing treatment tests**
+- [x] **Step 1: Write failing treatment tests**
 
 Extend `cinematicStageFallback.test.ts`:
 
@@ -487,7 +489,7 @@ const mountStage = (sceneId: string, activeNpcId?: string) => {
 }
 ```
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 ```powershell
 cd frontend
@@ -496,7 +498,7 @@ npm test -- --run src/__tests__/cinematicStageFallback.test.ts
 
 Expected: treatment attributes are `null`.
 
-- [ ] **Step 3: Add treatment semantics**
+- [x] **Step 3: Add treatment semantics**
 
 In `CinematicStage.vue`:
 
@@ -519,7 +521,7 @@ Bind it:
 />
 ```
 
-- [ ] **Step 4: Replace the portrait CSS**
+- [x] **Step 4: Replace the portrait CSS**
 
 Replace the current `.character-portrait` rules with:
 
@@ -565,7 +567,7 @@ For max-aspect-ratio `4/5`, use:
 
 Keep reduced-motion transition disabled.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 ```powershell
 cd frontend
@@ -593,7 +595,7 @@ git commit -m "feat: ground characters as solid scene actors"
 - Produces: presentations for `fragment_shadow_puppet`, `fragment_grandpa_knife`,
   `fragment_three_kings`
 
-- [ ] **Step 1: Add failing 1972 registry assertions**
+- [x] **Step 1: Add failing 1972 registry assertions**
 
 ```ts
 it('registers all three 1972 interaction inserts', () => {
@@ -615,7 +617,7 @@ cd frontend
 npm test -- --run src/__tests__/fragmentPresentation.test.ts
 ```
 
-- [ ] **Step 2: Generate the shadow-puppet stage**
+- [x] **Step 2: Generate the shadow-puppet stage**
 
 ```text
 Use case: illustration-story
@@ -627,7 +629,7 @@ Lighting/mood: warm amber lamp, intimate winter workshop, beginning of a lifelon
 Constraints: no readable text, logo, watermark, modern equipment, clear extra face or fantasy palace
 ```
 
-- [ ] **Step 3: Generate the carving knife and toolbox**
+- [x] **Step 3: Generate the carving knife and toolbox**
 
 ```text
 Use case: product-mockup
@@ -639,7 +641,7 @@ Lighting/mood: narrow warm work-lamp pool against cool winter shadow, humble and
 Constraints: no hands, blood, readable labels, logo, watermark, modern power tools or plastic case
 ```
 
-- [ ] **Step 4: Generate the Three Heroes versus Lü Bu figures**
+- [x] **Step 4: Generate the Three Heroes versus Lü Bu figures**
 
 ```text
 Use case: illustration-story
@@ -651,7 +653,7 @@ Lighting/mood: warm backlit parchment, heroic but handmade, faint workshop dust
 Constraints: no readable title, logo, watermark, realistic human actors, plastic toys or missing limbs
 ```
 
-- [ ] **Step 5: Convert, validate, register, and commit**
+- [x] **Step 5: Convert, validate, register, and commit**
 
 Convert each selected source to its declared WebP with the Task 2 FFmpeg settings except
 `-pix_fmt yuva420p` is omitted. Run:
@@ -711,7 +713,7 @@ git commit -m "feat: add 1972 fragment art set"
 - Produces: `puppet_trunk_fragment`, `farewell_letter_fragment`,
   `station_clock_fragment`
 
-- [ ] **Step 1: Add failing 1990 assertions**
+- [x] **Step 1: Add failing 1990 assertions**
 
 Add:
 
@@ -737,7 +739,7 @@ npm test -- --run src/__tests__/fragmentPresentation.test.ts
 
 Expected: three filename assertions fail because the entries do not exist.
 
-- [ ] **Step 2: Generate the puppet trunk**
+- [x] **Step 2: Generate the puppet trunk**
 
 ```text
 Use case: product-mockup
@@ -749,7 +751,7 @@ Lighting/mood: smoky green station light with one warm tungsten lamp, departure 
 Constraints: no readable labels, logo, watermark, modern suitcase, clear people or plastic toy appearance
 ```
 
-- [ ] **Step 3: Generate the unsent farewell letter**
+- [x] **Step 3: Generate the unsent farewell letter**
 
 ```text
 Use case: illustration-story
@@ -761,7 +763,7 @@ Lighting/mood: restrained tungsten warmth in smoky rail-station green, regret he
 Constraints: paper contains only abstract non-readable ink strokes, no legible Chinese, stamps, logo, watermark, modern objects or hands
 ```
 
-- [ ] **Step 4: Generate the station clock**
+- [x] **Step 4: Generate the station clock**
 
 ```text
 Use case: historical-scene
@@ -773,7 +775,7 @@ Lighting/mood: smoky green dusk, tungsten halo, time moving faster than memory
 Constraints: no readable station name, numbers may be simple clock indices only, no logo, watermark, digital display or modern signage
 ```
 
-- [ ] **Step 5: Convert, validate, register, and commit**
+- [x] **Step 5: Convert, validate, register, and commit**
 
 Use imports `puppetTrunk1990`, `farewellLetter1990`, `stationClock1990`. Register:
 
@@ -816,7 +818,7 @@ git commit -m "feat: add 1990 fragment art set"
 **Interfaces:**
 - Produces: `fragment_old_photos`, `fragment_last_show`
 
-- [ ] **Step 1: Add failing 2024 assertions and verify RED**
+- [x] **Step 1: Add failing 2024 assertions and verify RED**
 
 Add:
 
@@ -834,7 +836,7 @@ it('registers both additional 2024 interaction inserts', () => {
 
 Run the focused fragment test. Expected: two filename assertions fail.
 
-- [ ] **Step 2: Generate the yellowed performance photos**
+- [x] **Step 2: Generate the yellowed performance photos**
 
 ```text
 Use case: illustration-story
@@ -846,7 +848,7 @@ Lighting/mood: cool rain-window blue crossed by a weak amber desk lamp, tender a
 Constraints: no readable captions, logos, watermark, clear modern celebrity faces or pristine new prints
 ```
 
-- [ ] **Step 3: Generate the final-show poster**
+- [x] **Step 3: Generate the final-show poster**
 
 ```text
 Use case: product-mockup
@@ -858,7 +860,7 @@ Lighting/mood: cold 2024 rain-window cast with one dying amber bulb, an era endi
 Constraints: absolutely no readable title, dates or venue text; use only abstract ink blocks and puppet shapes; no logo or watermark
 ```
 
-- [ ] **Step 4: Convert, validate, register, and commit**
+- [x] **Step 4: Convert, validate, register, and commit**
 
 Register:
 
@@ -897,7 +899,7 @@ git commit -m "feat: add 2024 fragment art set"
 - Produces: `old_photos_wall_fragment`, `hologram_stage_fragment`,
   `audience_reactions_fragment`
 
-- [ ] **Step 1: Add failing 2050 assertions and verify RED**
+- [x] **Step 1: Add failing 2050 assertions and verify RED**
 
 Add:
 
@@ -916,7 +918,7 @@ it('registers all three additional 2050 interaction inserts', () => {
 
 Run the focused fragment test. Expected: three filename assertions fail.
 
-- [ ] **Step 2: Generate the chronological photo wall**
+- [x] **Step 2: Generate the chronological photo wall**
 
 ```text
 Use case: stylized-concept
@@ -928,7 +930,7 @@ Lighting/mood: ivory and ceremonial gold with restrained digital red, history be
 Constraints: no readable labels, dates, event title, logos, watermark, clear extra protagonist or excessive HUD graphics
 ```
 
-- [ ] **Step 3: Generate the holographic shadow-puppet stage**
+- [x] **Step 3: Generate the holographic shadow-puppet stage**
 
 ```text
 Use case: stylized-concept
@@ -940,7 +942,7 @@ Lighting/mood: ivory-gold stage light, restrained red edge and quiet wonder
 Constraints: no readable UI, logos, watermark, presenter, fantasy palace, excessive neon or photoreal human performers
 ```
 
-- [ ] **Step 4: Generate the audience tears**
+- [x] **Step 4: Generate the audience tears**
 
 ```text
 Use case: historical-scene
@@ -952,7 +954,7 @@ Lighting/mood: warm gold reflection against deep auditorium black with a faint d
 Constraints: no celebrity likeness, readable badges, logos, watermark, exaggerated crying, microphones or futuristic implants
 ```
 
-- [ ] **Step 5: Convert, validate, register, and commit**
+- [x] **Step 5: Convert, validate, register, and commit**
 
 Register:
 
@@ -995,7 +997,7 @@ git commit -m "feat: add 2050 fragment art set"
 **Interfaces:**
 - Produces: `fragment_family_photo`, `fragment_certificate`
 
-- [ ] **Step 1: Add failing 2089 assertions and verify RED**
+- [x] **Step 1: Add failing 2089 assertions and verify RED**
 
 Add:
 
@@ -1013,7 +1015,7 @@ it('registers both additional 2089 interaction inserts', () => {
 
 Run the focused fragment test. Expected: two filename assertions fail.
 
-- [ ] **Step 2: Generate the family photo**
+- [x] **Step 2: Generate the family photo**
 
 ```text
 Use case: illustration-story
@@ -1025,7 +1027,7 @@ Lighting/mood: warm amber family memory surrounded by cool cyan-purple laborator
 Constraints: no readable handwriting, names, dates, logo, watermark, extra hands, duplicated faces or glossy new print
 ```
 
-- [ ] **Step 3: Generate the heritage certificate**
+- [x] **Step 3: Generate the heritage certificate**
 
 ```text
 Use case: product-mockup
@@ -1037,7 +1039,7 @@ Lighting/mood: cyan scanner edge, memory-purple shadow and a small warm amber co
 Constraints: certificate contains no readable text, only abstract line blocks and seal shapes; no logo, watermark, hands or excessive HUD
 ```
 
-- [ ] **Step 4: Convert, validate, register, and commit**
+- [x] **Step 4: Convert, validate, register, and commit**
 
 Register:
 
@@ -1074,7 +1076,7 @@ git commit -m "feat: add 2089 fragment art set"
 - Produces: `FRAGMENT_PRESENTATION_IDS: readonly string[]`
 - Guarantees: exact coverage of all 17 backend canonical fragment IDs
 
-- [ ] **Step 1: Export deterministic registry IDs**
+- [x] **Step 1: Export deterministic registry IDs**
 
 After the `presentations` object:
 
@@ -1082,7 +1084,7 @@ After the `presentations` object:
 export const FRAGMENT_PRESENTATION_IDS = Object.freeze(Object.keys(presentations).sort())
 ```
 
-- [ ] **Step 2: Replace the old four-entry scope test**
+- [x] **Step 2: Replace the old four-entry scope test**
 
 Use:
 
@@ -1119,7 +1121,7 @@ it('registers exactly all seventeen canonical fragment inserts', () => {
 })
 ```
 
-- [ ] **Step 3: Validate all 17 files**
+- [x] **Step 3: Validate all 17 files**
 
 Run:
 
@@ -1146,7 +1148,7 @@ python scripts/validate_cinematic_assets.py `
 
 Expected: `Validated 0 portraits and 17 fragments.`
 
-- [ ] **Step 4: Run full frontend checks and commit**
+- [x] **Step 4: Run full frontend checks and commit**
 
 ```powershell
 cd frontend
@@ -1173,7 +1175,7 @@ git commit -m "test: lock complete fragment art coverage"
 - Produces: pass/fail evidence for each scene object
 - Allows: targeted imagegen edit only for a failed row
 
-- [ ] **Step 1: Inspect all five backgrounds at original detail**
+- [x] **Step 1: Inspect all five backgrounds at original detail**
 
 Use `view_image` on:
 
@@ -1185,7 +1187,7 @@ scene-2050-award-ceremony.webp
 scene-2089-memory-lab.webp
 ```
 
-- [ ] **Step 2: Check the exact object list**
+- [x] **Step 2: Check the exact object list**
 
 Record each as `visible`, `partially visible`, or `missing`:
 
@@ -1199,7 +1201,7 @@ Record each as `visible`, `partially visible`, or `missing`:
 
 `partially visible` passes only when the hotspot ring can still point to a recognizable object.
 
-- [ ] **Step 3: Target-edit only failed backgrounds**
+- [x] **Step 3: Target-edit only failed backgrounds**
 
 For each `missing` row, call built-in imagegen in edit mode with the exact current background and:
 
@@ -1215,7 +1217,7 @@ For `partially visible`, edit only if the object cannot be identified at the 390
 Convert the edited source back to the exact existing filename and enforce the background 1.5 MB
 budget.
 
-- [ ] **Step 4: Write the audit record**
+- [x] **Step 4: Write the audit record**
 
 Create `docs/qa/2026-07-27-hotspot-art-audit.md` with:
 
@@ -1229,7 +1231,7 @@ Create `docs/qa/2026-07-27-hotspot-art-audit.md` with:
 
 Include all 17 rows, not only failures. Name any regenerated background and its final byte size.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 Run focused presentation tests, typecheck and build. Commit the audit and only backgrounds that
 actually changed:
@@ -1259,7 +1261,7 @@ git commit -m "docs: record hotspot art audit"
 - Guarantees: portrait failure does not affect the stage or dialogue siblings
 - Guarantees: fragment image error self-hides without affecting popup content
 
-- [ ] **Step 1: Add portrait error isolation test**
+- [x] **Step 1: Add portrait error isolation test**
 
 Add:
 
@@ -1302,7 +1304,7 @@ Update the image:
 />
 ```
 
-- [ ] **Step 2: Extend fragment reset coverage**
+- [x] **Step 2: Extend fragment reset coverage**
 
 Add to `fragmentArtwork.test.ts`:
 
@@ -1333,7 +1335,7 @@ it('renders the next fragment after a previous image failed', async () => {
 
 Update the test import to `import { createApp, h, nextTick, ref } from 'vue'`.
 
-- [ ] **Step 3: Run focused and full frontend tests**
+- [x] **Step 3: Run focused and full frontend tests**
 
 ```powershell
 cd frontend
@@ -1345,7 +1347,7 @@ npm run check
 npm run build
 ```
 
-- [ ] **Step 4: Commit only if behavior or tests changed**
+- [x] **Step 4: Commit only if behavior or tests changed**
 
 ```powershell
 git add src/components/CinematicStage.vue src/components/FragmentArtwork.vue src/__tests__/cinematicStageFallback.test.ts src/__tests__/fragmentArtwork.test.ts
@@ -1365,11 +1367,11 @@ git commit -m "test: cover solid character and fragment failures"
 - Consumes: backend `http://127.0.0.1:8000`
 - Produces: character grounding and 17-fragment visual sign-off
 
-- [ ] **Step 1: Confirm local health**
+- [x] **Step 1: Confirm local health**
 
 Require status 200 for `/`, `/api/health`, and all 20 new runtime assets.
 
-- [ ] **Step 2: Traverse all five eras**
+- [x] **Step 2: Traverse all five eras**
 
 For each era:
 
@@ -1378,7 +1380,7 @@ For each era:
 3. Confirm title, description and continue button remain readable.
 4. Confirm no generated readable fake text, watermark, broken alpha rectangle or unwanted person.
 
-- [ ] **Step 3: Verify exact viewports**
+- [x] **Step 3: Verify exact viewports**
 
 Use the Browser skill's supported viewport capability when allowed:
 
@@ -1393,12 +1395,12 @@ Check character/choice/subtitle overlap and every mobile hotspot crop. If the br
 automated control of the local URL, do not bypass policy; keep services running and ask the user
 for the corresponding manual visual sign-off.
 
-- [ ] **Step 4: Fix and recheck observed defects**
+- [x] **Step 4: Fix and recheck observed defects**
 
 For each defect, record scene + NPC/fragment + viewport, make the smallest CSS/composition or
 single-asset correction, and repeat that exact check.
 
-- [ ] **Step 5: Commit visual acceptance fixes**
+- [x] **Step 5: Commit visual acceptance fixes**
 
 Skip this commit if no files changed. Otherwise:
 
@@ -1419,7 +1421,7 @@ git commit -m "fix: close solid character visual QA gaps"
 **Interfaces:**
 - Produces: exact asset, test, build, browser and known-limit record
 
-- [ ] **Step 1: Run frontend gates**
+- [x] **Step 1: Run frontend gates**
 
 ```powershell
 cd frontend
@@ -1434,7 +1436,7 @@ npm audit --omit=dev --audit-level=high
 Every command must exit 0. Record test count, transformed modules, Game chunk and
 CinematicStage chunk gzip sizes.
 
-- [ ] **Step 2: Run backend/content/deployment gates**
+- [x] **Step 2: Run backend/content/deployment gates**
 
 ```powershell
 python scripts/validate_content.py
@@ -1448,7 +1450,7 @@ powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1
 
 Expected content: 5 scenes, 7 NPCs, 17 fragments, 17 hotspots, 10 choices, 4 endings.
 
-- [ ] **Step 3: Record exact art evidence**
+- [x] **Step 3: Record exact art evidence**
 
 Document:
 
@@ -1460,20 +1462,20 @@ Document:
 - scene, portrait and fragment failure results;
 - npm and Docker daemon known limitations.
 
-- [ ] **Step 4: Update spec and plan status**
+- [x] **Step 4: Update spec and plan status**
 
 Set the spec to `Completed and verified` only if real-page visual acceptance is complete. If the
 local-browser control restriction remains, use `Implementation and automated verification
 complete; manual visual sign-off pending`.
 
-- [ ] **Step 5: Commit acceptance records**
+- [x] **Step 5: Commit acceptance records**
 
 ```powershell
 git add CHANGELOG.md TEST_REPORT.md UPGRADE_PLAN.md docs/superpowers/specs/2026-07-27-solid-characters-and-complete-fragment-art-design.md docs/superpowers/plans/2026-07-27-solid-characters-and-complete-fragment-art.md
 git commit -m "docs: record solid character and fragment acceptance"
 ```
 
-- [ ] **Step 6: Verify clean handoff**
+- [x] **Step 6: Verify clean handoff**
 
 ```powershell
 git status --porcelain
