@@ -610,6 +610,41 @@
   margin-bottom: 1.75rem;
 }
 
+:deep(.fragment-artwork) {
+  position: relative;
+  width: 100%;
+  max-height: 34vh;
+  aspect-ratio: 16 / 9;
+  margin: 0 auto 1.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(214, 173, 102, 0.5);
+  background: #050606;
+  box-shadow: 0 1.25rem 3.5rem rgba(0, 0, 0, 0.46);
+}
+
+:deep(.fragment-artwork::after) {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: linear-gradient(180deg, transparent 54%, rgba(3, 4, 3, 0.48));
+  pointer-events: none;
+}
+
+:deep(.fragment-artwork img) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition:
+    transform 900ms var(--ease-cinema),
+    filter 900ms var(--ease-cinema);
+}
+
+.fragment-popup:hover :deep(.fragment-artwork img) {
+  transform: scale(1.012);
+  filter: saturate(1.04) contrast(1.02);
+}
+
 .popup-icon {
   position: relative;
   width: 3.75rem;
@@ -954,6 +989,11 @@
   .fragment-popup {
     padding: 2rem 1.4rem;
   }
+
+  :deep(.fragment-artwork) {
+    max-height: 26vh;
+    margin-bottom: 1.2rem;
+  }
 }
 
 @media (max-width: 420px) {
@@ -979,6 +1019,10 @@
   .loading-line i,
   .cursor {
     animation: none;
+  }
+
+  :deep(.fragment-artwork img) {
+    transition: none;
   }
 }
 

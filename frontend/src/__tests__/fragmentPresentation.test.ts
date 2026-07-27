@@ -42,6 +42,17 @@ describe('fragment presentation registry', () => {
     }
   })
 
+  it('registers exactly the four approved representative inserts', () => {
+    const ids = [
+      'train_ticket_fragment',
+      'fragment_letter',
+      'award_trophy_fragment',
+      'fragment_last_puppet',
+    ]
+
+    expect(ids.every((id) => getFragmentPresentation(id) !== null)).toBe(true)
+  })
+
   it('returns null for a fragment without bespoke art', () => {
     expect(getFragmentPresentation('fragment_grandpa_knife')).toBeNull()
   })

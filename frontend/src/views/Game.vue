@@ -8,6 +8,8 @@ import { useI18n } from '../composables/useI18n'
 import { useScene } from '../composables/useScene'
 import { useTypewriter } from '../composables/useTypewriter'
 import { useUiStore, type CinematicOverlay } from '../stores/ui'
+import FragmentArtwork from '../components/FragmentArtwork.vue'
+import { getFragmentPresentation } from '../stage/fragmentPresentation'
 import type {
   ChatMessage,
   Choice,
@@ -70,6 +72,9 @@ const { hotspots, exploredIds, markExplored, explorationProgress } = useHotspots
 const selectedNpc = ref<NpcSummary | null>(null)
 const showFragmentPopup = ref(false)
 const popupFragment = ref<(Fragment & { just_collected: boolean }) | null>(null)
+const popupPresentation = computed(() =>
+  popupFragment.value ? getFragmentPresentation(popupFragment.value.id) : null,
+)
 const actionPending = ref(false)
 const mounted = ref(false)
 const endingPending = ref(false)
@@ -487,7 +492,8 @@ onMounted(async () => {
     >
       <div class="fragment-popup">
         <span class="fragment-serial">ARCHIVE / {{ popupFragment?.id }}</span>
-        <div class="popup-icon" aria-hidden="true"><i /></div>
+        <FragmentArtwork v-if="popupPresentation" :presentation="popupPresentation" />
+        <div v-else class="popup-icon" aria-hidden="true"><i /></div>
         <h3>{{ popupFragment?.just_collected ? '记忆已归档' : '发现记忆线索' }}</h3>
         <h2>{{ popupFragment?.name }}</h2>
         <p class="fragment-desc">{{ popupFragment?.description }}</p>

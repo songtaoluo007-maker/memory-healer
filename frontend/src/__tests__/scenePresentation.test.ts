@@ -30,10 +30,7 @@ describe('cinematic scene presentation registry', () => {
     expect(scene).not.toBeNull()
     if (scene) {
       expect(scene.background).toContain('scene-1990-shenzhen-station')
-      expect(Object.keys(scene.portraits).sort()).toEqual([
-        'chen_shouyi_1990',
-        'stranger_1990',
-      ])
+      expect(Object.keys(scene.portraits).sort()).toEqual(['chen_shouyi_1990', 'stranger_1990'])
       expect(scene.portraits.chen_shouyi_1990).not.toBe(scene.portraits.stranger_1990)
       expect(scene.composition.mobileFocus).toBeDefined()
     }
@@ -57,10 +54,7 @@ describe('cinematic scene presentation registry', () => {
     expect(scene).not.toBeNull()
     if (scene) {
       expect(scene.background).toContain('scene-2050-award-ceremony')
-      expect(Object.keys(scene.portraits).sort()).toEqual([
-        'journalist_2050',
-        'xiaoyu_2050',
-      ])
+      expect(Object.keys(scene.portraits).sort()).toEqual(['journalist_2050', 'xiaoyu_2050'])
       expect(scene.portraits.xiaoyu_2050).not.toBe(scene.portraits.journalist_2050)
       expect(scene.palette).toBe('ceremony')
       expect(scene.composition.mobileFocus).toEqual([0.53, 0.48])
