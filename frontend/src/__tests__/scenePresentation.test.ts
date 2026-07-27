@@ -10,14 +10,17 @@ describe('cinematic scene presentation registry', () => {
       eraLabel: '壬子年 · 冬',
       locationLabel: '西安 · 南院门',
       palette: 'amber',
-      portraitNpcIds: ['chen_shouyi_young'],
       composition: {
         desktopFocus: [0.38, 0.46],
         mobileFocus: [0.34, 0.5],
       },
     })
     expect(scene?.background).toContain('scene-1972-xian-alley')
-    expect(scene?.portrait).toContain('chen-shouyi-1972')
+    expect(scene?.portraits).toEqual({
+      chen_shouyi_young: expect.stringContaining('chen-shouyi-1972'),
+    })
+    expect(scene).not.toHaveProperty('portrait')
+    expect(scene).not.toHaveProperty('portraitNpcIds')
     expect(scene?.alt.length).toBeGreaterThan(20)
   })
 

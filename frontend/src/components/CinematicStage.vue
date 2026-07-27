@@ -11,6 +11,10 @@ const props = defineProps<{
 const host = ref<HTMLDivElement | null>(null)
 const assetFailed = ref(false)
 const presentation = computed(() => getScenePresentation(props.sceneId))
+const activePortrait = computed(() => {
+  if (!props.activeNpcId) return null
+  return presentation.value?.portraits[props.activeNpcId] ?? null
+})
 let app: Application | null = null
 let resizeObserver: ResizeObserver | null = null
 let generation = 0
@@ -180,11 +184,9 @@ onBeforeUnmount(destroyStage)
     <div class="stage-grain" aria-hidden="true" />
     <Transition name="portrait-reveal">
       <img
-        v-if="
-          presentation?.portrait && activeNpcId && presentation.portraitNpcIds.includes(activeNpcId)
-        "
+        v-if="activePortrait"
         class="character-portrait"
-        :src="presentation.portrait"
+        :src="activePortrait"
         alt=""
         aria-hidden="true"
       />

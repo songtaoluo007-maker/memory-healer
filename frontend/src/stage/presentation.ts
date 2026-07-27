@@ -9,8 +9,7 @@ export interface ScenePresentation {
   locationLabel: string
   palette: CinematicPalette
   background: string
-  portrait: string | null
-  portraitNpcIds: readonly string[]
+  portraits: Readonly<Record<string, string>>
   alt: string
   composition: {
     desktopFocus: readonly [number, number]
@@ -25,8 +24,9 @@ const presentations: Record<string, ScenePresentation> = {
     locationLabel: '西安 · 南院门',
     palette: 'amber',
     background: scene1972Background,
-    portrait: chenShouyi1972Portrait,
-    portraitNpcIds: ['chen_shouyi_young'],
+    portraits: {
+      chen_shouyi_young: chenShouyi1972Portrait,
+    },
     alt: '1972年冬日的西安老巷，青砖院墙被暮色笼罩，窗内暖光映出皮影艺人的剪影。',
     composition: {
       desktopFocus: [0.38, 0.46],
