@@ -12,6 +12,8 @@ import awardTrophy2050 from '../assets/cinematic/fragment-2050-award-trophy.webp
 import photoWall2050 from '../assets/cinematic/fragment-2050-photo-wall.webp'
 import hologramStage2050 from '../assets/cinematic/fragment-2050-hologram-stage.webp'
 import audienceTears2050 from '../assets/cinematic/fragment-2050-audience-tears.webp'
+import familyPhoto2089 from '../assets/cinematic/fragment-2089-family-photo.webp'
+import heritageCertificate2089 from '../assets/cinematic/fragment-2089-heritage-certificate.webp'
 import lastPuppet2089 from '../assets/cinematic/fragment-2089-last-puppet.webp'
 
 export interface FragmentPresentation {
@@ -105,6 +107,18 @@ const presentations: Record<string, FragmentPresentation> = {
     image: audienceTears2050,
     alt: '观众席暗处有人轻轻拭去泪水，皮影暖光映在一排安静的眼睛里。',
     focus: '50% 46%',
+  },
+  fragment_family_photo: {
+    id: 'fragment_family_photo',
+    image: familyPhoto2089,
+    alt: '跨越三代的全家福在青紫实验室里泛着暖色旧相纸光。',
+    focus: '50% 50%',
+  },
+  fragment_certificate: {
+    id: 'fragment_certificate',
+    image: heritageCertificate2089,
+    alt: '非遗传承证书与皮影刻片被保存于档案盒中，文字只留下不可读的历史纹理。',
+    focus: '50% 48%',
   },
   fragment_last_puppet: {
     id: 'fragment_last_puppet',

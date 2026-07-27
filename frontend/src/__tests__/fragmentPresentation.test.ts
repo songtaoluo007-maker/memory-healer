@@ -103,4 +103,15 @@ describe('fragment presentation registry', () => {
       expect(getFragmentPresentation(id)?.image).toContain(filename)
     }
   })
+
+  it('registers both additional 2089 interaction inserts', () => {
+    const expected = {
+      fragment_family_photo: 'fragment-2089-family-photo',
+      fragment_certificate: 'fragment-2089-heritage-certificate',
+    }
+
+    for (const [id, filename] of Object.entries(expected)) {
+      expect(getFragmentPresentation(id)?.image).toContain(filename)
+    }
+  })
 })
