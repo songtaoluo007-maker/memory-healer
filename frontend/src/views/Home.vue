@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import LoginModal from '../components/LoginModal.vue'
+import homeBackdrop from '../assets/cinematic/scene-1972-xian-alley.png'
 import type { AuthUser } from '../types/game'
 
 const emit = defineEmits<{
@@ -8,18 +9,18 @@ const emit = defineEmits<{
   load: []
 }>()
 
-const showMenu = ref(true)
 const showLogin = ref(false)
 const currentUser = ref<AuthUser | null>(null)
 
 onMounted(async () => {
   const saved = localStorage.getItem('mh_user')
-  if (saved) {
-    try {
-      currentUser.value = JSON.parse(saved)
-    } catch {
-      localStorage.removeItem('mh_user')
-    }
+  if (!saved) return
+
+  try {
+    currentUser.value = JSON.parse(saved)
+  } catch {
+    localStorage.removeItem('mh_user')
+    return
   }
 
   try {
@@ -69,342 +70,399 @@ const openLogin = () => {
 </script>
 
 <template>
-  <div class="home" role="main" aria-label="游戏首页">
-    <div class="particles">
-      <div
-        v-for="i in 20"
-        :key="i"
-        class="particle"
-        :style="{
-          left: Math.random() * 100 + '%',
-          animationDelay: Math.random() * 5 + 's',
-          animationDuration: 3 + Math.random() * 4 + 's',
-        }"
-      />
-    </div>
+  <div class="home cinematic-home" role="main" aria-label="游戏首页">
+    <img class="home-backdrop" :src="homeBackdrop" alt="" aria-hidden="true" />
+    <div class="home-grade" aria-hidden="true" />
+    <div class="home-grain" aria-hidden="true" />
 
-    <div class="content">
-      <div class="logo-area">
-        <div class="logo-icon">
-          <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-            <circle
-              cx="32"
-              cy="28"
-              r="20"
-              stroke="rgba(100,180,255,0.4)"
-              stroke-width="1.5"
-              fill="none"
-            />
-            <circle
-              cx="32"
-              cy="28"
-              r="12"
-              stroke="rgba(100,150,255,0.3)"
-              stroke-width="1"
-              fill="none"
-            />
-            <circle cx="32" cy="28" r="4" fill="rgba(100,180,255,0.5)" />
-            <path
-              d="M26 48 Q32 56 38 48"
-              stroke="rgba(100,180,255,0.4)"
-              stroke-width="1.5"
-              fill="none"
-              stroke-linecap="round"
-            />
-            <circle cx="24" cy="22" r="2" fill="rgba(232,180,80,0.4)" />
-            <circle cx="40" cy="22" r="2" fill="rgba(100,200,150,0.4)" />
-            <circle cx="32" cy="18" r="1.5" fill="rgba(200,150,255,0.4)" />
-          </svg>
-        </div>
-        <h1 class="title">拾 忆</h1>
-        <p class="subtitle">Memory Healer</p>
-        <div class="divider" />
-        <p class="desc">进入记忆碎片，找回遗失的故事</p>
+    <header class="home-header">
+      <div class="home-brand">
+        <span>拾</span>
+        <div><strong>拾忆</strong><small>MEMORY HEALER</small></div>
       </div>
+      <div class="release-index">
+        <span>MEMORY ARCHIVE / 001</span>
+        <i />
+        <span>西安 · 1972</span>
+      </div>
+    </header>
 
-      <div class="menu" v-if="showMenu">
-        <button class="btn btn-primary" @click="handleStart" aria-label="开始新的记忆修复之旅">
-          <svg class="btn-icon" width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <polygon points="4,2 16,9 4,16" fill="currentColor" />
-          </svg>
-          开始新的记忆修复
-        </button>
-        <button class="btn btn-secondary" @click="handleLoad" aria-label="读取之前的存档">
-          <svg class="btn-icon" width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <rect
-              x="2"
-              y="4"
-              width="14"
-              height="10"
-              rx="2"
-              stroke="currentColor"
-              stroke-width="1.5"
-              fill="none"
-            />
-            <path d="M2 7h14" stroke="currentColor" stroke-width="1" opacity="0.5" />
-            <rect x="4" y="9" width="4" height="2" rx="0.5" fill="currentColor" opacity="0.6" />
-          </svg>
-          读取存档
-        </button>
+    <section class="hero-copy" aria-labelledby="home-title">
+      <span class="hero-kicker">一场关于记忆、传承与选择的叙事电影</span>
+      <h1 id="home-title" class="title"><span>拾</span><span>忆</span></h1>
+      <p class="subtitle">MEMORY HEALER</p>
+      <p class="desc">进入一个人的一生，拾回被时间遗落的声音。</p>
+    </section>
 
-        <div class="menu-divider" />
+    <section class="menu" aria-label="开始菜单">
+      <span class="menu-kicker">ENTER THE MEMORY</span>
+      <button class="btn btn-primary" @click="handleStart" aria-label="开始新的记忆修复之旅">
+        <span class="action-index">01</span>
+        <span>开始新的记忆修复</span>
+        <span aria-hidden="true">→</span>
+      </button>
+      <button class="btn btn-secondary" @click="handleLoad" aria-label="读取之前的存档">
+        <span class="action-index">02</span>
+        <span>读取记忆存档</span>
+        <span aria-hidden="true">→</span>
+      </button>
 
+      <div class="account-row">
         <template v-if="currentUser">
           <div class="user-info">
-            <svg class="user-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.2" fill="none" />
-              <path
-                d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"
-                stroke="currentColor"
-                stroke-width="1.2"
-                fill="none"
-                stroke-linecap="round"
-              />
-            </svg>
-            <span class="user-name">{{ currentUser.nickname || currentUser.username }}</span>
-            <button class="btn-logout" @click="handleLogout" title="退出登录">退出</button>
+            <span class="account-state">已连接</span>
+            <strong>{{ currentUser.nickname || currentUser.username }}</strong>
           </div>
+          <button class="text-action" @click="handleLogout">退出</button>
         </template>
         <template v-else>
-          <button class="btn btn-login" @click="openLogin">
-            <svg class="btn-icon" width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <rect
-                x="3"
-                y="8"
-                width="12"
-                height="8"
-                rx="2"
-                stroke="currentColor"
-                stroke-width="1.3"
-                fill="none"
-              />
-              <circle cx="9" cy="5" r="3" stroke="currentColor" stroke-width="1.3" fill="none" />
-              <circle cx="9" cy="5" r="1" fill="currentColor" opacity="0.5" />
-            </svg>
-            登录 / 注册
-          </button>
+          <span>跨设备保存进度</span>
+          <button class="text-action" @click="openLogin">登录 / 注册</button>
         </template>
       </div>
+    </section>
 
-      <div class="footer" role="contentinfo">
-        <p>腾讯云黑客松 · AI叙事游戏</p>
-        <p class="tech">Powered by DeepSeek · Vue 3 · FastAPI</p>
-      </div>
-    </div>
+    <footer class="footer" role="contentinfo">
+      <span>DEEPSEEK × EDGE TTS</span>
+      <span class="footer-line" />
+      <span>AN INTERACTIVE MEMORY FILM</span>
+    </footer>
 
     <LoginModal v-if="showLogin" @login="handleLogin" @close="showLogin = false" />
   </div>
 </template>
+
 <style scoped>
-.home {
+.cinematic-home {
+  position: relative;
   width: 100vw;
   height: 100vh;
-  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d0d2b 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
   overflow: hidden;
-  font-family: 'Noto Serif SC', serif;
+  color: var(--paper-100);
+  background: #050606;
 }
 
-.particles {
+.home-backdrop,
+.home-grade,
+.home-grain {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.home-backdrop {
+  object-fit: cover;
+  object-position: 54% center;
+  filter: saturate(0.78) contrast(1.06);
+  animation: home-camera 24s ease-out both;
+}
+
+.home-grade {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(3, 4, 3, 0.92) 0%,
+      rgba(3, 4, 3, 0.46) 43%,
+      rgba(3, 4, 3, 0.2) 68%,
+      rgba(3, 4, 3, 0.62)
+    ),
+    linear-gradient(180deg, rgba(3, 4, 3, 0.54), transparent 28%, rgba(3, 4, 3, 0.82));
+}
+
+.home-grain {
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   pointer-events: none;
 }
 
-.particle {
+.home-header {
   position: absolute;
-  width: 4px;
-  height: 4px;
-  background: rgba(100, 180, 255, 0.6);
-  border-radius: 50%;
-  bottom: -10px;
-  animation: float linear infinite;
+  z-index: 2;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(1.5rem, env(safe-area-inset-top)) var(--safe-inline);
 }
 
-@keyframes float {
-  0% {
-    transform: translateY(0) scale(1);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(-100vh) scale(0);
-    opacity: 0;
-  }
+.home-brand {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
 }
 
-.content {
-  text-align: center;
-  z-index: 1;
+.home-brand > span {
+  display: grid;
+  width: 2.15rem;
+  height: 2.15rem;
+  place-items: center;
+  border: 1px solid rgba(214, 173, 102, 0.68);
+  color: var(--gold-300);
 }
 
-.logo-icon {
-  margin-bottom: 16px;
-  animation: pulse 3s ease-in-out infinite;
+.home-brand div {
+  display: flex;
+  flex-direction: column;
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.08);
-  }
+.home-brand strong {
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+}
+
+.home-brand small,
+.release-index,
+.hero-kicker,
+.menu-kicker,
+.footer {
+  color: rgba(215, 196, 162, 0.52);
+  font:
+    500 0.5rem/1.2 ui-monospace,
+    monospace;
+  letter-spacing: 0.2em;
+}
+
+.release-index {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.release-index i {
+  width: 3rem;
+  height: 1px;
+  background: rgba(214, 173, 102, 0.35);
+}
+
+.hero-copy {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: var(--safe-inline);
+  width: min(35rem, 46vw);
+  transform: translateY(-48%);
+}
+
+.hero-kicker {
+  display: block;
+  color: var(--gold-300);
 }
 
 .title {
-  font-size: 56px;
-  color: #e0e0ff;
-  letter-spacing: 16px;
-  margin: 0;
-  text-shadow: 0 0 30px rgba(100, 150, 255, 0.5);
+  display: flex;
+  gap: clamp(1rem, 2.6vw, 2.8rem);
+  margin: 1.3rem 0 0;
+  font-size: clamp(5rem, 10vw, 9rem);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.55);
+}
+
+.title span:last-child {
+  transform: translateY(1.25rem);
 }
 
 .subtitle {
-  font-size: 14px;
-  color: rgba(150, 180, 255, 0.6);
-  letter-spacing: 8px;
-  text-transform: uppercase;
-  margin: 8px 0 24px;
-}
-
-.divider {
-  width: 60px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(100, 150, 255, 0.5), transparent);
-  margin: 0 auto 20px;
+  margin: 1.5rem 0 0;
+  color: rgba(241, 229, 206, 0.62);
+  font:
+    500 clamp(0.58rem, 0.8vw, 0.75rem)/1 ui-monospace,
+    monospace;
+  letter-spacing: 0.65em;
 }
 
 .desc {
-  color: rgba(200, 210, 255, 0.7);
-  font-size: 16px;
-  margin-bottom: 48px;
+  width: fit-content;
+  margin: 2.2rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(214, 173, 102, 0.38);
+  color: rgba(241, 229, 206, 0.72);
+  font-size: clamp(0.8rem, 1vw, 0.95rem);
+  letter-spacing: 0.12em;
 }
 
-/* ── 按钮组 ── */
 .menu {
+  position: absolute;
+  z-index: 3;
+  right: var(--safe-inline);
+  bottom: clamp(5rem, 11vh, 8rem);
   display: flex;
+  width: min(27rem, 34vw);
   flex-direction: column;
-  gap: 14px;
-  align-items: center;
+  gap: 0.45rem;
+}
+
+.menu-kicker {
+  margin-bottom: 0.4rem;
+  color: var(--gold-300);
+  text-align: right;
 }
 
 .btn {
-  padding: 14px 40px;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-family: 'Noto Serif SC', serif;
-  cursor: pointer;
-  display: flex;
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  gap: 0.9rem;
   align-items: center;
-  gap: 10px;
-  transition: all 0.3s ease;
-  min-width: 260px;
-  justify-content: center;
+  min-height: 3.65rem;
+  padding: 0 1.1rem;
+  border: 1px solid rgba(215, 196, 162, 0.17);
+  color: rgba(241, 229, 206, 0.78);
+  text-align: left;
+  background: rgba(5, 6, 6, 0.62);
+  backdrop-filter: blur(14px);
+  cursor: pointer;
+  transition:
+    transform 220ms var(--ease-cinema),
+    border-color 180ms ease,
+    background 180ms ease;
 }
 
-.btn-icon {
-  flex-shrink: 0;
+.btn:hover {
+  border-color: rgba(214, 173, 102, 0.68);
+  transform: translateX(-0.5rem);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #3a5fcd, #5078e0);
-  color: white;
-  box-shadow: 0 4px 20px rgba(58, 95, 205, 0.4);
-}
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 30px rgba(58, 95, 205, 0.6);
+  border-color: rgba(214, 173, 102, 0.5);
+  color: var(--paper-100);
+  background:
+    linear-gradient(90deg, rgba(166, 109, 44, 0.26), transparent 45%), rgba(8, 8, 7, 0.74);
 }
 
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(200, 210, 255, 0.75);
-  border: 1px solid rgba(100, 150, 255, 0.15);
-}
-.btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(100, 150, 255, 0.35);
-  transform: translateY(-1px);
+.action-index {
+  color: var(--gold-300);
+  font:
+    500 0.62rem/1 ui-monospace,
+    monospace;
 }
 
-.btn-login {
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(200, 210, 255, 0.5);
-  border: 1px solid rgba(100, 150, 255, 0.1);
-  padding: 12px 36px;
-  font-size: 15px;
-  min-width: 240px;
-}
-.btn-login:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(100, 150, 255, 0.3);
-  color: rgba(200, 210, 255, 0.8);
-  transform: translateY(-1px);
-}
-
-/* ── 菜单分隔线 ── */
-.menu-divider {
-  width: 40px;
-  height: 1px;
-  background: rgba(100, 150, 255, 0.12);
-  margin: 4px 0;
-}
-
-/* ── 用户信息条 ── */
-.user-info {
-  display: inline-flex;
+.account-row {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 18px;
-  border-radius: 20px;
-  background: rgba(100, 150, 255, 0.06);
-  border: 1px solid rgba(100, 150, 255, 0.1);
-  color: rgba(200, 210, 255, 0.7);
-  font-size: 14px;
-}
-.user-icon {
-  flex-shrink: 0;
-  color: rgba(100, 180, 255, 0.5);
-}
-.user-name {
-  color: rgba(200, 210, 255, 0.85);
-}
-.btn-logout {
-  background: none;
-  border: none;
-  color: rgba(150, 170, 220, 0.4);
-  font-size: 12px;
-  cursor: pointer;
-  font-family: 'Noto Serif SC', serif;
-  padding: 2px 10px;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-.btn-logout:hover {
-  color: rgba(255, 120, 120, 0.8);
-  background: rgba(255, 80, 80, 0.1);
+  justify-content: flex-end;
+  min-height: 2.9rem;
+  gap: 1rem;
+  padding: 0 0.3rem;
+  color: rgba(215, 196, 162, 0.48);
+  font-size: 0.68rem;
 }
 
-/* ── 页脚 ── */
-.footer {
-  margin-top: 56px;
-  color: rgba(150, 170, 220, 0.35);
-  font-size: 13px;
+.text-action {
+  padding: 0.3rem 0;
+  border: 0;
+  border-bottom: 1px solid rgba(214, 173, 102, 0.45);
+  color: var(--gold-300);
+  background: transparent;
+  cursor: pointer;
 }
-.tech {
-  font-size: 11px;
-  margin-top: 4px;
-  opacity: 0.7;
+
+.user-info {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.account-state {
+  color: rgba(151, 181, 133, 0.7);
+}
+
+.user-info strong {
+  color: var(--paper-300);
+  font-weight: 500;
+}
+
+.footer {
+  position: absolute;
+  z-index: 2;
+  right: var(--safe-inline);
+  bottom: max(1.45rem, env(safe-area-inset-bottom));
+  left: var(--safe-inline);
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.footer-line {
+  width: 2.5rem;
+  height: 1px;
+  background: rgba(215, 196, 162, 0.25);
+}
+
+@keyframes home-camera {
+  from {
+    transform: scale(1.04);
+  }
+  to {
+    transform: scale(1.1) translateX(-0.7%);
+  }
+}
+
+@media (max-width: 820px), (max-aspect-ratio: 4/5) {
+  .home-backdrop {
+    object-position: 38% center;
+  }
+
+  .home-grade {
+    background:
+      linear-gradient(180deg, rgba(3, 4, 3, 0.55), rgba(3, 4, 3, 0.2) 32%, rgba(3, 4, 3, 0.94) 72%),
+      linear-gradient(90deg, rgba(3, 4, 3, 0.6), transparent);
+  }
+
+  .home-header {
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  .release-index {
+    display: none;
+  }
+
+  .hero-copy {
+    top: 14vh;
+    left: 1.25rem;
+    width: calc(100vw - 2.5rem);
+    transform: none;
+  }
+
+  .hero-kicker {
+    font-size: 0.46rem;
+  }
+
+  .title {
+    font-size: clamp(4.5rem, 23vw, 7rem);
+  }
+
+  .desc {
+    margin-top: 1.6rem;
+  }
+
+  .menu {
+    right: 1rem;
+    bottom: max(4.2rem, calc(env(safe-area-inset-bottom) + 3.5rem));
+    left: 1rem;
+    width: auto;
+  }
+
+  .footer {
+    right: 1rem;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    left: 1rem;
+    justify-content: center;
+  }
+
+  .footer span:last-child {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-backdrop {
+    animation: none;
+  }
 }
 </style>

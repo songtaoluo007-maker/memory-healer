@@ -294,7 +294,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="gameState" class="game game-cinema" :data-stage-mode="ui.stageMode">
+  <div
+    v-if="gameState"
+    class="game game-cinema"
+    :class="{ 'has-choices': choices.length > 0 }"
+    :data-stage-mode="ui.stageMode"
+  >
     <Transition name="fade">
       <div v-if="sceneTransitioning" class="loading-overlay">
         <span class="loading-code">MEMORY FIELD / {{ gameState.current_scene }}</span>

@@ -59,199 +59,256 @@ const switchMode = () => {
 </script>
 
 <template>
-  <div class="login-overlay" @click.self="emit('close')">
-    <div class="login-panel">
-      <button class="close-btn" @click="emit('close')">✕</button>
+  <div
+    class="login-overlay"
+    role="dialog"
+    aria-modal="true"
+    :aria-label="mode === 'login' ? '登录拾忆' : '注册拾忆'"
+    @click.self="emit('close')"
+  >
+    <section class="login-panel">
+      <button class="close-btn" type="button" aria-label="关闭登录窗口" @click="emit('close')">
+        关闭
+      </button>
 
-      <div class="panel-header">
-        <div class="panel-icon">🧠</div>
-        <h2>{{ mode === 'login' ? '登录' : '注册' }}</h2>
-        <p class="panel-subtitle">
-          {{ mode === 'login' ? '继续你的记忆修复之旅' : '开始新的旅程' }}
-        </p>
-      </div>
+      <header class="panel-header">
+        <span class="panel-index">IDENTITY / MEMORY HEALER</span>
+        <h2>{{ mode === 'login' ? '重返记忆场' : '建立修复师档案' }}</h2>
+        <p>{{ mode === 'login' ? '连接你的记忆档案与云端存档' : '从这里开始第一段记忆' }}</p>
+      </header>
 
-      <form @submit.prevent="handleSubmit" class="login-form">
+      <form class="login-form" @submit.prevent="handleSubmit">
         <div class="form-group">
-          <label>用户名</label>
+          <label for="auth-username">用户名</label>
           <input
+            id="auth-username"
             v-model="username"
             type="text"
-            placeholder="3-20位字母或数字"
+            placeholder="3–20 位字母或数字"
             autocomplete="username"
           />
         </div>
 
-        <div class="form-group" v-if="mode === 'register'">
-          <label>昵称</label>
-          <input v-model="nickname" type="text" placeholder="可选，默认为用户名" />
+        <div v-if="mode === 'register'" class="form-group">
+          <label for="auth-nickname">昵称 <small>可选</small></label>
+          <input
+            id="auth-nickname"
+            v-model="nickname"
+            type="text"
+            placeholder="记忆场中显示的名字"
+            autocomplete="nickname"
+          />
         </div>
 
         <div class="form-group">
-          <label>密码</label>
+          <label for="auth-password">密码</label>
           <input
+            id="auth-password"
             v-model="password"
             type="password"
-            placeholder="8-128位"
+            placeholder="8–128 位"
             :autocomplete="mode === 'register' ? 'new-password' : 'current-password'"
           />
         </div>
 
-        <div class="error-msg" v-if="error">{{ error }}</div>
+        <p v-if="error" class="error-msg" role="alert">{{ error }}</p>
 
         <button type="submit" class="submit-btn" :disabled="loading">
-          {{ loading ? '处理中...' : mode === 'login' ? '登录' : '注册' }}
+          <span>{{ loading ? '正在连接' : mode === 'login' ? '进入档案' : '创建档案' }}</span>
+          <span aria-hidden="true">→</span>
         </button>
       </form>
 
-      <div class="switch-mode">
-        <span>{{ mode === 'login' ? '还没有账号？' : '已有账号？' }}</span>
-        <button @click="switchMode" class="switch-btn">
-          {{ mode === 'login' ? '去注册' : '去登录' }}
+      <footer class="switch-mode">
+        <span>{{ mode === 'login' ? '第一次进入拾忆？' : '已经拥有档案？' }}</span>
+        <button type="button" class="switch-btn" @click="switchMode">
+          {{ mode === 'login' ? '创建账号' : '返回登录' }}
         </button>
-      </div>
-    </div>
+      </footer>
+    </section>
   </div>
 </template>
 
 <style scoped>
 .login-overlay {
   position: fixed;
+  z-index: 500;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-  backdrop-filter: blur(8px);
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(3, 4, 3, 0.76);
+  backdrop-filter: blur(24px) saturate(0.7);
 }
 
 .login-panel {
-  background: linear-gradient(135deg, #1a1a3e, #2a2a5e);
-  border: 1px solid rgba(100, 150, 255, 0.3);
-  border-radius: 16px;
-  padding: 40px;
-  width: 380px;
-  max-width: 90vw;
   position: relative;
-  box-shadow: 0 0 60px rgba(58, 95, 205, 0.2);
+  width: min(29rem, 100%);
+  padding: clamp(2rem, 5vw, 3.8rem);
+  border: 1px solid rgba(214, 173, 102, 0.26);
+  background:
+    linear-gradient(140deg, rgba(185, 73, 54, 0.07), transparent 42%), rgba(10, 11, 10, 0.97);
+  box-shadow: 0 3rem 8rem rgba(0, 0, 0, 0.68);
+}
+
+.login-panel::before {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-top: 1px solid var(--gold-300);
+  border-left: 1px solid var(--gold-300);
+  content: '';
+  pointer-events: none;
 }
 
 .close-btn {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  background: none;
-  border: none;
-  color: rgba(150, 170, 220, 0.6);
-  font-size: 18px;
+  top: 1rem;
+  right: 1rem;
+  min-height: 2.4rem;
+  padding: 0 0.75rem;
+  border: 1px solid rgba(215, 196, 162, 0.12);
+  color: rgba(241, 229, 206, 0.5);
+  background: transparent;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
   cursor: pointer;
 }
 
 .panel-header {
-  text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 2rem;
 }
 
-.panel-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
+.panel-index {
+  color: var(--gold-300);
+  font:
+    600 0.52rem/1.2 ui-monospace,
+    monospace;
+  letter-spacing: 0.2em;
 }
 
 .panel-header h2 {
-  font-size: 24px;
-  color: #e0e0ff;
-  margin: 0 0 8px;
+  margin: 0.9rem 0 0.55rem;
+  font-size: clamp(1.6rem, 5vw, 2.1rem);
+  font-weight: 500;
+  letter-spacing: 0.12em;
 }
 
-.panel-subtitle {
-  font-size: 14px;
-  color: rgba(150, 170, 220, 0.6);
+.panel-header p {
   margin: 0;
+  color: rgba(215, 196, 162, 0.54);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 1.2rem;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.45rem;
 }
 
 .form-group label {
-  font-size: 13px;
-  color: rgba(150, 170, 220, 0.7);
+  display: flex;
+  justify-content: space-between;
+  color: rgba(241, 229, 206, 0.68);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+}
+
+.form-group label small {
+  color: rgba(215, 196, 162, 0.38);
 }
 
 .form-group input {
-  padding: 12px 16px;
-  border-radius: 8px;
-  border: 1px solid rgba(100, 150, 255, 0.2);
-  background: rgba(0, 0, 0, 0.3);
-  color: #e0e0ff;
-  font-size: 14px;
-  font-family: 'Noto Serif SC', serif;
+  min-height: 3rem;
+  padding: 0 0.9rem;
+  border: 1px solid rgba(215, 196, 162, 0.14);
+  border-radius: 0;
+  color: var(--paper-100);
+  background: rgba(0, 0, 0, 0.25);
   outline: none;
-  transition: border-color 0.2s;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease;
 }
 
 .form-group input:focus {
-  border-color: rgba(58, 95, 205, 0.5);
+  border-color: rgba(214, 173, 102, 0.58);
+  background: rgba(166, 109, 44, 0.06);
 }
 
 .form-group input::placeholder {
-  color: rgba(150, 170, 220, 0.3);
+  color: rgba(215, 196, 162, 0.26);
 }
 
 .error-msg {
-  color: #f87171;
-  font-size: 13px;
-  text-align: center;
-  padding: 8px;
-  background: rgba(248, 113, 113, 0.1);
-  border-radius: 6px;
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border-left: 2px solid var(--cinnabar-400);
+  color: #d88778;
+  background: rgba(185, 73, 54, 0.08);
+  font-size: 0.72rem;
 }
 
 .submit-btn {
-  padding: 14px;
-  border-radius: 8px;
-  border: none;
-  background: linear-gradient(135deg, #3a5fcd, #5078e0);
-  color: white;
-  font-size: 16px;
-  font-family: 'Noto Serif SC', serif;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 3.2rem;
+  padding: 0 1rem;
+  border: 1px solid rgba(214, 173, 102, 0.52);
+  color: var(--paper-100);
+  background: linear-gradient(90deg, rgba(166, 109, 44, 0.24), transparent), rgba(8, 8, 7, 0.8);
   cursor: pointer;
-  transition: all 0.2s;
 }
 
 .submit-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(58, 95, 205, 0.4);
+  border-color: var(--gold-300);
 }
 
 .submit-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  opacity: 0.5;
+  cursor: wait;
 }
 
 .switch-mode {
-  text-align: center;
-  margin-top: 24px;
-  font-size: 13px;
-  color: rgba(150, 170, 220, 0.6);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  margin-top: 1.6rem;
+  color: rgba(215, 196, 162, 0.48);
+  font-size: 0.7rem;
 }
 
 .switch-btn {
-  background: none;
-  border: none;
-  color: #60a5fa;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid rgba(214, 173, 102, 0.4);
+  color: var(--gold-300);
+  background: transparent;
   cursor: pointer;
-  font-size: 13px;
-  font-family: 'Noto Serif SC', serif;
-  text-decoration: underline;
+}
+
+@media (max-width: 520px) {
+  .login-overlay {
+    align-items: end;
+    padding: 0;
+  }
+
+  .login-panel {
+    width: 100%;
+    padding: 2.5rem 1.3rem max(1.6rem, calc(env(safe-area-inset-bottom) + 1rem));
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+  }
 }
 </style>

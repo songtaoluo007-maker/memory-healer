@@ -42,7 +42,7 @@ function buildLog(): LogEntry[] {
         time: '',
         type: 'system',
         content: msg.content,
-        icon: '📝',
+        icon: '录',
       })
     } else if (msg.role === 'npc') {
       entries.push({
@@ -50,7 +50,7 @@ function buildLog(): LogEntry[] {
         type: 'dialogue',
         npc: msg.npcName,
         content: msg.content,
-        icon: '💬',
+        icon: '言',
       })
     }
   }
@@ -63,7 +63,7 @@ function buildLog(): LogEntry[] {
       type: 'choice',
       scene,
       content: `在${sceneNames[scene] || scene}做出了选择`,
-      icon: '🔀',
+      icon: '择',
     })
   }
 
@@ -75,7 +75,7 @@ function buildLog(): LogEntry[] {
         time: '',
         type: 'fragment',
         content: `收集碎片: ${frag.name || id}`,
-        icon: '✨',
+        icon: '片',
       })
     }
   }
@@ -90,11 +90,11 @@ const logEntries = computed(() => {
 })
 
 const filterOptions = [
-  { value: 'all', label: '全部', icon: '📋' },
-  { value: 'dialogue', label: '对话', icon: '💬' },
-  { value: 'choice', label: '选择', icon: '🔀' },
-  { value: 'fragment', label: '碎片', icon: '✨' },
-  { value: 'system', label: '系统', icon: '📝' },
+  { value: 'all', label: '全部', icon: '总' },
+  { value: 'dialogue', label: '对话', icon: '言' },
+  { value: 'choice', label: '选择', icon: '择' },
+  { value: 'fragment', label: '碎片', icon: '片' },
+  { value: 'system', label: '系统', icon: '录' },
 ]
 </script>
 
@@ -102,8 +102,8 @@ const filterOptions = [
   <div class="log-overlay" @click.self="emit('close')">
     <div class="log-panel">
       <div class="log-header">
-        <h2>📜 剧情日志</h2>
-        <button class="close-btn" @click="emit('close')">✕</button>
+        <h2><small>STORY TRANSCRIPT</small>剧情记录</h2>
+        <button class="close-btn" aria-label="关闭剧情记录" @click="emit('close')">关闭</button>
       </div>
 
       <div class="log-filters">

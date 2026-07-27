@@ -29,7 +29,7 @@ const scenes: SceneInfo[] = [
     year: 1972,
     location: '西安老巷',
     description: '25岁的陈守义，皮影戏传人。爷爷的遗言、刻刀上的"陈"字。',
-    icon: '🎭',
+    icon: '影',
   },
   {
     id: 'scene_1990',
@@ -37,7 +37,7 @@ const scenes: SceneInfo[] = [
     year: 1990,
     location: '深圳火车站',
     description: '43岁的陈守义带着一箱皮影去深圳闯荡。陌生人的搭话。',
-    icon: '🚂',
+    icon: '行',
   },
   {
     id: 'scene_2024',
@@ -45,7 +45,7 @@ const scenes: SceneInfo[] = [
     year: 2024,
     location: '深圳城中村',
     description: '77岁的陈守义坐在轮椅上，记忆开始消散。',
-    icon: '🏚',
+    icon: '忘',
   },
   {
     id: 'scene_2050',
@@ -53,7 +53,7 @@ const scenes: SceneInfo[] = [
     year: 2050,
     location: '北京颁奖典礼',
     description: '小雨创办拾忆公司，获得非遗传承贡献奖。',
-    icon: '🏆',
+    icon: '承',
   },
   {
     id: 'scene_2089',
@@ -61,7 +61,7 @@ const scenes: SceneInfo[] = [
     year: 2089,
     location: '拾忆实验室',
     description: '所有记忆碎片在这里被修复。最终结局。',
-    icon: '🔬',
+    icon: '忆',
   },
 ]
 
@@ -79,8 +79,8 @@ function getProgress(sceneId: string): string {
   <div class="timeline-overlay" @click.self="emit('close')">
     <div class="timeline-panel">
       <div class="timeline-header">
-        <h2>🕰 时光地图</h2>
-        <button class="close-btn" @click="emit('close')">✕</button>
+        <h2><small>CAUSAL TIMELINE</small>时光地图</h2>
+        <button class="close-btn" aria-label="关闭时光地图" @click="emit('close')">关闭</button>
       </div>
 
       <div class="timeline-track">

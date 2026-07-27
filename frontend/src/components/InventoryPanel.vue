@@ -16,8 +16,8 @@ const emit = defineEmits<{ close: [] }>()
 <template>
   <div class="inventory-panel" role="complementary" aria-label="记忆碎片背包">
     <div class="inventory-header">
-      <h3>📦 记忆碎片</h3>
-      <button @click="emit('close')">✕</button>
+      <h3><small>MEMORY FRAGMENTS</small>碎片档案</h3>
+      <button aria-label="关闭碎片档案" @click="emit('close')">关闭</button>
     </div>
     <div class="inventory-progress">
       <MemoryProgress :collected="collectedCount" :total="totalFragments" />

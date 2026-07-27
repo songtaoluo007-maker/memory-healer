@@ -69,7 +69,7 @@ defineExpose({ refresh: fetchStatus })
 <template>
   <div class="butterfly-panel">
     <div class="butterfly-header">
-      <span class="butterfly-icon">🦋</span>
+      <span class="butterfly-icon">因</span>
       <span class="butterfly-title">蝴蝶效应</span>
       <span class="butterfly-count">{{ triggeredCount }}/{{ totalRules }}</span>
     </div>
@@ -84,7 +84,7 @@ defineExpose({ refresh: fetchStatus })
         :class="{ triggered: rule.triggered }"
       >
         <div class="rule-trigger">
-          <span class="rule-icon">{{ rule.triggered ? '🦋' : '○' }}</span>
+          <span class="rule-icon">{{ rule.triggered ? '因' : '○' }}</span>
           <span class="rule-scene">{{ sceneNames[rule.trigger_scene] || rule.trigger_scene }}</span>
           <span class="rule-choice">{{
             choiceNames[rule.trigger_choice] || rule.trigger_choice

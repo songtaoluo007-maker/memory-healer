@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Application, Assets, Container, Graphics, Sprite, type Ticker } from 'pixi.js'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { getScenePresentation } from '../stage/presentation'
 
 const props = defineProps<{
@@ -9,6 +9,7 @@ const props = defineProps<{
 }>()
 
 const host = ref<HTMLDivElement | null>(null)
+const assetFailed = ref(false)
 const presentation = computed(() => getScenePresentation(props.sceneId))
 let app: Application | null = null
 let resizeObserver: ResizeObserver | null = null
@@ -29,6 +30,8 @@ const destroyStage = () => {
 
 const buildStage = async () => {
   destroyStage()
+  assetFailed.value = false
+  await nextTick()
   const target = host.value
   const scene = presentation.value
   if (!target || !scene) return
@@ -55,7 +58,16 @@ const buildStage = async () => {
   nextApp.canvas.setAttribute('aria-hidden', 'true')
   target.replaceChildren(nextApp.canvas)
 
-  const texture = await Assets.load(scene.background)
+  let texture
+  try {
+    texture = await Assets.load(scene.background)
+  } catch {
+    if (currentGeneration === generation && app === nextApp) {
+      assetFailed.value = true
+      destroyStage()
+    }
+    return
+  }
   if (currentGeneration !== generation || app !== nextApp) return
 
   const world = new Container()
@@ -63,7 +75,14 @@ const buildStage = async () => {
   world.addChild(background)
   nextApp.stage.addChild(world)
 
-  const dust = Array.from({ length: 26 }, (_, index) => {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const lowEffects =
+    reducedMotion ||
+    window.matchMedia('(max-width: 900px)').matches ||
+    (navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4)
+  nextApp.ticker.maxFPS = lowEffects ? 30 : 60
+
+  const dust = Array.from({ length: lowEffects ? 14 : 26 }, (_, index) => {
     const mote = new Graphics()
       .circle(0, 0, 0.7 + (index % 4) * 0.35)
       .fill({ color: 0xe6c084, alpha: 0.08 + (index % 5) * 0.025 })
@@ -73,7 +92,6 @@ const buildStage = async () => {
     return mote
   })
 
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   let pointerX = 0
   let pointerY = 0
   let elapsed = 0
@@ -114,13 +132,24 @@ const buildStage = async () => {
     })
   }
 
+  const syncPlayback = () => {
+    if (document.hidden || reducedMotion) {
+      nextApp.ticker.stop()
+    } else {
+      nextApp.ticker.start()
+    }
+  }
+
   layout()
   resizeObserver = new ResizeObserver(layout)
   resizeObserver.observe(target)
   target.addEventListener('pointermove', onPointerMove, { passive: true })
+  document.addEventListener('visibilitychange', syncPlayback)
   nextApp.ticker.add(tick)
+  syncPlayback()
   cleanupStage = () => {
     target.removeEventListener('pointermove', onPointerMove)
+    document.removeEventListener('visibilitychange', syncPlayback)
     nextApp.ticker.remove(tick)
   }
 }
@@ -142,7 +171,7 @@ onBeforeUnmount(destroyStage)
     role="img"
     :aria-label="presentation?.alt || '记忆场景'"
   >
-    <div v-if="presentation" ref="host" class="canvas-host" />
+    <div v-if="presentation && !assetFailed" ref="host" class="canvas-host" />
     <div v-else class="legacy-stage">
       <slot />
     </div>
@@ -235,7 +264,7 @@ onBeforeUnmount(destroyStage)
   object-position: bottom right;
   opacity: 0.92;
   filter: contrast(1.04) saturate(0.82);
-  mask-image: linear-gradient(to bottom, black 66%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 38%, black 74%);
   pointer-events: none;
 }
 
@@ -270,6 +299,17 @@ onBeforeUnmount(destroyStage)
     width: min(75vw, 29rem);
     height: 67vh;
     opacity: 0.68;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-grain {
+    animation: none;
+  }
+
+  .portrait-reveal-enter-active,
+  .portrait-reveal-leave-active {
+    transition: none;
   }
 }
 </style>

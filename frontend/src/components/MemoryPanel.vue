@@ -48,8 +48,8 @@ const sceneLabels: Record<string, string> = {
 <template>
   <div class="memory-panel">
     <div class="panel-header">
-      <h2 class="panel-title">📜 记忆档案</h2>
-      <button class="btn-close" @click="emit('close')">✕</button>
+      <h2 class="panel-title"><small>MEMORY ARCHIVE</small>记忆档案</h2>
+      <button class="btn-close" aria-label="关闭记忆档案" @click="emit('close')">关闭</button>
     </div>
 
     <!-- 标签切换 -->

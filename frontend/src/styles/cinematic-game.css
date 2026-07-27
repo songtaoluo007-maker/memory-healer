@@ -857,6 +857,10 @@
     padding-left: 0.9rem;
   }
 
+  .game-cinema.has-choices .narrative-float {
+    bottom: calc(max(17.25rem, env(safe-area-inset-bottom) + 16.75rem));
+  }
+
   .narrative-kicker,
   .skip-hint {
     font-size: 0.48rem;
@@ -975,5 +979,376 @@
   .loading-line i,
   .cursor {
     animation: none;
+  }
+}
+
+/* ── Cinematic archive overlays ── */
+.game-cinema :deep(.inventory-panel) {
+  z-index: 180;
+  top: 5.25rem;
+  right: var(--safe-inline);
+  bottom: 4.5rem;
+  width: min(23rem, 34vw);
+  border: 1px solid rgba(214, 173, 102, 0.22);
+  border-radius: 0;
+  color: var(--paper-100);
+  background:
+    linear-gradient(140deg, rgba(166, 109, 44, 0.07), transparent 40%), rgba(7, 8, 7, 0.94);
+  box-shadow: 0 2rem 6rem rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(22px);
+}
+
+.game-cinema :deep(.inventory-header),
+.game-cinema :deep(.memory-panel .panel-header),
+.game-cinema :deep(.log-header),
+.game-cinema :deep(.timeline-header) {
+  min-height: 4.4rem;
+  padding: 0 1.25rem;
+  border-bottom-color: rgba(215, 196, 162, 0.1);
+}
+
+.game-cinema :deep(.inventory-header h3),
+.game-cinema :deep(.memory-panel .panel-title),
+.game-cinema :deep(.log-header h2),
+.game-cinema :deep(.timeline-header h2) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+  margin: 0;
+  color: var(--paper-100);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+}
+
+.game-cinema :deep(.inventory-header h3 small),
+.game-cinema :deep(.memory-panel .panel-title small),
+.game-cinema :deep(.log-header h2 small),
+.game-cinema :deep(.timeline-header h2 small) {
+  color: var(--gold-300);
+  font:
+    600 0.48rem/1 ui-monospace,
+    monospace;
+  letter-spacing: 0.2em;
+}
+
+.game-cinema :deep(.inventory-header button),
+.game-cinema :deep(.memory-panel .btn-close),
+.game-cinema :deep(.log-header .close-btn),
+.game-cinema :deep(.timeline-header .close-btn) {
+  min-height: 2.4rem;
+  padding: 0 0.7rem;
+  border: 1px solid rgba(215, 196, 162, 0.12);
+  border-radius: 0;
+  color: rgba(241, 229, 206, 0.5);
+  background: transparent;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+}
+
+.game-cinema :deep(.inventory-progress) {
+  padding: 1rem 1.25rem;
+  border-bottom-color: rgba(215, 196, 162, 0.08);
+}
+
+.game-cinema :deep(.inventory-list) {
+  padding: 0;
+}
+
+.game-cinema :deep(.inventory-item) {
+  min-height: 3.45rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid rgba(215, 196, 162, 0.07);
+  border-radius: 0;
+}
+
+.game-cinema :deep(.inventory-item:hover),
+.game-cinema :deep(.inventory-item.collected) {
+  background: rgba(166, 109, 44, 0.08);
+}
+
+.game-cinema :deep(.inventory-item .frag-name) {
+  color: rgba(241, 229, 206, 0.76);
+}
+
+.game-cinema :deep(.inventory-item .frag-scene) {
+  color: rgba(215, 196, 162, 0.38);
+  font:
+    500 0.52rem/1 ui-monospace,
+    monospace;
+}
+
+.game-cinema :deep(.memory-panel) {
+  z-index: 210;
+  color: var(--paper-100);
+  background:
+    radial-gradient(circle at 15% 45%, rgba(166, 109, 44, 0.07), transparent 32%),
+    rgba(4, 5, 4, 0.97);
+}
+
+.game-cinema :deep(.memory-panel .panel-header) {
+  padding-right: var(--safe-inline);
+  padding-left: var(--safe-inline);
+}
+
+.game-cinema :deep(.memory-panel .tab-bar) {
+  gap: 0;
+  padding: 0 var(--safe-inline);
+  border-bottom-color: rgba(215, 196, 162, 0.1);
+}
+
+.game-cinema :deep(.memory-panel .tab-btn) {
+  min-height: 3rem;
+  padding: 0 1.2rem;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  color: rgba(215, 196, 162, 0.48);
+  background: transparent;
+}
+
+.game-cinema :deep(.memory-panel .tab-btn.active) {
+  border-bottom-color: var(--gold-300);
+  color: var(--paper-100);
+  background: rgba(166, 109, 44, 0.07);
+}
+
+.game-cinema :deep(.memory-panel .tab-content) {
+  padding: clamp(1.5rem, 4vw, 3rem) var(--safe-inline);
+}
+
+.game-cinema :deep(.memory-panel .scene-title) {
+  color: var(--gold-300);
+  font:
+    600 0.56rem/1 ui-monospace,
+    monospace;
+  letter-spacing: 0.2em;
+}
+
+.game-cinema :deep(.memory-panel .fragment-item) {
+  min-height: 3.6rem;
+  padding: 0.75rem 1rem;
+  border-color: rgba(215, 196, 162, 0.09);
+  border-radius: 0;
+  background: rgba(241, 229, 206, 0.025);
+}
+
+.game-cinema :deep(.memory-panel .fragment-item.collected) {
+  border-color: rgba(214, 173, 102, 0.3);
+  background: rgba(166, 109, 44, 0.07);
+}
+
+.game-cinema :deep(.memory-panel .frag-name) {
+  color: rgba(241, 229, 206, 0.78);
+}
+
+.game-cinema :deep(.memory-panel .panel-footer) {
+  padding-right: var(--safe-inline);
+  padding-left: var(--safe-inline);
+  border-top-color: rgba(215, 196, 162, 0.1);
+}
+
+.game-cinema :deep(.memory-panel .progress-bar) {
+  height: 1px;
+  border-radius: 0;
+  background: rgba(215, 196, 162, 0.12);
+}
+
+.game-cinema :deep(.memory-panel .progress-fill) {
+  background: var(--gold-300);
+}
+
+.game-cinema :deep(.log-overlay),
+.game-cinema :deep(.timeline-overlay) {
+  z-index: 210;
+  padding: 1.5rem;
+  background: rgba(3, 4, 3, 0.76);
+  backdrop-filter: blur(22px) saturate(0.68);
+}
+
+.game-cinema :deep(.log-panel),
+.game-cinema :deep(.timeline-panel) {
+  width: min(48rem, 92vw);
+  max-width: none;
+  max-height: 78vh;
+  border: 1px solid rgba(214, 173, 102, 0.22);
+  border-radius: 0;
+  color: var(--paper-100);
+  background:
+    linear-gradient(145deg, rgba(166, 109, 44, 0.06), transparent 42%), rgba(7, 8, 7, 0.96);
+  box-shadow: 0 2.5rem 7rem rgba(0, 0, 0, 0.64);
+}
+
+.game-cinema :deep(.log-filters) {
+  gap: 0;
+  padding: 0 1.25rem;
+  border-bottom-color: rgba(215, 196, 162, 0.08);
+}
+
+.game-cinema :deep(.filter-btn) {
+  min-height: 2.8rem;
+  padding: 0 0.8rem;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  color: rgba(215, 196, 162, 0.44);
+  background: transparent;
+}
+
+.game-cinema :deep(.filter-btn.active) {
+  border-bottom-color: var(--gold-300);
+  color: var(--paper-100);
+  background: rgba(166, 109, 44, 0.07);
+}
+
+.game-cinema :deep(.log-content) {
+  gap: 0;
+  padding: 0;
+}
+
+.game-cinema :deep(.log-entry) {
+  min-height: 3.5rem;
+  padding: 0.8rem 1.25rem;
+  border-bottom: 1px solid rgba(215, 196, 162, 0.07);
+  border-radius: 0;
+  background: transparent;
+}
+
+.game-cinema :deep(.entry-icon) {
+  color: var(--gold-300);
+  font-size: 0.72rem;
+}
+
+.game-cinema :deep(.entry-text) {
+  color: rgba(241, 229, 206, 0.7);
+}
+
+.game-cinema :deep(.timeline-track) {
+  padding: 1.5rem;
+}
+
+.game-cinema :deep(.timeline-line) {
+  width: 1px;
+  background: linear-gradient(to bottom, var(--gold-300), rgba(214, 173, 102, 0.06));
+}
+
+.game-cinema :deep(.node-dot) {
+  border-color: rgba(215, 196, 162, 0.14);
+  border-radius: 0;
+  background: rgba(241, 229, 206, 0.025);
+  transform: rotate(45deg);
+}
+
+.game-cinema :deep(.node-icon) {
+  color: rgba(241, 229, 206, 0.72);
+  font-size: 0.72rem;
+  transform: rotate(-45deg);
+}
+
+.game-cinema :deep(.timeline-node.current .node-dot),
+.game-cinema :deep(.timeline-node.visited .node-dot) {
+  border-color: rgba(214, 173, 102, 0.58);
+  background: rgba(166, 109, 44, 0.14);
+  box-shadow: 0 0 1.5rem rgba(166, 109, 44, 0.16);
+}
+
+.game-cinema :deep(.node-name) {
+  color: var(--paper-100);
+}
+
+.game-cinema :deep(.node-year),
+.game-cinema :deep(.node-progress) {
+  color: var(--gold-300);
+}
+
+.game-cinema :deep(.node-location),
+.game-cinema :deep(.node-desc) {
+  color: rgba(215, 196, 162, 0.5);
+}
+
+.game-cinema :deep(.node-badge) {
+  border-radius: 0;
+  color: var(--gold-300);
+  background: rgba(166, 109, 44, 0.12);
+}
+
+.game-cinema :deep(.butterfly-panel) {
+  padding: 1.4rem;
+  color: var(--paper-100);
+}
+
+.game-cinema :deep(.butterfly-icon) {
+  display: grid;
+  width: 2.2rem;
+  height: 2.2rem;
+  place-items: center;
+  transform: rotate(45deg);
+  border: 1px solid rgba(214, 173, 102, 0.48);
+  color: var(--gold-300);
+  font-size: 0.75rem;
+}
+
+.game-cinema :deep(.butterfly-title) {
+  color: var(--paper-100);
+}
+
+.game-cinema :deep(.butterfly-count) {
+  color: var(--gold-300);
+  font:
+    500 0.68rem/1 ui-monospace,
+    monospace;
+}
+
+.game-cinema :deep(.butterfly-rule) {
+  min-height: 3.4rem;
+  border-color: rgba(215, 196, 162, 0.08);
+  border-radius: 0;
+  background: rgba(241, 229, 206, 0.025);
+}
+
+.game-cinema :deep(.butterfly-rule.triggered) {
+  border-color: rgba(214, 173, 102, 0.28);
+  background: rgba(166, 109, 44, 0.08);
+}
+
+.game-cinema :deep(.rule-icon),
+.game-cinema :deep(.rule-arrow),
+.game-cinema :deep(.effect-target) {
+  color: var(--gold-300);
+}
+
+.game-cinema :deep(.effect-target) {
+  border-radius: 0;
+  background: rgba(166, 109, 44, 0.1);
+}
+
+@media (max-width: 760px), (max-aspect-ratio: 4/5) {
+  .game-cinema :deep(.inventory-panel) {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 72vh;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+  }
+
+  .game-cinema :deep(.log-overlay),
+  .game-cinema :deep(.timeline-overlay) {
+    align-items: end;
+    padding: 0;
+  }
+
+  .game-cinema :deep(.log-panel),
+  .game-cinema :deep(.timeline-panel) {
+    width: 100%;
+    max-height: 82vh;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
   }
 }
