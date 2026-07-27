@@ -128,6 +128,8 @@ const presentations: Record<string, FragmentPresentation> = {
   },
 }
 
+export const FRAGMENT_PRESENTATION_IDS = Object.freeze(Object.keys(presentations).sort())
+
 export function getFragmentPresentation(fragmentId: string): FragmentPresentation | null {
   return presentations[fragmentId] ?? null
 }

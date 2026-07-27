@@ -1,5 +1,25 @@
 import { describe, expect, it } from 'vitest'
-import { getFragmentPresentation } from '../stage/fragmentPresentation'
+import { FRAGMENT_PRESENTATION_IDS, getFragmentPresentation } from '../stage/fragmentPresentation'
+
+const canonicalFragmentIds = [
+  'audience_reactions_fragment',
+  'award_trophy_fragment',
+  'farewell_letter_fragment',
+  'fragment_certificate',
+  'fragment_family_photo',
+  'fragment_grandpa_knife',
+  'fragment_last_puppet',
+  'fragment_last_show',
+  'fragment_letter',
+  'fragment_old_photos',
+  'fragment_shadow_puppet',
+  'fragment_three_kings',
+  'hologram_stage_fragment',
+  'old_photos_wall_fragment',
+  'puppet_trunk_fragment',
+  'station_clock_fragment',
+  'train_ticket_fragment',
+].sort()
 
 describe('fragment presentation registry', () => {
   it('registers the 1990 train-ticket insert', () => {
@@ -42,18 +62,9 @@ describe('fragment presentation registry', () => {
     }
   })
 
-  it('registers exactly the four approved representative inserts', () => {
-    const ids = [
-      'train_ticket_fragment',
-      'fragment_letter',
-      'award_trophy_fragment',
-      'fragment_last_puppet',
-    ]
-
-    expect(ids.every((id) => getFragmentPresentation(id) !== null)).toBe(true)
-  })
-
-  it('returns null for an unknown fragment', () => {
+  it('registers exactly all seventeen canonical fragment inserts', () => {
+    expect(FRAGMENT_PRESENTATION_IDS).toEqual(canonicalFragmentIds)
+    expect(canonicalFragmentIds.every((id) => getFragmentPresentation(id) !== null)).toBe(true)
     expect(getFragmentPresentation('unknown_fragment')).toBeNull()
   })
 
