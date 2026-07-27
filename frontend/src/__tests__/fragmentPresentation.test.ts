@@ -68,4 +68,16 @@ describe('fragment presentation registry', () => {
       expect(getFragmentPresentation(id)?.image).toContain(filename)
     }
   })
+
+  it('registers all three additional 1990 interaction inserts', () => {
+    const expected = {
+      puppet_trunk_fragment: 'fragment-1990-puppet-trunk',
+      farewell_letter_fragment: 'fragment-1990-farewell-letter',
+      station_clock_fragment: 'fragment-1990-station-clock',
+    }
+
+    for (const [id, filename] of Object.entries(expected)) {
+      expect(getFragmentPresentation(id)?.image).toContain(filename)
+    }
+  })
 })

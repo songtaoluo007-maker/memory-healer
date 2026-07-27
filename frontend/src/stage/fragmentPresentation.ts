@@ -2,6 +2,9 @@ import shadowStage1972 from '../assets/cinematic/fragment-1972-shadow-stage.webp
 import carvingKnife1972 from '../assets/cinematic/fragment-1972-carving-knife.webp'
 import threeKings1972 from '../assets/cinematic/fragment-1972-three-kings.webp'
 import trainTicket1990 from '../assets/cinematic/fragment-1990-train-ticket.webp'
+import puppetTrunk1990 from '../assets/cinematic/fragment-1990-puppet-trunk.webp'
+import farewellLetter1990 from '../assets/cinematic/fragment-1990-farewell-letter.webp'
+import stationClock1990 from '../assets/cinematic/fragment-1990-station-clock.webp'
 import xiaoyuLetter2024 from '../assets/cinematic/fragment-2024-xiaoyu-letter.webp'
 import awardTrophy2050 from '../assets/cinematic/fragment-2050-award-trophy.webp'
 import lastPuppet2089 from '../assets/cinematic/fragment-2089-last-puppet.webp'
@@ -37,6 +40,24 @@ const presentations: Record<string, FragmentPresentation> = {
     image: trainTicket1990,
     alt: '被汗水浸皱的南下硬座车票，背景是绿皮火车与皮影木箱。',
     focus: '50% 50%',
+  },
+  puppet_trunk_fragment: {
+    id: 'puppet_trunk_fragment',
+    image: puppetTrunk1990,
+    alt: '磨损的皮影木箱半掩着一枚皮影人物，沾着南下站台的煤烟。',
+    focus: '50% 52%',
+  },
+  farewell_letter_fragment: {
+    id: 'farewell_letter_fragment',
+    image: farewellLetter1990,
+    alt: '未寄出的告别信与钢笔放在站台长椅上，纸面只留下模糊墨迹。',
+    focus: '50% 50%',
+  },
+  station_clock_fragment: {
+    id: 'station_clock_fragment',
+    image: stationClock1990,
+    alt: '旧站台时钟穿过蒸汽与钨丝灯光，记录着南下列车即将开出的时刻。',
+    focus: '50% 46%',
   },
   fragment_letter: {
     id: 'fragment_letter',
