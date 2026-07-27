@@ -32,6 +32,16 @@ describe('fragment presentation registry', () => {
     }
   })
 
+  it('registers the 2089 final-puppet insert', () => {
+    const fragment = getFragmentPresentation('fragment_last_puppet')
+
+    expect(fragment).not.toBeNull()
+    if (fragment) {
+      expect(fragment.image).toContain('fragment-2089-last-puppet')
+      expect(fragment.alt).toContain('孙悟空皮影')
+    }
+  })
+
   it('returns null for a fragment without bespoke art', () => {
     expect(getFragmentPresentation('fragment_grandpa_knife')).toBeNull()
   })

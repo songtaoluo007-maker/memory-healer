@@ -8,6 +8,8 @@ import chenShouyi2024Portrait from '../assets/cinematic/chen-shouyi-2024.webp'
 import scene2050Background from '../assets/cinematic/scene-2050-award-ceremony.webp'
 import xiaoyu2050Portrait from '../assets/cinematic/xiaoyu-2050.webp'
 import journalist2050Portrait from '../assets/cinematic/journalist-2050.webp'
+import scene2089Background from '../assets/cinematic/scene-2089-memory-lab.webp'
+import xiaoyu2089Projection from '../assets/cinematic/xiaoyu-2089-projection.webp'
 
 export type CinematicPalette = 'amber' | 'rail' | 'rain' | 'ceremony' | 'neon' | 'memory'
 
@@ -86,6 +88,21 @@ const presentations: Record<string, ScenePresentation> = {
     composition: {
       desktopFocus: [0.5, 0.5],
       mobileFocus: [0.53, 0.48],
+    },
+  },
+  scene_2089: {
+    id: 'scene_2089',
+    eraLabel: '记忆纪元 · 终幕',
+    locationLabel: '深圳 · 拾忆实验室',
+    palette: 'memory',
+    background: scene2089Background,
+    portraits: {
+      xiaoyu: xiaoyu2089Projection,
+    },
+    alt: '2089年拾忆实验室，四个年代的记忆残片在神经接口躺椅上方重组，最后一枚孙悟空皮影守在暖色光核中。',
+    composition: {
+      desktopFocus: [0.5, 0.5],
+      mobileFocus: [0.5, 0.49],
     },
   },
 }

@@ -67,7 +67,24 @@ describe('cinematic scene presentation registry', () => {
     }
   })
 
-  it('falls back cleanly for eras that do not have final cinematic art yet', () => {
-    expect(getScenePresentation('scene_2089')).toBeNull()
+  it('registers the 2089 memory lab and Xiaoyu projection', () => {
+    const scene = getScenePresentation('scene_2089')
+
+    expect(scene).not.toBeNull()
+    if (scene) {
+      expect(scene.background).toContain('scene-2089-memory-lab')
+      expect(scene.portraits).toHaveProperty('xiaoyu')
+      expect(scene.portraits.xiaoyu).toContain('xiaoyu-2089-projection')
+      expect(scene.palette).toBe('memory')
+    }
+  })
+
+  it('covers all five story eras and rejects unknown scenes', () => {
+    expect(
+      ['scene_1972', 'scene_1990', 'scene_2024', 'scene_2050', 'scene_2089'].every(
+        (id) => getScenePresentation(id) !== null,
+      ),
+    ).toBe(true)
+    expect(getScenePresentation('unknown_scene')).toBeNull()
   })
 })
