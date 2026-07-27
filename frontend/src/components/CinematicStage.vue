@@ -244,10 +244,70 @@ onBeforeUnmount(destroyStage)
     linear-gradient(180deg, rgba(7, 8, 8, 0.2), transparent 35%, rgba(5, 5, 5, 0.62));
 }
 
+.palette-rail .stage-grade {
+  background:
+    radial-gradient(circle at 70% 35%, rgba(221, 153, 68, 0.13), transparent 24%),
+    linear-gradient(112deg, rgba(9, 18, 14, 0.58) 0%, rgba(40, 54, 42, 0.12) 48%, transparent 76%),
+    linear-gradient(180deg, rgba(6, 10, 8, 0.2), transparent 34%, rgba(4, 7, 5, 0.64));
+}
+
+.palette-rain .stage-grade {
+  background:
+    radial-gradient(circle at 42% 69%, rgba(213, 139, 58, 0.1), transparent 22%),
+    linear-gradient(118deg, rgba(6, 20, 34, 0.58) 0%, rgba(24, 62, 87, 0.12) 55%, transparent 78%),
+    linear-gradient(180deg, rgba(8, 27, 43, 0.18), transparent 30%, rgba(3, 8, 13, 0.7));
+}
+
+.palette-ceremony .stage-grade {
+  background:
+    radial-gradient(circle at 52% 42%, rgba(255, 238, 188, 0.16), transparent 38%),
+    linear-gradient(
+      110deg,
+      rgba(36, 16, 12, 0.32) 0%,
+      transparent 31%,
+      rgba(124, 22, 22, 0.08) 88%
+    ),
+    linear-gradient(180deg, rgba(255, 245, 218, 0.04), transparent 48%, rgba(15, 8, 7, 0.42));
+  mix-blend-mode: soft-light;
+}
+
+.palette-memory .stage-grade {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(225, 145, 54, 0.13), transparent 17%),
+    radial-gradient(circle at 31% 38%, rgba(38, 196, 209, 0.1), transparent 31%),
+    radial-gradient(circle at 72% 42%, rgba(116, 67, 196, 0.14), transparent 36%),
+    linear-gradient(180deg, rgba(3, 10, 18, 0.16), transparent 42%, rgba(3, 4, 12, 0.62));
+  mix-blend-mode: screen;
+}
+
 .stage-vignette {
   box-shadow:
     inset 0 0 15vw 4vw rgba(0, 0, 0, 0.72),
     inset 0 -10rem 9rem rgba(0, 0, 0, 0.52);
+}
+
+.palette-rail .stage-vignette {
+  box-shadow:
+    inset 0 0 17vw 5vw rgba(1, 7, 4, 0.75),
+    inset 0 -11rem 10rem rgba(0, 0, 0, 0.58);
+}
+
+.palette-rain .stage-vignette {
+  box-shadow:
+    inset 0 0 19vw 6vw rgba(0, 4, 10, 0.8),
+    inset 0 -12rem 10rem rgba(0, 2, 7, 0.68);
+}
+
+.palette-ceremony .stage-vignette {
+  box-shadow:
+    inset 0 0 10vw 2vw rgba(25, 10, 8, 0.42),
+    inset 0 -8rem 8rem rgba(8, 4, 3, 0.38);
+}
+
+.palette-memory .stage-vignette {
+  box-shadow:
+    inset 0 0 16vw 4vw rgba(0, 2, 10, 0.72),
+    inset 0 -10rem 9rem rgba(1, 1, 9, 0.6);
 }
 
 .stage-grain {

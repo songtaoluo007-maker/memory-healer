@@ -81,4 +81,14 @@ describe('cinematic scene presentation registry', () => {
     ).toBe(true)
     expect(getScenePresentation('unknown_scene')).toBeNull()
   })
+
+  it('assigns a distinct cinematic grade to every story era', () => {
+    expect([
+      getScenePresentation('scene_1972')?.palette,
+      getScenePresentation('scene_1990')?.palette,
+      getScenePresentation('scene_2024')?.palette,
+      getScenePresentation('scene_2050')?.palette,
+      getScenePresentation('scene_2089')?.palette,
+    ]).toEqual(['amber', 'rail', 'rain', 'ceremony', 'memory'])
+  })
 })

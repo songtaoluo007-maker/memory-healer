@@ -11,7 +11,7 @@ import journalist2050Portrait from '../assets/cinematic/journalist-2050.webp'
 import scene2089Background from '../assets/cinematic/scene-2089-memory-lab.webp'
 import xiaoyu2089Projection from '../assets/cinematic/xiaoyu-2089-projection.webp'
 
-export type CinematicPalette = 'amber' | 'rail' | 'rain' | 'ceremony' | 'neon' | 'memory'
+export type CinematicPalette = 'amber' | 'rail' | 'rain' | 'ceremony' | 'memory'
 
 export interface ScenePresentation {
   id: string
