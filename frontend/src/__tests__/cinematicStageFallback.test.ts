@@ -1,4 +1,3 @@
-/* eslint-disable vue/one-component-per-file */
 import { createApp, h, nextTick } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -24,6 +23,20 @@ import CinematicStage from '../components/CinematicStage.vue'
 
 let app: ReturnType<typeof createApp> | null = null
 
+const mountStage = (sceneId: string, activeNpcId?: string) => {
+  const host = document.createElement('div')
+  app = createApp({
+    render: () =>
+      h(
+        CinematicStage,
+        { sceneId, activeNpcId },
+        { default: () => h('div', { class: 'legacy-art' }, 'legacy illustration') },
+      ),
+  })
+  app.mount(host)
+  return host
+}
+
 afterEach(() => {
   app?.unmount()
   app = null
@@ -33,17 +46,7 @@ afterEach(() => {
 describe('CinematicStage fallback', () => {
   it('uses the legacy illustration when cinematic artwork fails to load', async () => {
     assetLoad.mockRejectedValueOnce(new Error('asset unavailable'))
-    const host = document.createElement('div')
-    app = createApp({
-      render: () =>
-        h(
-          CinematicStage,
-          { sceneId: 'scene_1990' },
-          { default: () => h('div', { class: 'legacy-art' }, 'legacy illustration') },
-        ),
-    })
-
-    app.mount(host)
+    const host = mountStage('scene_1990')
     await nextTick()
     await new Promise((resolve) => window.setTimeout(resolve, 0))
     await nextTick()
@@ -54,20 +57,30 @@ describe('CinematicStage fallback', () => {
   })
 
   it('uses the legacy illustration for an unknown scene ID', async () => {
-    const host = document.createElement('div')
-    app = createApp({
-      render: () =>
-        h(
-          CinematicStage,
-          { sceneId: 'unknown_scene' },
-          { default: () => h('div', { class: 'legacy-art' }, 'legacy illustration') },
-        ),
-    })
-
-    app.mount(host)
+    const host = mountStage('unknown_scene')
     await nextTick()
 
     expect(assetLoad).not.toHaveBeenCalled()
     expect(host.querySelector('.legacy-art')).not.toBeNull()
+  })
+
+  it('marks ordinary characters as solid physical layers', async () => {
+    assetLoad.mockImplementationOnce(() => new Promise(() => undefined))
+    const host = mountStage('scene_1990', 'stranger_1990')
+    await nextTick()
+
+    expect(
+      host.querySelector('.character-portrait')?.getAttribute('data-character-treatment'),
+    ).toBe('solid')
+  })
+
+  it('marks 2089 Xiaoyu as the restrained projection exception', async () => {
+    assetLoad.mockImplementationOnce(() => new Promise(() => undefined))
+    const host = mountStage('scene_2089', 'xiaoyu')
+    await nextTick()
+
+    expect(
+      host.querySelector('.character-portrait')?.getAttribute('data-character-treatment'),
+    ).toBe('projection')
   })
 })

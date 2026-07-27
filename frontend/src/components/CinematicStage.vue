@@ -15,6 +15,9 @@ const activePortrait = computed(() => {
   if (!props.activeNpcId) return null
   return presentation.value?.portraits[props.activeNpcId] ?? null
 })
+const characterTreatment = computed(() =>
+  props.sceneId === 'scene_2089' && props.activeNpcId === 'xiaoyu' ? 'projection' : 'solid',
+)
 let app: Application | null = null
 let resizeObserver: ResizeObserver | null = null
 let generation = 0
@@ -186,6 +189,7 @@ onBeforeUnmount(destroyStage)
       <img
         v-if="activePortrait"
         class="character-portrait"
+        :data-character-treatment="characterTreatment"
         :src="activePortrait"
         alt=""
         aria-hidden="true"
@@ -318,16 +322,24 @@ onBeforeUnmount(destroyStage)
 
 .character-portrait {
   position: absolute;
-  right: clamp(-5rem, -2vw, -1rem);
-  bottom: -7vh;
-  width: min(38vw, 34rem);
-  height: 92vh;
+  right: clamp(-2.5rem, -1vw, -0.5rem);
+  bottom: -2vh;
+  width: min(34vw, 30rem);
+  height: 88vh;
   object-fit: contain;
   object-position: bottom right;
-  opacity: 0.92;
-  filter: contrast(1.04) saturate(0.82);
-  mask-image: linear-gradient(to right, transparent 38%, black 74%);
+  opacity: 1;
+  filter: drop-shadow(-1.25rem 1.5rem 1.6rem rgba(0, 0, 0, 0.52))
+    drop-shadow(-0.15rem 0 0.45rem rgba(224, 177, 103, 0.18));
+  mask-image: linear-gradient(to bottom, #000 0%, #000 88%, transparent 100%);
   pointer-events: none;
+}
+
+.character-portrait[data-character-treatment='projection'] {
+  opacity: 0.92;
+  filter: drop-shadow(-1rem 1.4rem 1.5rem rgba(0, 0, 0, 0.46))
+    drop-shadow(0 0 0.65rem rgba(96, 198, 221, 0.24))
+    drop-shadow(0 0 1.15rem rgba(139, 92, 196, 0.2));
 }
 
 @keyframes grain {
@@ -343,24 +355,21 @@ onBeforeUnmount(destroyStage)
 .portrait-reveal-leave-active {
   transition:
     opacity 520ms var(--ease-cinema),
-    transform 760ms var(--ease-cinema),
-    filter 520ms ease;
+    transform 760ms var(--ease-cinema);
 }
 
 .portrait-reveal-enter-from,
 .portrait-reveal-leave-to {
   opacity: 0;
-  filter: blur(8px);
-  transform: translateX(3rem);
+  transform: translateX(2rem);
 }
 
 @media (max-aspect-ratio: 4/5) {
   .character-portrait {
-    right: -8rem;
-    bottom: 17vh;
-    width: min(75vw, 29rem);
-    height: 67vh;
-    opacity: 0.68;
+    right: -3.5rem;
+    bottom: 20vh;
+    width: min(68vw, 24rem);
+    height: 61vh;
   }
 }
 
