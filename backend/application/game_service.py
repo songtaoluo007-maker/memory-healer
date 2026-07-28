@@ -11,6 +11,7 @@ from backend.content.models import (
     ChoiceContent,
     EndingContent,
     HotspotContent,
+    HypothesisContent,
     SceneContent,
 )
 from backend.content.registry import ContentRegistry
@@ -48,6 +49,7 @@ class SceneView(ApplicationModel):
     fragments: list[SceneFragmentView]
     hotspots: list[HotspotContent]
     choices: list[ChoiceContent]
+    hypotheses: list[HypothesisContent]
     content_version: int = 1
 
 
@@ -116,6 +118,11 @@ class GameService:
                 for choice in self.registry.choices.values()
                 if choice.scene_id == scene.id
             ],
+            hypotheses=[
+                hypothesis
+                for hypothesis in self.registry.hypotheses.values()
+                if hypothesis.scene_id == scene.id
+            ],
         )
 
     @staticmethod
@@ -181,6 +188,70 @@ class GameService:
             ],
         )
 
+    def confirm_hypothesis(
+        self,
+        state: GameState,
+        hypothesis_id: str,
+        evidence_ids: list[str],
+        *,
+        expected_revision: int,
+    ) -> ActionResult:
+        self._check_revision(state, expected_revision)
+        state.validate_content_references(self.registry)
+        hypothesis = self.registry.get_hypothesis(hypothesis_id)
+        if hypothesis.scene_id != state.current_scene:
+            raise DomainError(
+                "HYPOTHESIS_INVALID",
+                "该推理不属于当前场景",
+                details={
+                    "hypothesis_id": hypothesis.id,
+                    "current_scene": state.current_scene,
+                },
+            )
+        if len(evidence_ids) != len(set(evidence_ids)):
+            raise DomainError(
+                "EVIDENCE_INVALID",
+                "推理证据不能重复",
+                details={"evidence_ids": evidence_ids},
+            )
+        if set(evidence_ids) != set(hypothesis.evidence_ids):
+            raise DomainError(
+                "EVIDENCE_INVALID",
+                "证据不足以支持这项推理",
+                details={
+                    "evidence_ids": evidence_ids,
+                    "required_evidence_ids": list(hypothesis.evidence_ids),
+                },
+            )
+        if not set(evidence_ids).issubset(state.collected_fragments):
+            raise DomainError(
+                "EVIDENCE_NOT_COLLECTED",
+                "仍有证据尚未取得",
+                details={
+                    "missing_evidence_ids": sorted(
+                        set(evidence_ids) - set(state.collected_fragments)
+                    ),
+                },
+            )
+        if state.confirmed_hypotheses.get(state.current_scene) == hypothesis.id:
+            return ActionResult(state=state.model_copy(deep=True))
+
+        payload = state.model_dump(mode="python")
+        payload["confirmed_hypotheses"][state.current_scene] = hypothesis.id
+        payload["revision"] += 1
+        next_state = GameState.model_validate(payload)
+        next_state.validate_content_references(self.registry)
+        return ActionResult(
+            state=next_state,
+            events=[
+                PresentationEvent(
+                    type="hypothesis.confirmed",
+                    content_id=hypothesis.id,
+                    payload={"evidence_ids": list(hypothesis.evidence_ids)},
+                )
+            ],
+        )
+
     def record_choice(
         self,
         state: GameState,
@@ -198,6 +269,23 @@ class GameService:
                 details={
                     "choice_id": choice.id,
                     "current_scene": state.current_scene,
+                },
+            )
+
+        scene_hypotheses = [
+            hypothesis
+            for hypothesis in self.registry.hypotheses.values()
+            if hypothesis.scene_id == state.current_scene
+        ]
+        if scene_hypotheses and state.current_scene not in state.confirmed_hypotheses:
+            raise DomainError(
+                "HYPOTHESIS_REQUIRED",
+                "请先用已经取得的证据完成本幕推理",
+                details={
+                    "scene_id": state.current_scene,
+                    "hypothesis_ids": [
+                        hypothesis.id for hypothesis in scene_hypotheses
+                    ],
                 },
             )
 

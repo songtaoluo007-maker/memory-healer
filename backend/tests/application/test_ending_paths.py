@@ -40,6 +40,22 @@ def explore_current_scene(
     return state
 
 
+def confirm_current_scene_hypothesis(
+    service: GameService,
+    state: GameState,
+) -> GameState:
+    hypotheses = service.get_scene_view(state).hypotheses
+    if not hypotheses:
+        return state
+    hypothesis = hypotheses[0]
+    return service.confirm_hypothesis(
+        state,
+        hypothesis.id,
+        list(hypothesis.evidence_ids),
+        expected_revision=state.revision,
+    ).state
+
+
 def follow_good_path(service: GameService, stop_after_scene: str) -> GameState:
     choices = {
         "scene_1972": "encourage_art",
@@ -53,6 +69,7 @@ def follow_good_path(service: GameService, stop_after_scene: str) -> GameState:
         state = explore_current_scene(service, state)
         if state.current_scene == stop_after_scene:
             return state
+        state = confirm_current_scene_hypothesis(service, state)
         state = service.record_choice(
             state,
             choices[state.current_scene],
@@ -76,6 +93,7 @@ def test_every_ending_has_a_legal_path(ending_id: str, path: str) -> None:
     elif path == "seven_fragments":
         state = service.create_game()
         state = explore_current_scene(service, state)
+        state = confirm_current_scene_hypothesis(service, state)
         state = service.record_choice(
             state,
             "encourage_art",
