@@ -49,11 +49,11 @@ class ValidationIssue:
         return f"line_id={self.line_id} reason={self.code} path={self.path}"
 
 
-def validate_seed_provenance(provenance: str) -> None:
-    if provenance != "edge_tts_synthetic":
+def validate_generator_provenance(provenance: str) -> None:
+    if provenance != "edge_managed_cloud":
         raise ValueError(
-            "synthetic seed provenance must be edge_tts_synthetic; "
-            "human, operator-supplied, and unknown sources are prohibited"
+            "generator provenance must be edge_managed_cloud; "
+            "local, human, operator-supplied, and unknown sources are prohibited"
         )
 
 
@@ -291,8 +291,8 @@ def validate_voice_assets(
             _issue(issues, line_id, "LINE_VERSION_MISMATCH", asset_path)
         if asset.get("profile_version") != profile.get("version"):
             _issue(issues, line_id, "PROFILE_VERSION_MISMATCH", asset_path)
-        if asset.get("seed_provenance") != "edge_tts_synthetic":
-            _issue(issues, line_id, "SEED_PROVENANCE_INVALID", asset_path)
+        if asset.get("generator_provenance") != "edge_managed_cloud":
+            _issue(issues, line_id, "GENERATOR_PROVENANCE_INVALID", asset_path)
 
         text = line.get("text")
         expected_text_hash = (

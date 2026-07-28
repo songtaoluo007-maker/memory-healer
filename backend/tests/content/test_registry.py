@@ -68,7 +68,7 @@ def voice_asset_candidate(
         "generator": "edge_tts",
         "generator_revision": "7.2.8",
         "model_id": "zh-CN-XiaoxiaoNeural",
-        "seed_provenance": "edge_tts_synthetic",
+        "generator_provenance": "edge_managed_cloud",
         "line_version": 1,
         "profile_version": 1,
         "postprocess_version": 1,
@@ -323,14 +323,14 @@ def test_voice_asset_profile_version_must_match_speaker_profile(
     expect_validation_code(documents, "VOICE_ASSET_PROFILE_VERSION_MISMATCH")
 
 
-def test_voice_asset_seed_provenance_must_be_edge_synthetic(
+def test_voice_asset_generator_provenance_must_be_edge_managed_cloud(
     shipping_documents: dict[str, object],
 ) -> None:
     documents = copy.deepcopy(shipping_documents)
     assets = documents["voice_assets"]
     assert isinstance(assets, list)
     candidate = voice_asset_candidate()
-    candidate["seed_provenance"] = "cosyvoice_sft_synthetic"
+    candidate["generator_provenance"] = "local_model"
     replace_voice_asset(documents, candidate)
 
     expect_validation_code(documents, "CONTENT_SCHEMA_INVALID")

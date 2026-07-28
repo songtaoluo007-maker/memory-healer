@@ -123,7 +123,7 @@ def registry_with_asset(*, approved: bool) -> ContentRegistry:
         generator="edge_tts",
         generator_revision="7.2.8",
         model_id="zh-CN-XiaoxiaoNeural",
-        seed_provenance="edge_tts_synthetic",
+        generator_provenance="edge_managed_cloud",
         line_version=1,
         profile_version=1,
         postprocess_version=1,

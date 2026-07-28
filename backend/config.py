@@ -1,6 +1,8 @@
 """游戏配置"""
 
 import ipaddress
+import re
+import socket
 from pathlib import Path
 from typing import List
 from urllib.parse import urlsplit
@@ -128,6 +130,20 @@ class Settings(BaseSettings):
                 )
         except ValueError:
             pass
+        legacy_ipv4_literal = re.fullmatch(
+            r"(?:0[xX][0-9a-fA-F]+|[0-9]+)"
+            r"(?:\.(?:0[xX][0-9a-fA-F]+|[0-9]+))*",
+            normalized_host,
+        )
+        if legacy_ipv4_literal:
+            try:
+                legacy_address = ipaddress.IPv4Address(
+                    socket.inet_aton(normalized_host)
+                )
+            except OSError:
+                pass
+            else:
+                is_loopback = is_loopback or legacy_address.is_loopback
         if parsed.scheme.casefold() != "https" or not normalized_host or is_loopback:
             raise ValueError(
                 "VOICE_PRIMARY_BASE_URL must be a remote HTTPS URL when "

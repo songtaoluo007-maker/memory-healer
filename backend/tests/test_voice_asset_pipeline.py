@@ -24,7 +24,7 @@ from scripts.voice.generate_fixed_assets import (
 )
 from scripts.voice.validate_voice_assets import (
     MediaInfo,
-    validate_seed_provenance,
+    validate_generator_provenance,
     validate_voice_assets,
 )
 
@@ -65,6 +65,7 @@ def test_tracked_operational_files_expose_no_local_voice_runtime_path() -> None:
                 "docker-compose.yml",
                 "README.md",
                 "docs/voice-production.md",
+                "docs/superpowers/specs/2026-07-28-cinematic-ai-voice-system-design.md",
             }
         )
     ]
@@ -84,9 +85,24 @@ def test_tracked_operational_files_expose_no_local_voice_runtime_path() -> None:
         "seed_root",
         "pretrained_models",
         "automodel",
+        "seed_provenance",
     )
     violations: list[str] = []
     for relative in operational:
+        if (
+            relative
+            == "docs/superpowers/specs/2026-07-28-cinematic-ai-voice-system-design.md"
+        ):
+            spec = (REPOSITORY_ROOT / relative).read_text(encoding="utf-8")
+            required_override = (
+                "BINDING ARCHITECTURE OVERRIDE — SUPERSEDED",
+                "不可执行的历史记录",
+                "docs/superpowers/plans/2026-07-28-cinematic-ai-voice-platform-pilot.md",
+                "docs/voice-production.md",
+            )
+            if not all(marker in spec[:2000] for marker in required_override):
+                violations.append(relative)
+            continue
         if relative in forbidden_paths or relative.casefold().endswith(".wav"):
             violations.append(relative)
             continue
@@ -210,15 +226,15 @@ def test_manifest_entry_contains_edge_reproducibility_fields(
     assert entry["generator_revision"] == "7.2.8"
     assert entry["model_id"] == "zh-CN-XiaoxiaoNeural"
     assert "model_commit" not in entry
-    assert entry["seed_provenance"] == "edge_tts_synthetic"
+    assert entry["generator_provenance"] == "edge_managed_cloud"
     assert entry["line_version"] == 1
     assert entry["approved"] is True
 
 
-def test_seed_provenance_rejects_human_or_unknown_sources() -> None:
+def test_generator_provenance_rejects_human_or_unknown_sources() -> None:
     for provenance in ("human_recording", "operator_upload", "unknown"):
-        with pytest.raises(ValueError, match="synthetic seed provenance"):
-            validate_seed_provenance(provenance)
+        with pytest.raises(ValueError, match="generator provenance"):
+            validate_generator_provenance(provenance)
 
 
 def test_generation_plan_contains_only_seven_1972_edge_lines() -> None:
@@ -369,7 +385,7 @@ def promotion_manifest_entry(
         "generator": "edge_tts",
         "generator_revision": "7.2.8",
         "model_id": "zh-CN-XiaoxiaoNeural",
-        "seed_provenance": "edge_tts_synthetic",
+        "generator_provenance": "edge_managed_cloud",
         "line_version": 1,
         "profile_version": 1,
         "postprocess_version": 1,
@@ -638,7 +654,7 @@ def pipeline_fixture(
             "generator": "edge_tts",
             "generator_revision": "7.2.8",
             "model_id": "zh-CN-XiaoxiaoNeural",
-            "seed_provenance": "edge_tts_synthetic",
+            "generator_provenance": "edge_managed_cloud",
             "line_version": 1,
             "profile_version": 1,
             "postprocess_version": 1,

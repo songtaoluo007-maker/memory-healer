@@ -1,7 +1,19 @@
 # 《拾忆》电影化 AI 语音系统设计
 
+> # BINDING ARCHITECTURE OVERRIDE — SUPERSEDED
+>
+> 本文关于本地 CosyVoice、模型、权重、seed、bridge、下载、安装与推理服务的
+> 方案已被 2026-07-28 binding override 全部废止，以下相关章节只作为
+> **不可执行的历史记录**保留，不是待审方案、实施说明或验收要求。不得据此安装、
+> 下载、运行、挂载或恢复任何本地语音模型、权重、seed artifact 或 bridge。
+>
+> 当前权威架构与可执行流程仅见
+> `docs/superpowers/plans/2026-07-28-cinematic-ai-voice-platform-pilot.md`
+> 和 `docs/voice-production.md`：固定资产使用 Edge managed cloud；可选 primary
+> 只能是 remote-only HTTPS JSON+Bearer 服务且默认关闭。
+
 **日期：** 2026-07-28  
-**状态：** 已完成产品讨论，待用户审阅书面方案  
+**状态：** 已废止的历史设计记录；不得执行
 **范围：** AI 角色声线、固定剧情语音、自由对话语音、旁白、字幕同步、混音、缓存、降级和内容生产流程
 
 ## 1. 决策摘要

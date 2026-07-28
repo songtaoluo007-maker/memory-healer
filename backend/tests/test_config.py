@@ -146,6 +146,14 @@ def test_remote_primary_credentials_are_required_only_when_enabled(tmp_path) -> 
         "https://127.0.0.1.",
         "https://[::1]",
         "https://[::ffff:127.0.0.1]",
+        "https://127.1",
+        "https://2130706433",
+        "https://0177.0.0.1",
+        "https://0x7f000001",
+        "https://127.0.1",
+        "https://0x7f.1",
+        "https://0177.1",
+        "https://0x7f.0.0.1",
     ],
 )
 def test_remote_primary_rejects_non_remote_or_loopback_urls(
@@ -167,6 +175,8 @@ def test_remote_primary_rejects_non_remote_or_loopback_urls(
         "https://voice-provider.example",
         "https://VOICE-PROVIDER.EXAMPLE.",
         "https://语音.example",
+        "https://127.1.voice-provider.example",
+        "https://0x7f000001.example",
     ],
 )
 def test_remote_primary_allows_normalized_remote_https_urls(

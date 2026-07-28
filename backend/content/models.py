@@ -66,7 +66,7 @@ class VoiceAssetContent(ContentModel):
     generator: Literal["edge_tts"]
     generator_revision: str
     model_id: str
-    seed_provenance: Literal["edge_tts_synthetic"]
+    generator_provenance: Literal["edge_managed_cloud"]
     line_version: int = Field(ge=1)
     profile_version: int = Field(ge=1)
     postprocess_version: int = Field(ge=1)

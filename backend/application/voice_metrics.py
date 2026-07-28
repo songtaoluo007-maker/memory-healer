@@ -61,13 +61,12 @@ class VoiceMetricsDispatcher:
                 return False
             if self._thread is None or not self._thread.is_alive():
                 self._start_locked()
-        try:
-            self._queue.put_nowait(dict(event))
-            return True
-        except queue.Full:
-            with self._state_lock:
+            try:
+                self._queue.put_nowait(dict(event))
+                return True
+            except queue.Full:
                 self._dropped_events += 1
-            return False
+                return False
 
     def close(self, *, timeout: float | None = None) -> bool:
         with self._state_lock:

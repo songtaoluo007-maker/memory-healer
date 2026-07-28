@@ -8,6 +8,8 @@
 4. 可选 HTTPS 远程 primary 默认关闭，任何语音失败都降级为可继续的文字玩法。
 
 禁止把真人录音用作提示、seed、训练或微调数据。默认 Edge 流程没有 seed 文件。
+固定资产 manifest 使用 `generator_provenance=edge_managed_cloud` 准确记录其
+Edge 托管云生成来源。
 如果未来外部远程供应商确实要求 seed，只能由该供应商使用纯合成来源，并在其
 外部生产记录中保存不可变的 provenance JSON；不得把真人样本或任何 seed
 artifact 带入本仓库、镜像或运行卷。
