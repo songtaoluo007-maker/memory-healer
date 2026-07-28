@@ -121,8 +121,13 @@
 
 .status-right {
   display: flex;
+  align-items: flex-start;
   justify-content: flex-end;
   gap: 0.45rem;
+}
+
+.status-right :deep(.voice-controls) {
+  flex: 0 0 auto;
 }
 
 .hud-action,
@@ -891,6 +896,16 @@
 
   .status-right {
     grid-column: 2;
+  }
+
+  .status-right :deep(.voice-controls-panel) {
+    box-shadow: 0 1rem 2.8rem rgba(0, 0, 0, 0.46);
+  }
+
+  .voice-controls-open .reasoning-panel-host {
+    opacity: 0;
+    transform: translateX(-1rem);
+    pointer-events: none;
   }
 
   .fragment-counter {

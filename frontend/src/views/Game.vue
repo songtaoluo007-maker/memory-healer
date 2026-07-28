@@ -16,6 +16,7 @@ import { useTypewriter } from '../composables/useTypewriter'
 import { useVoicePlayback } from '../composables/useVoicePlayback'
 import { useUiStore, type CinematicOverlay } from '../stores/ui'
 import FragmentArtwork from '../components/FragmentArtwork.vue'
+import VoiceControls from '../components/VoiceControls.vue'
 import VoiceSubtitle from '../components/VoiceSubtitle.vue'
 import { getFragmentPresentation } from '../stage/fragmentPresentation'
 import { isSceneDecisionUnlocked, toggleEvidenceSelection } from '../domain/memoryReasoning'
@@ -78,7 +79,7 @@ const {
 } = useTypewriter(25)
 const { playBGM } = useMusicBus()
 const { playSFX } = useSfxBus()
-const { isMuted, toggleMute } = useAudioMixer()
+const { isMuted, toggleMute, voiceVolume, setVoiceVolume } = useAudioMixer()
 const voice = useVoicePlayback()
 const sceneVoice = createSceneVoiceIntegration(voice)
 useVoiceRouteLifecycle(voice, sceneVoice.cancelPending)
@@ -97,6 +98,7 @@ const popupPresentation = computed(() =>
 const actionPending = ref(false)
 const scanMode = ref(false)
 const selectedEvidenceIds = ref<string[]>([])
+const voiceControlsOpen = ref(false)
 const mounted = ref(false)
 const endingPending = ref(false)
 const chatPanelRef = ref<{
@@ -407,7 +409,10 @@ onMounted(async () => {
   <div
     v-if="gameState"
     class="game game-cinema"
-    :class="{ 'has-choices': choices.length > 0 }"
+    :class="{
+      'has-choices': choices.length > 0,
+      'voice-controls-open': voiceControlsOpen,
+    }"
     :data-stage-mode="ui.stageMode"
   >
     <Transition name="fade">
@@ -460,14 +465,20 @@ onMounted(async () => {
         >
           {{ lang === 'zh' ? 'EN' : '中' }}
         </button>
-        <button
-          class="hud-action compact"
-          :title="isMuted ? '取消静音' : '静音'"
-          :aria-label="isMuted ? '取消静音' : '静音'"
-          @click="toggleMute"
-        >
-          {{ isMuted ? '静' : '声' }}
-        </button>
+        <VoiceControls
+          :is-speaking="voice.isSpeaking.value"
+          :is-paused="voice.isPaused.value"
+          :voice-volume="voiceVolume"
+          :has-replay="Boolean(voice.lastRequest.value)"
+          :is-muted="isMuted"
+          @pause="voice.pause"
+          @resume="voice.resume"
+          @replay="voice.replay"
+          @skip="voice.skip"
+          @toggle-mute="toggleMute"
+          @update:voice-volume="setVoiceVolume"
+          @expanded-change="voiceControlsOpen = $event"
+        />
         <button
           class="fragment-counter"
           type="button"
