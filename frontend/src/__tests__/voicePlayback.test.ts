@@ -207,6 +207,10 @@ describe('voice playback queue', () => {
     expect(queue.waitingForUserGesture.value).toBe(true)
     expect(queue.currentLineId.value).toBe('n1')
 
+    expect(await queue.resume()).toBe(false)
+    expect(audio.play).toHaveBeenCalledOnce()
+    expect(queue.waitingForUserGesture.value).toBe(true)
+
     await queue.resumeAfterUserGesture()
     await queue.resumeAfterUserGesture()
 

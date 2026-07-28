@@ -172,7 +172,7 @@ export function createVoicePlayback(options: VoicePlaybackOptions = {}) {
   }
 
   const resume = async () => {
-    if (!currentAudio) return false
+    if (!currentAudio || !isPaused.value || waitingForUserGesture.value) return false
     return startAudio(currentAudio)
   }
 
