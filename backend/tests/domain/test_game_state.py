@@ -26,6 +26,7 @@ EXPECTED_FIELDS = {
     "npc_emotions",
     "key_choices",
     "butterfly_choices",
+    "confirmed_hypotheses",
     "dialogue_history",
     "current_mood",
     "play_time_seconds",
@@ -62,6 +63,16 @@ def test_initial_state_has_versioned_contract(
     assert len(payload["fragment_states"]) == 17
     assert set(payload["npc_trust"]) == set(registry.npcs)
     assert set(payload["npc_emotions"]) == set(registry.npcs)
+    assert payload["confirmed_hypotheses"] == {}
+
+
+def test_initial_state_has_no_confirmed_hypotheses(
+    registry: ContentRegistry,
+    fixed_now: datetime,
+) -> None:
+    state = GameState.new(registry, fixed_now, UUID(int=9))
+
+    assert state.confirmed_hypotheses == {}
 
 
 def test_initial_fragments_are_hidden_and_consistent(

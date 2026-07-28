@@ -15,6 +15,7 @@ from .models import (
     EndingContent,
     FragmentContent,
     HotspotContent,
+    HypothesisContent,
     NpcContent,
     SceneContent,
 )
@@ -36,6 +37,7 @@ class ContentRegistry:
         fragments: Mapping[str, FragmentContent],
         hotspots: Mapping[str, HotspotContent],
         choices: Mapping[str, ChoiceContent],
+        hypotheses: Mapping[str, HypothesisContent],
         endings: Mapping[str, EndingContent],
     ) -> None:
         self.scenes = MappingProxyType(dict(scenes))
@@ -43,6 +45,7 @@ class ContentRegistry:
         self.fragments = MappingProxyType(dict(fragments))
         self.hotspots = MappingProxyType(dict(hotspots))
         self.choices = MappingProxyType(dict(choices))
+        self.hypotheses = MappingProxyType(dict(hypotheses))
         self.endings = MappingProxyType(dict(endings))
 
     @classmethod
@@ -53,6 +56,7 @@ class ContentRegistry:
             "fragments": "fragments.json",
             "hotspots": "hotspots.json",
             "choices": "choices.json",
+            "hypotheses": "hypotheses.json",
             "endings": "endings.json",
         }
         try:
@@ -78,6 +82,11 @@ class ContentRegistry:
             )
             hotspots = cls._parse_list(documents["hotspots"], HotspotContent, "hotspots")
             choices = cls._parse_list(documents["choices"], ChoiceContent, "choices")
+            hypotheses = cls._parse_list(
+                documents["hypotheses"],
+                HypothesisContent,
+                "hypotheses",
+            )
             endings = cls._parse_list(documents["endings"], EndingContent, "endings")
         except KeyError as exc:
             raise ContentValidationError(
@@ -97,6 +106,7 @@ class ContentRegistry:
             fragments=fragments,
             hotspots=hotspots,
             choices=choices,
+            hypotheses=hypotheses,
             endings=endings,
         )
         registry.validate()
@@ -289,6 +299,30 @@ class ContentRegistry:
                         f"选择 {choice.id} 引用了不存在的碎片 {fragment_id}",
                     )
 
+        for hypothesis in self.hypotheses.values():
+            if hypothesis.scene_id not in self.scenes:
+                self._raise(
+                    "HYPOTHESIS_SCENE_NOT_FOUND",
+                    f"推理命题 {hypothesis.id} 的场景不存在",
+                )
+            if len(hypothesis.evidence_ids) != len(set(hypothesis.evidence_ids)):
+                self._raise(
+                    "HYPOTHESIS_EVIDENCE_DUPLICATE",
+                    f"推理命题 {hypothesis.id} 的证据不能重复",
+                )
+            for fragment_id in hypothesis.evidence_ids:
+                fragment = self.fragments.get(fragment_id)
+                if fragment is None:
+                    self._raise(
+                        "HYPOTHESIS_FRAGMENT_NOT_FOUND",
+                        f"推理命题 {hypothesis.id} 引用了不存在的碎片 {fragment_id}",
+                    )
+                if fragment.scene != hypothesis.scene_id:
+                    self._raise(
+                        "HYPOTHESIS_FRAGMENT_SCENE_MISMATCH",
+                        f"推理命题 {hypothesis.id} 引用了其他场景碎片 {fragment_id}",
+                    )
+
         key_choice_count = sum(choice.is_key for choice in self.choices.values())
         for ending in self.endings.values():
             if ending.conditions.min_key_choices > key_choice_count:
@@ -339,3 +373,12 @@ class ContentRegistry:
             return self.choices[choice_id]
         except KeyError as exc:
             raise DomainError("CHOICE_INVALID", f"选择不存在：{choice_id}") from exc
+
+    def get_hypothesis(self, hypothesis_id: str) -> HypothesisContent:
+        try:
+            return self.hypotheses[hypothesis_id]
+        except KeyError as exc:
+            raise DomainError(
+                "HYPOTHESIS_INVALID",
+                f"推理命题不存在：{hypothesis_id}",
+            ) from exc

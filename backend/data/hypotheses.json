@@ -1,0 +1,13 @@
+[
+  {
+    "id": "hypothesis_1972_legacy",
+    "scene_id": "scene_1972",
+    "question": "陈守义为什么仍想把皮影传下去？",
+    "statement": "爷爷留下的刻刀与仍在发光的戏幕证明：他守住的不是旧物，而是一种仍能被讲述的生活。",
+    "evidence_ids": [
+      "fragment_grandpa_knife",
+      "fragment_shadow_puppet"
+    ],
+    "resolution": "两条记忆互相印证。你可以带着这份理解作出选择。"
+  }
+]

@@ -17,6 +17,7 @@ DOCUMENT_FILES = {
     "fragments": "fragments.json",
     "hotspots": "hotspots.json",
     "choices": "choices.json",
+    "hypotheses": "hypotheses.json",
     "endings": "endings.json",
 }
 
@@ -41,6 +42,7 @@ def test_shipping_content_counts_and_references() -> None:
     assert len(registry.scenes) == 5
     assert len(registry.npcs) == 7
     assert len(registry.fragments) == 17
+    assert len(registry.hypotheses) == 1
     assert len(registry.endings) == 4
     assert {
         hotspot.fragment_id
@@ -48,6 +50,18 @@ def test_shipping_content_counts_and_references() -> None:
         if hotspot.fragment_id is not None
     } == set(registry.fragments)
     registry.validate()
+
+
+def test_registry_loads_first_act_hypothesis() -> None:
+    registry = ContentRegistry.load(DATA_DIR)
+
+    hypothesis = registry.get_hypothesis("hypothesis_1972_legacy")
+
+    assert hypothesis.scene_id == "scene_1972"
+    assert hypothesis.evidence_ids == (
+        "fragment_grandpa_knife",
+        "fragment_shadow_puppet",
+    )
 
 
 def test_duplicate_internal_ids_are_rejected(shipping_documents: dict[str, object]) -> None:

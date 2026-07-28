@@ -80,6 +80,15 @@ class ChoiceContent(ContentModel):
     effects: ChoiceEffects = Field(default_factory=ChoiceEffects)
 
 
+class HypothesisContent(ContentModel):
+    id: str
+    scene_id: str
+    question: str = Field(min_length=1, max_length=120)
+    statement: str = Field(min_length=1, max_length=300)
+    evidence_ids: tuple[str, ...] = Field(min_length=2)
+    resolution: str = Field(min_length=1, max_length=200)
+
+
 class EndingConditions(ContentModel):
     min_collected_ratio: float = Field(ge=0, le=1)
     min_key_choices: int = Field(ge=0)

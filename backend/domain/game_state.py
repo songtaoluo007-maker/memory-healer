@@ -77,6 +77,7 @@ class GameState(DomainModel):
     npc_emotions: dict[str, str]
     key_choices: list[KeyChoiceRecord] = Field(default_factory=list)
     butterfly_choices: dict[str, str] = Field(default_factory=dict)
+    confirmed_hypotheses: dict[str, str] = Field(default_factory=dict)
     dialogue_history: list[DialogueMessage] = Field(default_factory=list, max_length=60)
     current_mood: str = Field(min_length=1, max_length=50)
     play_time_seconds: int = Field(default=0, ge=0)
@@ -208,6 +209,14 @@ class GameState(DomainModel):
                 raise DomainError(
                     "CHOICE_INVALID",
                     f"存档引用了无效蝴蝶选择：{choice_id}",
+                )
+
+        for scene_id, hypothesis_id in self.confirmed_hypotheses.items():
+            hypothesis = registry.hypotheses.get(hypothesis_id)
+            if hypothesis is None or hypothesis.scene_id != scene_id:
+                raise DomainError(
+                    "HYPOTHESIS_INVALID",
+                    f"存档引用了无效推理命题：{hypothesis_id}",
                 )
 
         for message in self.dialogue_history:
