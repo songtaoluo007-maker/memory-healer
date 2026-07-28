@@ -11,6 +11,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+import yaml
 
 import scripts.voice.generate_fixed_assets as fixed_assets
 from scripts.voice.generate_fixed_assets import (
@@ -30,6 +31,57 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 LINE_ID = "scene_1972.transition_in"
 LINE_TEXT = "戏要开场了。"
 ASSET_BYTES = b"hermetic-opus-fixture"
+
+
+def test_compose_separates_shipping_assets_from_writable_runtime_cache() -> None:
+    compose = yaml.safe_load(
+        (REPOSITORY_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    )
+
+    assert set(compose["services"]) == {"backend", "frontend"}
+    backend = compose["services"]["backend"]
+    assert (
+        "./backend/data/voice_public/fixed:/app/data/voice_public/fixed:ro"
+        in backend["volumes"]
+    )
+    assert "voice-cache:/app/data/voice_public/cache" in backend["volumes"]
+    assert "voice-cache" in compose["volumes"]
+    assert backend["environment"]["VOICE_PRIMARY_ENABLED"] == "${VOICE_PRIMARY_ENABLED:-false}"
+    assert all(
+        forbidden not in mount.lower()
+        for mount in backend["volumes"]
+        for forbidden in ("seed", "model", "weight")
+    )
+
+
+def test_content_validator_reports_voice_document_counts() -> None:
+    result = subprocess.run(
+        [sys.executable, "scripts/validate_content.py"],
+        cwd=REPOSITORY_ROOT,
+        capture_output=True,
+        check=False,
+    )
+    output = result.stdout.decode("utf-8", errors="replace")
+    profiles = json.loads(
+        (REPOSITORY_ROOT / "backend/data/voice_profiles.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    lines = json.loads(
+        (REPOSITORY_ROOT / "backend/data/voice_lines.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assets = json.loads(
+        (REPOSITORY_ROOT / "backend/data/voice_assets.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert result.returncode == 0
+    assert f"{len(profiles)} voice profiles" in output
+    assert f"{len(lines)} voice lines" in output
+    assert f"{len(assets)} approved voice assets" in output
 
 
 def write_wav(path: Path, *, duration_ms: int = 100) -> Path:

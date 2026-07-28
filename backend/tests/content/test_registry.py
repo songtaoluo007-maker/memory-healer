@@ -118,7 +118,10 @@ def test_content_validator_reports_voice_registry() -> None:
     )
 
     assert result.returncode == 0
-    assert "9 voice profiles, 7 voice lines, 7 voice assets" in result.stdout
+    assert (
+        "9 voice profiles, 7 voice lines, 7 approved voice assets"
+        in result.stdout
+    )
 
 
 def test_registry_loads_first_act_hypothesis() -> None:

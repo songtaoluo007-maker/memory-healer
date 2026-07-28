@@ -18,9 +18,13 @@ services:
       COOKIE_SECURE: "${COOKIE_SECURE:-false}"
       LOG_LEVEL: "${LOG_LEVEL:-INFO}"
       TTS_CACHE_DIR: "/app/data/tts_cache"
+      VOICE_PRIMARY_ENABLED: "${VOICE_PRIMARY_ENABLED:-false}"
+      VOICE_PUBLIC_DIR: "/app/data/voice_public"
     volumes:
       - db-data:/app/data
       - tts-cache:/app/data/tts_cache
+      - ./backend/data/voice_public/fixed:/app/data/voice_public/fixed:ro
+      - voice-cache:/app/data/voice_public/cache
     restart: unless-stopped
     healthcheck:
       test:
@@ -47,3 +51,4 @@ services:
 volumes:
   db-data:
   tts-cache:
+  voice-cache:

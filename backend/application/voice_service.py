@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 from collections.abc import Callable
+
+from loguru import logger
 
 from backend.content.registry import ContentRegistry
 from backend.domain.errors import DomainError
@@ -13,6 +16,18 @@ from backend.integrations.voice_contracts import (
     VoiceSynthesisRequest,
     VoiceSynthesisResult,
 )
+
+
+def _log_voice_event(event: dict[str, object]) -> None:
+    logger.info(
+        "{}",
+        json.dumps(
+            event,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ),
+    )
 
 
 class VoiceCircuitBreaker:
@@ -55,6 +70,8 @@ class VoiceService:
         cooldown_seconds: float = 30,
         max_primary_concurrency: int = 1,
         monotonic: Callable[[], float] = time.monotonic,
+        event_sink: Callable[[dict[str, object]], None] = _log_voice_event,
+        latency_clock: Callable[[], float] = time.perf_counter,
     ) -> None:
         self.registry = registry
         self.primary = primary
@@ -67,6 +84,8 @@ class VoiceService:
         self._primary_slots = asyncio.Semaphore(
             max(1, max_primary_concurrency)
         )
+        self.event_sink = event_sink
+        self.latency_clock = latency_clock
 
     async def speak_npc(
         self,
@@ -76,6 +95,7 @@ class VoiceService:
         emotion: str,
         intensity: float,
     ) -> VoiceSynthesisResult:
+        started_at = self.latency_clock()
         npc = self.registry.get_npc(npc_id)
         try:
             profile = self.registry.get_voice_profile(npc.voice_profile_id)
@@ -100,14 +120,52 @@ class VoiceService:
                         self.circuit.record_failure()
                     else:
                         self.circuit.record_success()
-                        return result
+                        return self._record_metrics(
+                            result,
+                            started_at=started_at,
+                            fallback_used=False,
+                        )
 
         if self.fallback is not None:
             try:
-                return await self.fallback.synthesize(request)
+                result = await self.fallback.synthesize(request)
             except Exception:
                 pass
-        return self._silent_result()
+            else:
+                return self._record_metrics(
+                    result,
+                    started_at=started_at,
+                    fallback_used=self.primary is not None,
+                )
+        return self._record_metrics(
+            self._silent_result(),
+            started_at=started_at,
+            fallback_used=self.primary is not None,
+        )
+
+    def _record_metrics(
+        self,
+        result: VoiceSynthesisResult,
+        *,
+        started_at: float,
+        fallback_used: bool,
+    ) -> VoiceSynthesisResult:
+        event: dict[str, object] = {
+            "event": "voice_synthesis",
+            "provider": result.provider,
+            "cache_hit": result.cache_hit,
+            "latency_ms": round(
+                max(0.0, self.latency_clock() - started_at) * 1_000,
+                3,
+            ),
+            "fallback": fallback_used,
+            "silent_degradation": result.provider == "silent",
+        }
+        try:
+            self.event_sink(event)
+        except Exception:
+            pass
+        return result
 
     async def get_fixed_line(self, line_id: str) -> VoiceSynthesisResult:
         try:
@@ -117,18 +175,25 @@ class VoiceService:
                 raise DomainError("VOICE_LINE_INVALID", "语音行不存在") from exc
             raise
 
+        started_at = self.latency_clock()
         asset = self.registry.get_voice_asset(line_id)
         if asset is None:
-            return self._silent_result(line_id=line_id)
-        return VoiceSynthesisResult(
-            url=f"/voice/{asset.filename.lstrip('/')}",
-            provider="fixed",
-            cache_hit=True,
-            media_type=asset.media_type,
-            duration_ms=asset.duration_ms,
-            line_id=line_id,
-            cues=asset.cues,
-            degraded=False,
+            result = self._silent_result(line_id=line_id)
+        else:
+            result = VoiceSynthesisResult(
+                url=f"/voice/{asset.filename.lstrip('/')}",
+                provider="fixed",
+                cache_hit=True,
+                media_type=asset.media_type,
+                duration_ms=asset.duration_ms,
+                line_id=line_id,
+                cues=asset.cues,
+                degraded=False,
+            )
+        return self._record_metrics(
+            result,
+            started_at=started_at,
+            fallback_used=False,
         )
 
     @staticmethod

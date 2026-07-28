@@ -172,15 +172,127 @@ async def test_all_provider_failures_return_stable_silent_result(
 
 
 @pytest.mark.asyncio
+async def test_voice_fallback_emits_structured_metrics_without_player_text(
+    registry: ContentRegistry,
+) -> None:
+    events: list[dict[str, object]] = []
+    ticks = iter((10.0, 10.025))
+    player_text = "这句完整玩家文本绝不能进入日志。"
+    service = VoiceService(
+        registry,
+        primary=FailingProvider(RuntimeError("remote primary")),
+        fallback=SuccessfulProvider(provider="edge", url="/tts/fallback.mp3"),
+        event_sink=events.append,
+        latency_clock=lambda: next(ticks),
+    )
+
+    result = await service.speak_npc(
+        npc_id="chen_shouyi_young",
+        text=player_text,
+        emotion="neutral",
+        intensity=0.2,
+    )
+
+    assert result.provider == "edge"
+    assert events == [
+        {
+            "event": "voice_synthesis",
+            "provider": "edge",
+            "cache_hit": False,
+            "latency_ms": 25.0,
+            "fallback": True,
+            "silent_degradation": False,
+        }
+    ]
+    assert player_text not in repr(events)
+
+
+@pytest.mark.asyncio
+async def test_complete_voice_failure_emits_silent_degradation_metric(
+    registry: ContentRegistry,
+) -> None:
+    events: list[dict[str, object]] = []
+    ticks = iter((20.0, 20.042))
+    service = VoiceService(
+        registry,
+        primary=FailingProvider(RuntimeError("remote primary")),
+        fallback=FailingProvider(RuntimeError("edge")),
+        event_sink=events.append,
+        latency_clock=lambda: next(ticks),
+    )
+
+    result = await service.speak_npc(
+        npc_id="chen_shouyi_young",
+        text="文字继续，语音静默。",
+        emotion="neutral",
+        intensity=0.2,
+    )
+
+    assert result.provider == "silent"
+    assert events == [
+        {
+            "event": "voice_synthesis",
+            "provider": "silent",
+            "cache_hit": False,
+            "latency_ms": 42.0,
+            "fallback": True,
+            "silent_degradation": True,
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_observability_failure_never_blocks_voice_or_text_gameplay(
+    registry: ContentRegistry,
+) -> None:
+    def fail_logging(_event: dict[str, object]) -> None:
+        raise RuntimeError("log collector unavailable")
+
+    ticks = iter((30.0, 30.001))
+    service = VoiceService(
+        registry,
+        fallback=SuccessfulProvider(provider="edge", url="/tts/voice.mp3"),
+        event_sink=fail_logging,
+        latency_clock=lambda: next(ticks),
+    )
+
+    result = await service.speak_npc(
+        npc_id="chen_shouyi_young",
+        text="日志失败也不能阻断文字。",
+        emotion="neutral",
+        intensity=0.2,
+    )
+
+    assert result.provider == "edge"
+
+
+@pytest.mark.asyncio
 async def test_approved_fixed_asset_wins_over_runtime_providers() -> None:
+    events: list[dict[str, object]] = []
+    ticks = iter((40.0, 40.004))
     fallback = SuccessfulProvider(provider="edge", url="/tts/fallback.mp3")
-    service = VoiceService(registry_with_asset(approved=True), fallback=fallback)
+    service = VoiceService(
+        registry_with_asset(approved=True),
+        fallback=fallback,
+        event_sink=events.append,
+        latency_clock=lambda: next(ticks),
+    )
 
     result = await service.get_fixed_line("scene_1972.transition_in")
 
     assert result.provider == "fixed"
     assert result.url == "/voice/fixed/scene-1972-transition-in.opus"
     assert fallback.calls == 0
+    assert events == [
+        {
+            "event": "voice_synthesis",
+            "provider": "fixed",
+            "cache_hit": True,
+            "latency_ms": 4.0,
+            "fallback": False,
+            "silent_degradation": False,
+        }
+    ]
 
 
 @pytest.mark.asyncio

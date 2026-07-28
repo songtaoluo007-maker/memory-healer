@@ -1,7 +1,9 @@
 """游戏配置"""
 
+import ipaddress
 from pathlib import Path
 from typing import List
+from urllib.parse import urlsplit
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -44,13 +46,13 @@ class Settings(BaseSettings):
         ge=1024,
         le=10 * 1024 * 1024 * 1024,
     )
-    VOICE_PUBLIC_DIR: Path = ROOT_DIR / "data" / "voice_public"
+    VOICE_PUBLIC_DIR: Path = ROOT_DIR / "backend" / "data" / "voice_public"
     VOICE_SEED_DIR: Path = ROOT_DIR / "data" / "voice_seeds"
     VOICE_PRIMARY_ENABLED: bool = False
     VOICE_GENERATION_MAX_CONCURRENCY: int = Field(default=1, ge=1, le=4)
     VOICE_CACHE_MAX_FILES: int = Field(default=500, ge=1, le=10000)
     VOICE_CACHE_MAX_BYTES: int = Field(default=2_147_483_648, ge=1_048_576)
-    COSYVOICE_BASE_URL: str = "http://127.0.0.1:50000"
+    COSYVOICE_BASE_URL: str = ""
     COSYVOICE_BRIDGE_TOKEN: str = ""
     COSYVOICE_CONNECT_TIMEOUT_SECONDS: float = Field(default=0.5, ge=0.1, le=10)
     COSYVOICE_TOTAL_TIMEOUT_SECONDS: float = Field(default=2.5, ge=0.5, le=30)
@@ -87,10 +89,47 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def validate_voice_platform(self) -> "Settings":
+        tts_cache = self.TTS_CACHE_DIR.resolve()
+        voice_public = self.VOICE_PUBLIC_DIR.resolve()
+        try:
+            voice_public.relative_to(tts_cache)
+        except ValueError:
+            try:
+                tts_cache.relative_to(voice_public)
+            except ValueError:
+                pass
+            else:
+                raise ValueError(
+                    "TTS_CACHE_DIR must be separate from VOICE_PUBLIC_DIR"
+                )
+        else:
+            raise ValueError("TTS_CACHE_DIR must be separate from VOICE_PUBLIC_DIR")
+
+        if not self.VOICE_PRIMARY_ENABLED:
+            return self
+        if not self.COSYVOICE_BRIDGE_TOKEN.strip():
+            raise ValueError(
+                "COSYVOICE_BRIDGE_TOKEN is required when VOICE_PRIMARY_ENABLED=true"
+            )
+        parsed = urlsplit(self.COSYVOICE_BASE_URL)
+        hostname = parsed.hostname or ""
+        is_loopback = hostname == "localhost" or hostname.endswith(".localhost")
+        try:
+            is_loopback = is_loopback or ipaddress.ip_address(hostname).is_loopback
+        except ValueError:
+            pass
+        if parsed.scheme != "https" or not hostname or is_loopback:
+            raise ValueError(
+                "COSYVOICE_BASE_URL must be a remote HTTPS URL when "
+                "VOICE_PRIMARY_ENABLED=true"
+            )
+        return self
+
+    @model_validator(mode="after")
     def create_voice_directories(self) -> "Settings":
         (self.VOICE_PUBLIC_DIR / "cache").mkdir(parents=True, exist_ok=True)
         (self.VOICE_PUBLIC_DIR / "fixed").mkdir(parents=True, exist_ok=True)
-        self.VOICE_SEED_DIR.mkdir(parents=True, exist_ok=True)
         return self
 
 
