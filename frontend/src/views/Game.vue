@@ -1,14 +1,22 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import { evaluateEnding } from '../api'
-import { useAudio } from '../composables/useAudio'
+import { useAudioMixer } from '../audio/mixer'
 import { useGameState } from '../composables/useGameState'
 import { useHotspots } from '../composables/useHotspots'
 import { useI18n } from '../composables/useI18n'
-import { useScene } from '../composables/useScene'
+import { useMusicBus } from '../composables/useMusicBus'
+import {
+  createSceneVoiceIntegration,
+  useScene,
+  useVoiceRouteLifecycle,
+} from '../composables/useScene'
+import { useSfxBus } from '../composables/useSfxBus'
 import { useTypewriter } from '../composables/useTypewriter'
+import { useVoicePlayback } from '../composables/useVoicePlayback'
 import { useUiStore, type CinematicOverlay } from '../stores/ui'
 import FragmentArtwork from '../components/FragmentArtwork.vue'
+import VoiceSubtitle from '../components/VoiceSubtitle.vue'
 import { getFragmentPresentation } from '../stage/fragmentPresentation'
 import { isSceneDecisionUnlocked, toggleEvidenceSelection } from '../domain/memoryReasoning'
 import type {
@@ -68,7 +76,12 @@ const {
   start: typeStart,
   skip: typeSkip,
 } = useTypewriter(25)
-const { playBGM, playSFX, isMuted, toggleMute, stopSpeak } = useAudio()
+const { playBGM } = useMusicBus()
+const { playSFX } = useSfxBus()
+const { isMuted, toggleMute } = useAudioMixer()
+const voice = useVoicePlayback()
+const sceneVoice = createSceneVoiceIntegration(voice)
+useVoiceRouteLifecycle(voice)
 const { lang, toggleLang } = useI18n()
 const ui = useUiStore()
 const { hotspots, exploredIds, markExplored, explorationProgress } = useHotspots(
@@ -86,7 +99,11 @@ const scanMode = ref(false)
 const selectedEvidenceIds = ref<string[]>([])
 const mounted = ref(false)
 const endingPending = ref(false)
-const chatPanelRef = ref<{ clearHistory: () => void; chatHistory: ChatMessage[] } | null>(null)
+const chatPanelRef = ref<{
+  clearHistory: () => void
+  stopVoice: () => void
+  chatHistory: ChatMessage[]
+} | null>(null)
 const activeHypothesis = computed(() => hypotheses.value[0] ?? null)
 const hypothesisConfirmed = computed(() => {
   if (!activeHypothesis.value || !gameState.value) return false
@@ -120,6 +137,7 @@ const presentScene = () => {
   narrativeText.value = currentScene.value.description
   typeStart(narrativeText.value)
   playBGM(gameState.value.current_scene)
+  void sceneVoice.playSceneEntry(currentScene.value)
 }
 
 const loadCurrentScene = async () => {
@@ -139,13 +157,20 @@ const loadCurrentScene = async () => {
 }
 
 const selectNpc = (npc: NpcSummary) => {
-  stopSpeak()
+  if (selectedNpc.value?.id === npc.id) return
+  chatPanelRef.value?.stopVoice()
   selectedNpc.value = npc
   ui.setStageMode('dialogue')
   playSFX('dialogue_start')
+  void sceneVoice.playNpcIntro(npc)
 }
 
 const closeDialogue = () => {
+  if (chatPanelRef.value) {
+    chatPanelRef.value.stopVoice()
+  } else {
+    voice.stop()
+  }
   selectedNpc.value = null
   ui.setStageMode('observe')
 }
@@ -202,6 +227,10 @@ const handleExplore = async (hotspot: Hotspot) => {
         popupFragment.value = { ...fragment, just_collected: true }
         showFragmentPopup.value = true
         ui.setStageMode('fragment')
+        const canonicalFragment = sceneFragments.value.find(
+          (candidate) => candidate.id === fragment.id,
+        )
+        if (canonicalFragment) void sceneVoice.playFragmentMemory(canonicalFragment)
       }
     }
     if (hotspot.npc_id) {
@@ -230,12 +259,14 @@ const toggleReasoningEvidence = (evidenceId: string) => {
 
 const handleConfirmHypothesis = async () => {
   if (!activeHypothesis.value || actionPending.value || hypothesisConfirmed.value) return
+  const hypothesis = activeHypothesis.value
   actionPending.value = true
   try {
-    await confirmMemoryHypothesis(activeHypothesis.value.id, selectedEvidenceIds.value)
+    await confirmMemoryHypothesis(hypothesis.id, selectedEvidenceIds.value)
     playSFX('fragment_found')
-    narrativeText.value = activeHypothesis.value.resolution
-    typeStart(activeHypothesis.value.resolution)
+    narrativeText.value = hypothesis.resolution
+    typeStart(hypothesis.resolution)
+    void sceneVoice.playHypothesisResolution(hypothesis)
     void autoSave()
   } catch (caught: unknown) {
     narrativeText.value = (caught as Error).message || '这些证据还无法形成可靠的解释。'
@@ -267,6 +298,7 @@ const handleChoice = async (choice: Choice) => {
   actionPending.value = true
   const previousScene = gameState.value?.current_scene
   try {
+    if (choice.target_scene) sceneVoice.stopForSceneTransition()
     await submitChoice(choice.id)
     playSFX('scene_transition')
     narrativeText.value = choice.label
@@ -486,6 +518,8 @@ onMounted(async () => {
       <span v-if="isTyping" class="skip-hint">单击显现全文</span>
     </div>
 
+    <VoiceSubtitle :cue="sceneVoice.subtitleCue.value" />
+
     <div class="npc-dock" role="toolbar" aria-label="NPC角色选择">
       <button
         v-for="npc in currentNpcs"
@@ -563,6 +597,7 @@ onMounted(async () => {
           ref="chatPanelRef"
           :selected-npc="selectedNpc"
           :game-state="gameState"
+          :voice-playback="voice"
           @dialogue-complete="onDialogueComplete"
         />
       </div>

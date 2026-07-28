@@ -57,6 +57,27 @@ def test_scene_view_contains_only_canonical_current_scene_content(
     }
 
 
+def test_scene_view_exposes_first_act_voice_references(service: GameService) -> None:
+    view = service.get_scene_view(service.create_game())
+
+    assert view.scene.transition_in_voice_line_id == "scene_1972.transition_in"
+    chen = next(npc for npc in view.npcs if npc.id == "chen_shouyi_young")
+    assert chen.initial_voice_line_id == "npc.chen_shouyi_young.intro"
+    knife = next(
+        fragment for fragment in view.fragments if fragment.id == "fragment_grandpa_knife"
+    )
+    assert knife.memory_voice_line_id == "fragment_grandpa_knife.memory"
+    hypothesis = next(
+        item
+        for item in view.hypotheses
+        if item.id == "hypothesis_1972_legacy"
+    )
+    assert (
+        hypothesis.resolution_voice_line_id
+        == "hypothesis_1972_legacy.resolution"
+    )
+
+
 def test_explore_rejects_hotspot_from_another_scene(service: GameService) -> None:
     state = service.create_game()
 

@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onUnmounted, ref } from 'vue'
 import NpcAvatar from './NpcAvatar.vue'
-import { useAudio } from '../composables/useAudio'
+import { requestNpcVoice } from '../api'
 import { useGameState } from '../composables/useGameState'
+import { useSfxBus } from '../composables/useSfxBus'
+import { useVoicePlayback } from '../composables/useVoicePlayback'
 import type { ChatMessage, DialogueResponse, GameState, NpcSummary } from '../types/game'
 
 const props = defineProps<{
   selectedNpc: NpcSummary | null
   gameState: GameState | null
+  voicePlayback?: ReturnType<typeof useVoicePlayback>
 }>()
 
 const emit = defineEmits<{
@@ -20,8 +23,10 @@ const chatLoading = ref(false)
 const visibleFromIndex = ref(0)
 const statusMessage = ref('')
 
-const { speak, stopSpeak, playSFX } = useAudio()
+const { playSFX } = useSfxBus()
+const voice = props.voicePlayback ?? useVoicePlayback()
 const { sendDialogue } = useGameState()
+let voiceRequestGeneration = 0
 const chatHistory = computed<ChatMessage[]>(() =>
   (props.gameState?.dialogue_history ?? []).slice(visibleFromIndex.value).map((message) => ({
     role: message.role,
@@ -57,7 +62,6 @@ const sendMessage = async (text?: string) => {
 
   try {
     const result = await sendDialogue(npc.id, msg)
-    speak(result.reply, npc.id)
     if (result.trust_change !== 0) {
       playSFX(result.trust_change > 0 ? 'trust_up' : 'trust_down')
     }
@@ -66,6 +70,18 @@ const sendMessage = async (text?: string) => {
     }
     emit('dialogueComplete', result)
     scrollToBottom()
+    const requestGeneration = ++voiceRequestGeneration
+    void requestNpcVoice(result.reply, npc.id, result.npc_mood, 0.5)
+      .then((response) => {
+        if (
+          requestGeneration !== voiceRequestGeneration ||
+          props.selectedNpc?.id !== npc.id
+        ) {
+          return false
+        }
+        return voice.playResponse(response.data, 'dialogue')
+      })
+      .catch(() => false)
   } catch (caught: unknown) {
     statusMessage.value = (caught as Error).message || '发送失败，请稍后重试。'
   } finally {
@@ -73,13 +89,20 @@ const sendMessage = async (text?: string) => {
   }
 }
 
+function stopVoice() {
+  voiceRequestGeneration += 1
+  voice.stop()
+}
+
 function clearHistory() {
   visibleFromIndex.value = props.gameState?.dialogue_history.length ?? 0
   statusMessage.value = ''
-  stopSpeak()
+  stopVoice()
 }
 
-defineExpose({ chatHistory, clearHistory })
+onUnmounted(stopVoice)
+
+defineExpose({ chatHistory, clearHistory, stopVoice })
 </script>
 
 <template>

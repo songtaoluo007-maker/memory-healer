@@ -29,6 +29,7 @@ class NpcSummaryView(ApplicationModel):
     title: str
     avatar: str
     initial_trust: int
+    initial_voice_line_id: str | None = None
 
 
 class SceneFragmentView(ApplicationModel):
@@ -41,6 +42,7 @@ class SceneFragmentView(ApplicationModel):
     memory_text: str
     is_revealed: bool
     is_collected: bool
+    memory_voice_line_id: str | None = None
 
 
 class SceneView(ApplicationModel):
@@ -89,6 +91,7 @@ class GameService:
                     title=npc.title,
                     avatar=npc.avatar,
                     initial_trust=npc.initial_trust,
+                    initial_voice_line_id=npc.initial_voice_line_id,
                 )
                 for npc in self.registry.npcs.values()
                 if npc.scene == scene.id
@@ -104,6 +107,7 @@ class GameService:
                     memory_text=fragment.memory_text,
                     is_revealed=fragment.id in state.revealed_fragments,
                     is_collected=fragment.id in state.collected_fragments,
+                    memory_voice_line_id=fragment.memory_voice_line_id,
                 )
                 for fragment in self.registry.fragments.values()
                 if fragment.scene == scene.id

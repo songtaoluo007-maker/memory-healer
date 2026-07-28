@@ -3,10 +3,13 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import endingBackdrop from '../assets/cinematic/scene-1972-xian-alley.png'
 import chenPortrait from '../assets/cinematic/chen-shouyi-1972-solid.webp'
 import { useGameState } from '../composables/useGameState'
+import { useVoiceRouteLifecycle } from '../composables/useScene'
+import { useVoicePlayback } from '../composables/useVoicePlayback'
 import type { EndingType } from '../types/game'
 
 const props = defineProps<{
   endingType: EndingType
+  voicePlayback?: ReturnType<typeof useVoicePlayback>
 }>()
 
 const emit = defineEmits<{
@@ -14,6 +17,8 @@ const emit = defineEmits<{
 }>()
 
 const { collectedCount, totalFragments } = useGameState()
+const voice = props.voicePlayback ?? useVoicePlayback()
+useVoiceRouteLifecycle(voice)
 const phase = ref(0)
 const shareStatus = ref('')
 const timers: number[] = []

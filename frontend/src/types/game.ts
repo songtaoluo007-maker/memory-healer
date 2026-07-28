@@ -31,6 +31,7 @@ export interface Npc {
   system_prompt: string
   initial_trust: number
   fragments_to_reveal: string[]
+  initial_voice_line_id?: string | null
 }
 
 export interface Fragment {
@@ -42,6 +43,7 @@ export interface Fragment {
   unlock_hint: string
   memory_text: string
   collected: boolean
+  memory_voice_line_id?: string | null
 }
 
 export interface FragmentState {
