@@ -77,6 +77,7 @@ export interface GameState {
   npc_emotions: Record<string, string>
   key_choices: KeyChoiceRecord[]
   butterfly_choices: Record<string, string>
+  confirmed_hypotheses?: Record<string, string>
   dialogue_history: DialogueMessage[]
   current_mood: string
   play_time_seconds: number
@@ -133,12 +134,22 @@ export interface Choice {
   effects: ChoiceEffects
 }
 
+export interface Hypothesis {
+  id: string
+  scene_id: string
+  question: string
+  statement: string
+  evidence_ids: string[]
+  resolution: string
+}
+
 export interface SceneView {
   scene: Scene
   npcs: NpcSummary[]
   fragments: SceneFragment[]
   hotspots: Hotspot[]
   choices: Choice[]
+  hypotheses?: Hypothesis[]
   content_version: number
 }
 

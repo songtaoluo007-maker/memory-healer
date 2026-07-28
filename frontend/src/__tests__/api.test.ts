@@ -63,6 +63,7 @@ vi.mock('axios', () => ({
 // Import after mocking
 import {
   chatWithNpc,
+  confirmHypothesis,
   exploreHotspot,
   getNewGame,
   getSceneView,
@@ -192,6 +193,25 @@ describe('API Layer', () => {
       choice_id: 'encourage_art',
       game_state: gameState,
       expected_revision: 2,
+    })
+  })
+
+  it('confirmHypothesis sends evidence with the expected revision', async () => {
+    mockPost.mockResolvedValue({ data: { success: true } })
+
+    const gameState = createGameState({ revision: 3 })
+    await confirmHypothesis(
+      'hypothesis_1972_legacy',
+      ['fragment_grandpa_knife', 'fragment_shadow_puppet'],
+      gameState,
+      3,
+    )
+
+    expect(mockPost).toHaveBeenCalledWith('/game/hypothesis', {
+      hypothesis_id: 'hypothesis_1972_legacy',
+      evidence_ids: ['fragment_grandpa_knife', 'fragment_shadow_puppet'],
+      game_state: gameState,
+      expected_revision: 3,
     })
   })
 })

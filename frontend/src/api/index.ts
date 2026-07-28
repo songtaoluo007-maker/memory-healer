@@ -42,6 +42,19 @@ export const exploreHotspot = (hotspotId: string, gameState: GameState, expected
     expected_revision: expectedRevision,
   })
 
+export const confirmHypothesis = (
+  hypothesisId: string,
+  evidenceIds: string[],
+  gameState: GameState,
+  expectedRevision: number,
+) =>
+  api.post<ActionResult>('/game/hypothesis', {
+    hypothesis_id: hypothesisId,
+    evidence_ids: evidenceIds,
+    game_state: gameState,
+    expected_revision: expectedRevision,
+  })
+
 export const recordChoice = (choiceId: string, gameState: GameState, expectedRevision: number) =>
   api.post<ActionResult>('/game/choice', {
     choice_id: choiceId,

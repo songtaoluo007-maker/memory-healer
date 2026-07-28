@@ -97,6 +97,20 @@ export function useGameState() {
     return applyActionResult(response.data)
   }
 
+  const confirmHypothesis = async (
+    hypothesisId: string,
+    evidenceIds: string[],
+  ): Promise<ActionResult> => {
+    const state = currentState()
+    const response = await api.confirmHypothesis(
+      hypothesisId,
+      evidenceIds,
+      state,
+      state.revision,
+    )
+    return applyActionResult(response.data)
+  }
+
   const sendDialogue = async (npcId: string, playerInput: string): Promise<DialogueResponse> => {
     const state = currentState()
     const response = await api.chatWithNpc({
@@ -122,6 +136,7 @@ export function useGameState() {
     loadFromSlot,
     saveToSlot,
     exploreHotspot,
+    confirmHypothesis,
     submitChoice,
     sendDialogue,
     collectedCount,
