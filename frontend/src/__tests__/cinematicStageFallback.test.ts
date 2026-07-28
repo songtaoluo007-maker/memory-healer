@@ -74,14 +74,14 @@ describe('CinematicStage fallback', () => {
     ).toBe('solid')
   })
 
-  it('marks 2089 Xiaoyu as the restrained projection exception', async () => {
+  it('marks 2089 Xiaoyu as a solid physical layer', async () => {
     assetLoad.mockImplementationOnce(() => new Promise(() => undefined))
     const host = mountStage('scene_2089', 'xiaoyu')
     await nextTick()
 
     expect(
       host.querySelector('.character-portrait')?.getAttribute('data-character-treatment'),
-    ).toBe('projection')
+    ).toBe('solid')
   })
 
   it('hides a failed character image without removing the stage', async () => {

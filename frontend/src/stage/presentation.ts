@@ -9,7 +9,7 @@ import scene2050Background from '../assets/cinematic/scene-2050-award-ceremony.w
 import xiaoyu2050Portrait from '../assets/cinematic/xiaoyu-2050-solid.webp'
 import journalist2050Portrait from '../assets/cinematic/journalist-2050-solid.webp'
 import scene2089Background from '../assets/cinematic/scene-2089-memory-lab.webp'
-import xiaoyu2089Projection from '../assets/cinematic/xiaoyu-2089-projection-solid.webp'
+import xiaoyu2089Portrait from '../assets/cinematic/xiaoyu-2089-aged-solid.webp'
 
 export type CinematicPalette = 'amber' | 'rail' | 'rain' | 'ceremony' | 'memory'
 
@@ -97,7 +97,7 @@ const presentations: Record<string, ScenePresentation> = {
     palette: 'memory',
     background: scene2089Background,
     portraits: {
-      xiaoyu: xiaoyu2089Projection,
+      xiaoyu: xiaoyu2089Portrait,
     },
     alt: '2089年拾忆实验室，四个年代的记忆残片在神经接口躺椅上方重组，最后一枚孙悟空皮影守在暖色光核中。',
     composition: {
@@ -109,4 +109,8 @@ const presentations: Record<string, ScenePresentation> = {
 
 export function getScenePresentation(sceneId: string): ScenePresentation | null {
   return presentations[sceneId] ?? null
+}
+
+export function resolveCharacterMode(_sceneId: string, _npcId: string): 'solid' {
+  return 'solid'
 }

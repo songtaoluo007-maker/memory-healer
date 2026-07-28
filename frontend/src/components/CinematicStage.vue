@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Application, Assets, Container, Graphics, Sprite, type Ticker } from 'pixi.js'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { getScenePresentation } from '../stage/presentation'
+import { getScenePresentation, resolveCharacterMode } from '../stage/presentation'
 
 const props = defineProps<{
   sceneId: string
@@ -17,7 +17,7 @@ const activePortrait = computed(() => {
   return presentation.value?.portraits[props.activeNpcId] ?? null
 })
 const characterTreatment = computed(() =>
-  props.sceneId === 'scene_2089' && props.activeNpcId === 'xiaoyu' ? 'projection' : 'solid',
+  resolveCharacterMode(props.sceneId, props.activeNpcId ?? ''),
 )
 let app: Application | null = null
 let resizeObserver: ResizeObserver | null = null
@@ -338,13 +338,6 @@ onBeforeUnmount(destroyStage)
     drop-shadow(-0.15rem 0 0.45rem rgba(224, 177, 103, 0.18));
   mask-image: linear-gradient(to bottom, #000 0%, #000 88%, transparent 100%);
   pointer-events: none;
-}
-
-.character-portrait[data-character-treatment='projection'] {
-  opacity: 0.92;
-  filter: drop-shadow(-1rem 1.4rem 1.5rem rgba(0, 0, 0, 0.46))
-    drop-shadow(0 0 0.65rem rgba(96, 198, 221, 0.24))
-    drop-shadow(0 0 1.15rem rgba(139, 92, 196, 0.2));
 }
 
 @keyframes grain {
