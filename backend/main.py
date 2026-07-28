@@ -22,6 +22,7 @@ from backend.api.scene import router as scene_router
 from backend.api.save import router as save_router
 from backend.api.auth import router as auth_router
 from backend.api.tts import router as tts_router
+from backend.api.voice import router as voice_router
 from backend.api.ending import router as ending_router
 from backend.api.butterfly import router as butterfly_router
 from backend.api.game import router as game_router
@@ -112,6 +113,8 @@ async def handle_domain_error(_request: Request, exc: DomainError):
         "FRAGMENT_NOT_FOUND": 404,
         "AI_UNAVAILABLE": 503,
         "TTS_UNAVAILABLE": 503,
+        "VOICE_PROFILE_INVALID": 404,
+        "VOICE_LINE_INVALID": 404,
         "RATE_LIMITED": 429,
     }
     return JSONResponse(
@@ -157,10 +160,12 @@ app.include_router(scene_router)
 app.include_router(save_router)
 app.include_router(auth_router)
 app.include_router(tts_router)
+app.include_router(voice_router)
 app.include_router(ending_router)
 app.include_router(butterfly_router)
 app.include_router(game_router)
 app.mount("/tts", StaticFiles(directory=settings.TTS_CACHE_DIR), name="tts-cache")
+app.mount("/voice", StaticFiles(directory=settings.VOICE_PUBLIC_DIR), name="voice")
 
 
 @app.get("/api/health", tags=["health"])

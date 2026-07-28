@@ -2,6 +2,7 @@
 
 from .game_service import ActionResult, GameService, SceneView
 from .dialogue_service import DialogueResult, DialogueService
+from .voice_service import VoiceCircuitBreaker, VoiceService
 
 __all__ = [
     "ActionResult",
@@ -9,4 +10,6 @@ __all__ = [
     "DialogueService",
     "GameService",
     "SceneView",
+    "VoiceCircuitBreaker",
+    "VoiceService",
 ]
