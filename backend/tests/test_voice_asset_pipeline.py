@@ -217,6 +217,175 @@ def test_postprocess_is_byte_deterministic_for_same_input(tmp_path: Path) -> Non
     )
 
 
+PROMOTION_LINE_IDS = (
+    "scene_1972.transition_in",
+    "scene_1972.transition_out",
+    "npc.chen_shouyi_young.intro",
+    "fragment_shadow_puppet.memory",
+    "fragment_grandpa_knife.memory",
+    "fragment_three_kings.memory",
+    "hypothesis_1972_legacy.resolution",
+)
+
+
+def promotion_manifest_entry(
+    *,
+    line_id: str,
+    filename: str,
+    payload: bytes,
+    approved: bool,
+) -> dict[str, object]:
+    line_text = f"canonical text for {line_id}"
+    return {
+        "id": line_id,
+        "filename": f"fixed/{filename}",
+        "media_type": "audio/ogg; codecs=opus",
+        "duration_ms": 1200,
+        "sha256": hashlib.sha256(payload).hexdigest(),
+        "text_sha256": hashlib.sha256(line_text.encode("utf-8")).hexdigest(),
+        "integrated_lufs": -18.0,
+        "true_peak_dbfs": -1.2,
+        "generator": "edge_tts",
+        "generator_revision": "7.2.8",
+        "model_id": "zh-CN-XiaoxiaoNeural",
+        "seed_provenance": "edge_tts_synthetic",
+        "line_version": 1,
+        "profile_version": 1,
+        "postprocess_version": 1,
+        "cues": [{"start_ms": 0, "end_ms": 1200, "text": line_text}],
+        "approved": approved,
+    }
+
+
+@pytest.fixture
+def promotion_fixture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> tuple[Path, Path, Path, dict[str, bytes], bytes]:
+    data_root = tmp_path / "backend" / "data"
+    runtime_fixed = data_root / "voice_public" / "fixed"
+    runtime_fixed.mkdir(parents=True)
+    runtime_manifest = data_root / "voice_assets.json"
+    render_root = tmp_path / ".codex-run" / "voice-renders"
+    candidate_fixed = render_root / "fixed"
+    candidate_fixed.mkdir(parents=True)
+
+    previous_files: dict[str, bytes] = {}
+    previous_manifest: list[dict[str, object]] = []
+    candidate_manifest: list[dict[str, object]] = []
+    for index, line_id in enumerate(PROMOTION_LINE_IDS):
+        old_name = f"old-{index}.opus"
+        old_payload = f"old-runtime-{index}".encode()
+        (runtime_fixed / old_name).write_bytes(old_payload)
+        previous_files[old_name] = old_payload
+        previous_manifest.append(
+            promotion_manifest_entry(
+                line_id=line_id,
+                filename=old_name,
+                payload=old_payload,
+                approved=True,
+            )
+        )
+
+        candidate_name = f"candidate-{index}.opus"
+        candidate_payload = f"new-candidate-{index}".encode()
+        (candidate_fixed / candidate_name).write_bytes(candidate_payload)
+        candidate_manifest.append(
+            promotion_manifest_entry(
+                line_id=line_id,
+                filename=candidate_name,
+                payload=candidate_payload,
+                approved=False,
+            )
+        )
+
+    previous_manifest_bytes = (
+        json.dumps(previous_manifest, ensure_ascii=False, indent=2) + "\n"
+    ).encode()
+    runtime_manifest.write_bytes(previous_manifest_bytes)
+    (render_root / "voice_assets.candidate.json").write_text(
+        json.dumps(candidate_manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    (data_root / "voice_lines.json").write_text("[]\n", encoding="utf-8")
+    (data_root / "voice_profiles.json").write_text("[]\n", encoding="utf-8")
+    monkeypatch.setattr(fixed_assets, "validate_voice_assets", lambda **_: [])
+
+    return (
+        tmp_path,
+        runtime_fixed,
+        runtime_manifest,
+        previous_files,
+        previous_manifest_bytes,
+    )
+
+
+@pytest.mark.parametrize("failure_kind", ("unlink", "copy", "replace"))
+def test_promotion_failure_restores_previous_runtime_bundle(
+    promotion_fixture,
+    monkeypatch: pytest.MonkeyPatch,
+    failure_kind: str,
+) -> None:
+    (
+        repository_root,
+        runtime_fixed,
+        runtime_manifest,
+        previous_files,
+        previous_manifest_bytes,
+    ) = promotion_fixture
+    failure_injected = False
+    matched_calls = 0
+    original_unlink = Path.unlink
+    original_copy2 = fixed_assets.shutil.copy2
+    original_replace = Path.replace
+
+    def fail_during_unlink(path: Path, *args, **kwargs):
+        nonlocal failure_injected, matched_calls
+        if failure_kind == "unlink" and path.parent == runtime_fixed:
+            matched_calls += 1
+            if matched_calls == 2 and not failure_injected:
+                failure_injected = True
+                raise OSError("injected unlink failure")
+        return original_unlink(path, *args, **kwargs)
+
+    def fail_during_copy(source, destination, *args, **kwargs):
+        nonlocal failure_injected, matched_calls
+        destination_path = Path(destination)
+        if failure_kind == "copy" and destination_path.parent == runtime_fixed:
+            matched_calls += 1
+            if matched_calls == 2 and not failure_injected:
+                failure_injected = True
+                raise OSError("injected copy failure")
+        return original_copy2(source, destination, *args, **kwargs)
+
+    def fail_during_replace(path: Path, target: Path):
+        nonlocal failure_injected
+        if (
+            failure_kind == "replace"
+            and Path(target) == runtime_manifest
+            and not failure_injected
+        ):
+            failure_injected = True
+            raise OSError("injected replace failure")
+        return original_replace(path, target)
+
+    monkeypatch.setattr(Path, "unlink", fail_during_unlink)
+    monkeypatch.setattr(fixed_assets.shutil, "copy2", fail_during_copy)
+    monkeypatch.setattr(Path, "replace", fail_during_replace)
+
+    with pytest.raises(OSError, match=f"injected {failure_kind} failure"):
+        fixed_assets.promote_candidates(repository_root=repository_root)
+
+    assert failure_injected is True
+    assert {
+        path.name: path.read_bytes()
+        for path in runtime_fixed.iterdir()
+        if path.is_file()
+    } == previous_files
+    assert runtime_manifest.read_bytes() == previous_manifest_bytes
+    assert not runtime_manifest.with_suffix(".json.tmp").exists()
+
+
 @pytest.fixture
 def pipeline_fixture(
     tmp_path: Path,
