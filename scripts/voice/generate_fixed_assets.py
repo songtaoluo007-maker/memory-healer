@@ -11,6 +11,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import wave
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -346,17 +347,30 @@ async def generate_candidates(
     return candidate_manifest
 
 
-def _replace_directory_files(source_root: Path, destination_root: Path) -> None:
-    destination_root.mkdir(parents=True, exist_ok=True)
-    for path in destination_root.iterdir():
-        if path.is_dir():
-            shutil.rmtree(path)
-        else:
-            path.unlink()
-    for source in sorted(source_root.iterdir()):
-        if not source.is_file():
-            raise ValueError(f"promotion source must contain only files: {source}")
-        shutil.copy2(source, destination_root / source.name)
+def _release_id(manifest: list[dict[str, object]]) -> str:
+    identity = [
+        {
+            "id": asset.get("id"),
+            "filename": Path(str(asset.get("filename"))).name,
+            "sha256": asset.get("sha256"),
+        }
+        for asset in sorted(manifest, key=lambda item: str(item.get("id")))
+    ]
+    return hashlib.sha256(
+        json.dumps(identity, ensure_ascii=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+def _replace_manifest(temporary_manifest: Path, runtime_manifest: Path) -> None:
+    deadline = time.monotonic() + 2
+    while True:
+        try:
+            temporary_manifest.replace(runtime_manifest)
+            return
+        except PermissionError:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(0.005)
 
 
 def promote_candidates(*, repository_root: Path) -> None:
@@ -381,7 +395,9 @@ def promote_candidates(*, repository_root: Path) -> None:
     if staging_root.exists():
         shutil.rmtree(staging_root)
     staging_public = staging_root / "voice_public"
-    (staging_public / "fixed").mkdir(parents=True)
+    release_id = _release_id(manifest)
+    staging_release = staging_public / "releases" / release_id
+    staging_release.mkdir(parents=True)
 
     approved_manifest: list[dict[str, object]] = []
     for raw_asset in manifest:
@@ -394,7 +410,9 @@ def promote_candidates(*, repository_root: Path) -> None:
         source = render_root / filename
         if not source.is_file():
             raise FileNotFoundError(f"candidate asset is missing: {source}")
-        shutil.copy2(source, staging_public / filename)
+        release_filename = f"releases/{release_id}/{Path(filename).name}"
+        shutil.copy2(source, staging_public / release_filename)
+        asset["filename"] = release_filename
         asset["approved"] = True
         approved_manifest.append(asset)
 
@@ -413,48 +431,72 @@ def promote_candidates(*, repository_root: Path) -> None:
         rendered = "\n".join(issue.render() for issue in issues)
         raise RuntimeError(f"promotion validation failed:\n{rendered}")
 
-    runtime_fixed = data_root / "voice_public" / "fixed"
-    runtime_fixed.mkdir(parents=True, exist_ok=True)
+    runtime_public = data_root / "voice_public"
+    releases_root = runtime_public / "releases"
+    releases_root.mkdir(parents=True, exist_ok=True)
     runtime_manifest = data_root / "voice_assets.json"
     if not runtime_manifest.is_file():
         raise FileNotFoundError(f"runtime manifest is missing: {runtime_manifest}")
+
+    runtime_release = releases_root / release_id
+    temporary_release = releases_root / f".{release_id}.tmp"
+    if runtime_release.exists():
+        for asset in approved_manifest:
+            existing = runtime_public / str(asset["filename"])
+            if (
+                not existing.is_file()
+                or hashlib.sha256(existing.read_bytes()).hexdigest()
+                != asset["sha256"]
+            ):
+                raise RuntimeError(f"immutable release collision: {runtime_release}")
+    else:
+        if temporary_release.exists():
+            shutil.rmtree(temporary_release)
+        shutil.copytree(staging_release, temporary_release)
+        temporary_release.replace(runtime_release)
 
     temporary_manifest = data_root / "voice_assets.json.tmp"
     temporary_manifest.write_text(
         json.dumps(approved_manifest, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    backup_root = render_root / "promotion-backup"
-    if backup_root.exists():
-        shutil.rmtree(backup_root)
-    backup_fixed = backup_root / "fixed"
-    backup_manifest = backup_root / "voice_assets.json"
-    shutil.copytree(runtime_fixed, backup_fixed)
-    shutil.copy2(runtime_manifest, backup_manifest)
-
-    rollback_resolved = False
-    rollback_manifest = data_root / "voice_assets.json.rollback.tmp"
     try:
-        _replace_directory_files(staging_public / "fixed", runtime_fixed)
-        temporary_manifest.replace(runtime_manifest)
-        rollback_resolved = True
-    except Exception as promotion_error:
-        try:
-            _replace_directory_files(backup_fixed, runtime_fixed)
-            shutil.copy2(backup_manifest, rollback_manifest)
-            rollback_manifest.replace(runtime_manifest)
-            rollback_resolved = True
-        except Exception as rollback_error:
-            rollback_error.add_note(f"Original promotion failure: {promotion_error!r}")
-            raise RuntimeError("promotion failed and rollback also failed") from (
-                rollback_error
-            )
-        raise
+        _replace_manifest(temporary_manifest, runtime_manifest)
     finally:
         temporary_manifest.unlink(missing_ok=True)
-        rollback_manifest.unlink(missing_ok=True)
-        if rollback_resolved:
-            shutil.rmtree(backup_root, ignore_errors=True)
+
+
+def prune_releases(
+    *,
+    repository_root: Path,
+    confirm_offline: bool,
+) -> list[Path]:
+    if not confirm_offline:
+        raise RuntimeError("release pruning requires explicit offline confirmation")
+    data_root = repository_root / "backend" / "data"
+    runtime_public = data_root / "voice_public"
+    releases_root = runtime_public / "releases"
+    manifest = json.loads((data_root / "voice_assets.json").read_text(encoding="utf-8"))
+    active_releases = {
+        parts[1]
+        for asset in manifest
+        if len(
+            parts := Path(str(asset.get("filename", ""))).parts
+        ) >= 3
+        and parts[0] == "releases"
+    }
+    removed: list[Path] = []
+    if not releases_root.is_dir():
+        return removed
+    for release in sorted(releases_root.iterdir()):
+        if (
+            release.is_dir()
+            and not release.is_symlink()
+            and release.name not in active_releases
+        ):
+            shutil.rmtree(release)
+            removed.append(release)
+    return removed
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -464,6 +506,8 @@ def build_parser() -> argparse.ArgumentParser:
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--candidate-mode", action="store_true")
     mode.add_argument("--promote", action="store_true")
+    mode.add_argument("--prune-releases", action="store_true")
+    parser.add_argument("--confirm-offline", action="store_true")
     return parser
 
 
@@ -486,9 +530,15 @@ def main(
             )
         )
         print(f"Candidate manifest written: {candidate_manifest}")
-    else:
+    elif args.promote:
         promote_candidates(repository_root=repository_root)
         print("Approved 1972 assets promoted after staging validation.")
+    else:
+        removed = prune_releases(
+            repository_root=repository_root,
+            confirm_offline=args.confirm_offline,
+        )
+        print(f"Pruned {len(removed)} inactive immutable voice releases.")
     return 0
 
 

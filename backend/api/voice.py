@@ -12,8 +12,8 @@ from backend.api.tts import tts_service
 from backend.application.voice_service import VoiceService
 from backend.config import settings
 from backend.content.registry import ContentRegistry
-from backend.integrations.cosyvoice import CosyVoiceHttpProvider
 from backend.integrations.edge_voice import EdgeVoiceProvider
+from backend.integrations.remote_voice import RemoteVoiceHttpProvider
 from backend.integrations.voice_contracts import VoiceSynthesisResult
 
 
@@ -37,7 +37,7 @@ class VoiceCueResponse(BaseModel):
 
 class VoiceResponse(BaseModel):
     url: str | None
-    provider: Literal["fixed", "cosyvoice", "edge", "silent"]
+    provider: Literal["fixed", "remote", "edge", "silent"]
     cached: bool
     media_type: str | None
     duration_ms: int | None
@@ -46,18 +46,15 @@ class VoiceResponse(BaseModel):
     degraded: bool
 
 
-def _primary_provider() -> CosyVoiceHttpProvider | None:
+def _primary_provider() -> RemoteVoiceHttpProvider | None:
     if not settings.VOICE_PRIMARY_ENABLED:
         return None
-    return CosyVoiceHttpProvider(
-        base_url=settings.COSYVOICE_BASE_URL,
-        bridge_token=settings.COSYVOICE_BRIDGE_TOKEN,
+    return RemoteVoiceHttpProvider(
+        base_url=settings.VOICE_PRIMARY_BASE_URL,
+        token=settings.VOICE_PRIMARY_TOKEN,
         cache_dir=settings.VOICE_PUBLIC_DIR / "cache",
-        seed_root=settings.VOICE_SEED_DIR,
-        model_revision=settings.COSYVOICE_MODEL_REVISION,
-        model_commit=settings.COSYVOICE_MODEL_COMMIT,
-        connect_timeout_seconds=settings.COSYVOICE_CONNECT_TIMEOUT_SECONDS,
-        total_timeout_seconds=settings.COSYVOICE_TOTAL_TIMEOUT_SECONDS,
+        connect_timeout_seconds=settings.VOICE_PRIMARY_CONNECT_TIMEOUT_SECONDS,
+        total_timeout_seconds=settings.VOICE_PRIMARY_TOTAL_TIMEOUT_SECONDS,
         max_concurrency=settings.VOICE_GENERATION_MAX_CONCURRENCY,
         max_cache_files=settings.VOICE_CACHE_MAX_FILES,
         max_cache_bytes=settings.VOICE_CACHE_MAX_BYTES,
@@ -70,8 +67,8 @@ def _voice_service() -> VoiceService:
         ContentRegistry.load(data_dir),
         primary=_primary_provider(),
         fallback=EdgeVoiceProvider(tts_service),
-        failure_threshold=settings.COSYVOICE_FAILURE_THRESHOLD,
-        cooldown_seconds=settings.COSYVOICE_COOLDOWN_SECONDS,
+        failure_threshold=settings.VOICE_PRIMARY_FAILURE_THRESHOLD,
+        cooldown_seconds=settings.VOICE_PRIMARY_COOLDOWN_SECONDS,
         max_primary_concurrency=settings.VOICE_GENERATION_MAX_CONCURRENCY,
     )
 

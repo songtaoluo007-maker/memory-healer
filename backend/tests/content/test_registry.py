@@ -336,25 +336,16 @@ def test_voice_asset_seed_provenance_must_be_edge_synthetic(
     expect_validation_code(documents, "CONTENT_SCHEMA_INVALID")
 
 
-def test_shipping_profiles_lock_five_edge_synthetic_seed_lineages(
+def test_shipping_profiles_expose_only_managed_edge_provider_fields(
     shipping_documents: dict[str, object],
 ) -> None:
     profiles = shipping_documents["voice_profiles"]
     assert isinstance(profiles, list)
 
-    assert {
-        item["provider"]["cosyvoice_seed"]
+    assert all(
+        set(item["provider"]) <= {"edge_voice", "edge_rate", "edge_pitch"}
         for item in profiles
-    } == {
-        "seeds/chen_shouyi-base.wav",
-        "seeds/xiaoyu-base.wav",
-        "seeds/stranger-1990.wav",
-        "seeds/journalist-2050.wav",
-        "seeds/memory-narrator.wav",
-    }
-    assert {item["seed_provenance"] for item in profiles} == {
-        "edge_tts_synthetic"
-    }
+    )
 
 
 def test_voice_asset_text_hash_must_match_canonical_line(

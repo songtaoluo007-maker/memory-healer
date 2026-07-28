@@ -23,7 +23,7 @@ services:
     volumes:
       - db-data:/app/data
       - tts-cache:/app/data/tts_cache
-      - ./backend/data/voice_public/fixed:/app/data/voice_public/fixed:ro
+      - ./backend/data/voice_public:/app/data/voice_public:ro
       - voice-cache:/app/data/voice_public/cache
     restart: unless-stopped
     healthcheck:

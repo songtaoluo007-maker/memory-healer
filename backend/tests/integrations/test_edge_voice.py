@@ -19,8 +19,6 @@ class RecordingTts:
 
 def make_profile(**provider_overrides: str) -> VoiceProfileContent:
     provider = {
-        "cosyvoice_seed": "synthetic-seed",
-        "cosyvoice_instruction": "calm, restrained Mandarin",
         "edge_voice": "zh-CN-XiaoxiaoNeural",
         "edge_rate": "+0%",
         "edge_pitch": "+0Hz",
@@ -32,7 +30,6 @@ def make_profile(**provider_overrides: str) -> VoiceProfileContent:
         register="mid",
         pace=1.0,
         provider=provider,
-        seed_provenance="edge_tts_synthetic",
         version=1,
     )
 

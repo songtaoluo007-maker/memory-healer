@@ -11,7 +11,7 @@ from backend.application.voice_service import VoiceService
 from backend.content.models import VoiceAssetContent
 from backend.content.registry import ContentRegistry
 from backend.domain.errors import DomainError
-from backend.integrations.cosyvoice import VoiceProviderTimeout
+from backend.integrations.remote_voice import VoiceProviderTimeout
 from backend.integrations.voice_contracts import VoiceSynthesisResult
 
 
@@ -48,6 +48,20 @@ class SuccessfulProvider:
         )
 
 
+class RecordingMetrics:
+    def __init__(self, events: list[dict[str, object]]) -> None:
+        self.events = events
+
+    def emit(self, event: dict[str, object]) -> bool:
+        self.events.append(event)
+        return True
+
+
+class FailingMetrics:
+    def emit(self, _event: dict[str, object]) -> bool:
+        raise RuntimeError("log collector unavailable")
+
+
 class BlockingFailingProvider:
     def __init__(self) -> None:
         self.calls = 0
@@ -79,7 +93,7 @@ class BlockingSuccessfulProvider:
         await self.release.wait()
         return VoiceSynthesisResult(
             url="/voice/cache/generated.wav",
-            provider="cosyvoice",
+            provider="remote",
             cache_hit=False,
             media_type="audio/wav",
             duration_ms=None,
@@ -182,7 +196,7 @@ async def test_voice_fallback_emits_structured_metrics_without_player_text(
         registry,
         primary=FailingProvider(RuntimeError("remote primary")),
         fallback=SuccessfulProvider(provider="edge", url="/tts/fallback.mp3"),
-        event_sink=events.append,
+        metrics=RecordingMetrics(events),
         latency_clock=lambda: next(ticks),
     )
 
@@ -199,6 +213,7 @@ async def test_voice_fallback_emits_structured_metrics_without_player_text(
             "event": "voice_synthesis",
             "provider": "edge",
             "cache_hit": False,
+            "asset_hit": False,
             "latency_ms": 25.0,
             "fallback": True,
             "silent_degradation": False,
@@ -217,7 +232,7 @@ async def test_complete_voice_failure_emits_silent_degradation_metric(
         registry,
         primary=FailingProvider(RuntimeError("remote primary")),
         fallback=FailingProvider(RuntimeError("edge")),
-        event_sink=events.append,
+        metrics=RecordingMetrics(events),
         latency_clock=lambda: next(ticks),
     )
 
@@ -234,6 +249,7 @@ async def test_complete_voice_failure_emits_silent_degradation_metric(
             "event": "voice_synthesis",
             "provider": "silent",
             "cache_hit": False,
+            "asset_hit": False,
             "latency_ms": 42.0,
             "fallback": True,
             "silent_degradation": True,
@@ -245,14 +261,11 @@ async def test_complete_voice_failure_emits_silent_degradation_metric(
 async def test_observability_failure_never_blocks_voice_or_text_gameplay(
     registry: ContentRegistry,
 ) -> None:
-    def fail_logging(_event: dict[str, object]) -> None:
-        raise RuntimeError("log collector unavailable")
-
     ticks = iter((30.0, 30.001))
     service = VoiceService(
         registry,
         fallback=SuccessfulProvider(provider="edge", url="/tts/voice.mp3"),
-        event_sink=fail_logging,
+        metrics=FailingMetrics(),
         latency_clock=lambda: next(ticks),
     )
 
@@ -274,7 +287,7 @@ async def test_approved_fixed_asset_wins_over_runtime_providers() -> None:
     service = VoiceService(
         registry_with_asset(approved=True),
         fallback=fallback,
-        event_sink=events.append,
+        metrics=RecordingMetrics(events),
         latency_clock=lambda: next(ticks),
     )
 
@@ -287,7 +300,8 @@ async def test_approved_fixed_asset_wins_over_runtime_providers() -> None:
         {
             "event": "voice_synthesis",
             "provider": "fixed",
-            "cache_hit": True,
+            "cache_hit": False,
+            "asset_hit": True,
             "latency_ms": 4.0,
             "fallback": False,
             "silent_degradation": False,
@@ -424,7 +438,7 @@ async def test_concurrent_healthy_requests_remain_primary_first(
 
     assert primary.calls == 4
     assert fallback.calls == 0
-    assert [result.provider for result in results] == ["cosyvoice"] * 4
+    assert [result.provider for result in results] == ["remote"] * 4
 
 
 @pytest.mark.asyncio
@@ -455,7 +469,7 @@ async def test_voice_service_honors_non_default_primary_concurrency(
     results = await asyncio.gather(*requests)
 
     assert primary.calls == 3
-    assert [result.provider for result in results] == ["cosyvoice"] * 3
+    assert [result.provider for result in results] == ["remote"] * 3
 
 
 @pytest.mark.asyncio
@@ -489,7 +503,7 @@ async def test_healthy_primary_concurrency_is_not_capped_by_failure_threshold(
     results = await asyncio.gather(*requests)
 
     assert primary.calls == 4
-    assert [result.provider for result in results] == ["cosyvoice"] * 4
+    assert [result.provider for result in results] == ["remote"] * 4
 
 
 @pytest.mark.asyncio

@@ -245,7 +245,7 @@ export interface AuthUser {
 
 export type EndingType = 'hope' | 'bittersweet' | 'tragic' | 'legacy'
 
-export type VoiceProvider = 'fixed' | 'cosyvoice' | 'edge' | 'silent'
+export type VoiceProvider = 'fixed' | 'remote' | 'edge' | 'silent'
 export type VoicePriority = 'ending' | 'critical' | 'dialogue' | 'narration' | 'system'
 
 export interface VoiceCue {

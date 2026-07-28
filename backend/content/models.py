@@ -15,8 +15,6 @@ class VoiceDialect(ContentModel):
 
 
 class VoiceProviderProfile(ContentModel):
-    cosyvoice_seed: str
-    cosyvoice_instruction: str
     edge_voice: str
     edge_rate: str = "+0%"
     edge_pitch: str = "+0Hz"
@@ -33,7 +31,6 @@ class VoiceProfileContent(ContentModel):
     emotion_limits: dict[str, float] = Field(default_factory=dict)
     forbidden_traits: tuple[str, ...] = ()
     provider: VoiceProviderProfile
-    seed_provenance: Literal["edge_tts_synthetic"]
     version: int = Field(ge=1)
 
 

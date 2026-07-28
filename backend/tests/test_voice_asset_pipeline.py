@@ -6,6 +6,8 @@ import math
 import struct
 import subprocess
 import sys
+import threading
+import time
 import wave
 from collections.abc import Callable
 from pathlib import Path
@@ -33,6 +35,76 @@ LINE_TEXT = "戏要开场了。"
 ASSET_BYTES = b"hermetic-opus-fixture"
 
 
+def test_tracked_operational_files_expose_no_local_voice_runtime_path() -> None:
+    tracked = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=REPOSITORY_ROOT,
+        capture_output=True,
+        check=True,
+    ).stdout.decode().split("\0")
+    deleted = set(
+        subprocess.run(
+            ["git", "ls-files", "--deleted", "-z"],
+            cwd=REPOSITORY_ROOT,
+            capture_output=True,
+            check=True,
+        ).stdout.decode().split("\0")
+    )
+    operational = [
+        path
+        for path in tracked
+        if path
+        and path not in deleted
+        and "/tests/" not in f"/{path}"
+        and (
+            path.startswith(("backend/", "scripts/", "tools/"))
+            or path
+            in {
+                ".env.example",
+                "Dockerfile",
+                "docker-compose.yml",
+                "README.md",
+                "docs/voice-production.md",
+            }
+        )
+    ]
+    forbidden_paths = {
+        "scripts/voice/setup_cosyvoice.ps1",
+        "tools/cosyvoice_bridge/app.py",
+    }
+    forbidden_content = (
+        "cosyvoice_bridge",
+        "setup_cosyvoice",
+        ".local/cosyvoice",
+        "prompt_wav",
+        "x-voice-bridge",
+        "voice_seed_dir",
+        "cosyvoice_model",
+        "cosyvoice_seed",
+        "seed_root",
+        "pretrained_models",
+        "automodel",
+    )
+    violations: list[str] = []
+    for relative in operational:
+        if relative in forbidden_paths or relative.casefold().endswith(".wav"):
+            violations.append(relative)
+            continue
+        content = (REPOSITORY_ROOT / relative).read_text(
+            encoding="utf-8",
+            errors="ignore",
+        ).casefold()
+        if any(token in content for token in forbidden_content):
+            violations.append(relative)
+
+    assert violations == []
+    plan = (
+        REPOSITORY_ROOT
+        / "docs/superpowers/plans/2026-07-28-cinematic-ai-voice-platform-pilot.md"
+    ).read_text(encoding="utf-8")
+    assert "This override governs every older CosyVoice-local instruction below" in plan
+
+
 def test_compose_separates_shipping_assets_from_writable_runtime_cache() -> None:
     compose = yaml.safe_load(
         (REPOSITORY_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
@@ -40,10 +112,7 @@ def test_compose_separates_shipping_assets_from_writable_runtime_cache() -> None
 
     assert set(compose["services"]) == {"backend", "frontend"}
     backend = compose["services"]["backend"]
-    assert (
-        "./backend/data/voice_public/fixed:/app/data/voice_public/fixed:ro"
-        in backend["volumes"]
-    )
+    assert "./backend/data/voice_public:/app/data/voice_public:ro" in backend["volumes"]
     assert "voice-cache:/app/data/voice_public/cache" in backend["volumes"]
     assert "voice-cache" in compose["volumes"]
     assert backend["environment"]["VOICE_PRIMARY_ENABLED"] == "${VOICE_PRIMARY_ENABLED:-false}"
@@ -372,11 +441,9 @@ def promotion_fixture(
     )
 
 
-@pytest.mark.parametrize("failure_kind", ("unlink", "copy", "replace"))
-def test_promotion_failure_restores_previous_runtime_bundle(
+def test_promotion_manifest_switch_failure_keeps_previous_bundle(
     promotion_fixture,
     monkeypatch: pytest.MonkeyPatch,
-    failure_kind: str,
 ) -> None:
     (
         repository_root,
@@ -385,50 +452,18 @@ def test_promotion_failure_restores_previous_runtime_bundle(
         previous_files,
         previous_manifest_bytes,
     ) = promotion_fixture
-    failure_injected = False
-    matched_calls = 0
-    original_unlink = Path.unlink
-    original_copy2 = fixed_assets.shutil.copy2
     original_replace = Path.replace
 
-    def fail_during_unlink(path: Path, *args, **kwargs):
-        nonlocal failure_injected, matched_calls
-        if failure_kind == "unlink" and path.parent == runtime_fixed:
-            matched_calls += 1
-            if matched_calls == 2 and not failure_injected:
-                failure_injected = True
-                raise OSError("injected unlink failure")
-        return original_unlink(path, *args, **kwargs)
-
-    def fail_during_copy(source, destination, *args, **kwargs):
-        nonlocal failure_injected, matched_calls
-        destination_path = Path(destination)
-        if failure_kind == "copy" and destination_path.parent == runtime_fixed:
-            matched_calls += 1
-            if matched_calls == 2 and not failure_injected:
-                failure_injected = True
-                raise OSError("injected copy failure")
-        return original_copy2(source, destination, *args, **kwargs)
-
     def fail_during_replace(path: Path, target: Path):
-        nonlocal failure_injected
-        if (
-            failure_kind == "replace"
-            and Path(target) == runtime_manifest
-            and not failure_injected
-        ):
-            failure_injected = True
-            raise OSError("injected replace failure")
+        if Path(target) == runtime_manifest:
+            raise OSError("injected manifest switch failure")
         return original_replace(path, target)
 
-    monkeypatch.setattr(Path, "unlink", fail_during_unlink)
-    monkeypatch.setattr(fixed_assets.shutil, "copy2", fail_during_copy)
     monkeypatch.setattr(Path, "replace", fail_during_replace)
 
-    with pytest.raises(OSError, match=f"injected {failure_kind} failure"):
+    with pytest.raises(OSError, match="injected manifest switch failure"):
         fixed_assets.promote_candidates(repository_root=repository_root)
 
-    assert failure_injected is True
     assert {
         path.name: path.read_bytes()
         for path in runtime_fixed.iterdir()
@@ -436,6 +471,116 @@ def test_promotion_failure_restores_previous_runtime_bundle(
     } == previous_files
     assert runtime_manifest.read_bytes() == previous_manifest_bytes
     assert not runtime_manifest.with_suffix(".json.tmp").exists()
+
+
+def test_promotion_readers_observe_only_complete_old_or_new_bundle(
+    promotion_fixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    (
+        repository_root,
+        runtime_fixed,
+        runtime_manifest,
+        previous_files,
+        _,
+    ) = promotion_fixture
+    public_root = runtime_fixed.parent
+    original_copy2 = fixed_assets.shutil.copy2
+    stop = threading.Event()
+    snapshots: list[tuple[tuple[str, bytes], ...]] = []
+    failures: list[Exception] = []
+
+    def slow_release_copy(source, destination, *args, **kwargs):
+        destination_path = Path(destination)
+        if public_root in destination_path.parents:
+            time.sleep(0.005)
+        return original_copy2(source, destination, *args, **kwargs)
+
+    def read_active_bundle() -> None:
+        while not stop.is_set():
+            try:
+                manifest = json.loads(runtime_manifest.read_text(encoding="utf-8"))
+                snapshot = tuple(
+                    sorted(
+                        (
+                            asset["filename"],
+                            (public_root / asset["filename"]).read_bytes(),
+                        )
+                        for asset in manifest
+                    )
+                )
+                snapshots.append(snapshot)
+            except PermissionError:
+                # Windows may briefly deny a new open while os.replace holds the
+                # directory entry; retrying cannot expose a partial manifest.
+                continue
+            except Exception as exc:  # a torn bundle is itself a test failure
+                failures.append(exc)
+
+    monkeypatch.setattr(fixed_assets.shutil, "copy2", slow_release_copy)
+    reader = threading.Thread(target=read_active_bundle, daemon=True)
+    reader.start()
+    try:
+        fixed_assets.promote_candidates(repository_root=repository_root)
+    finally:
+        stop.set()
+        reader.join(timeout=1)
+
+    final_manifest = json.loads(runtime_manifest.read_text(encoding="utf-8"))
+    final_snapshot = tuple(
+        sorted(
+            (
+                asset["filename"],
+                (public_root / asset["filename"]).read_bytes(),
+            )
+            for asset in final_manifest
+        )
+    )
+    old_snapshot = tuple(
+        sorted((f"fixed/{name}", payload) for name, payload in previous_files.items())
+    )
+
+    assert failures == []
+    assert snapshots
+    assert set(snapshots) <= {old_snapshot, final_snapshot}
+    assert all(
+        str(asset["filename"]).startswith("releases/")
+        for asset in final_manifest
+    )
+    assert {
+        path.name: path.read_bytes()
+        for path in runtime_fixed.iterdir()
+        if path.is_file()
+    } == previous_files
+
+
+def test_prune_releases_is_explicit_and_preserves_active_release(
+    promotion_fixture,
+) -> None:
+    repository_root, runtime_fixed, runtime_manifest, _, _ = promotion_fixture
+    fixed_assets.promote_candidates(repository_root=repository_root)
+    releases_root = runtime_fixed.parent / "releases"
+    orphan = releases_root / ("f" * 64)
+    orphan.mkdir()
+    (orphan / "orphan.opus").write_bytes(b"orphan")
+
+    with pytest.raises(RuntimeError, match="offline"):
+        fixed_assets.prune_releases(
+            repository_root=repository_root,
+            confirm_offline=False,
+        )
+
+    removed = fixed_assets.prune_releases(
+        repository_root=repository_root,
+        confirm_offline=True,
+    )
+    active_release = Path(
+        json.loads(runtime_manifest.read_text(encoding="utf-8"))[0]["filename"]
+    ).parts[1]
+
+    assert removed == [orphan]
+    assert not orphan.exists()
+    assert (releases_root / active_release).is_dir()
 
 
 @pytest.fixture
@@ -472,11 +617,8 @@ def pipeline_fixture(
             "emotion_limits": {"neutral": 0.8},
             "forbidden_traits": ["character imitation"],
             "provider": {
-                "cosyvoice_seed": "seeds/memory-narrator.wav",
-                "cosyvoice_instruction": "archive narration",
                 "edge_voice": "zh-CN-XiaoxiaoNeural",
             },
-            "seed_provenance": "edge_tts_synthetic",
             "version": 1,
         }
     ]

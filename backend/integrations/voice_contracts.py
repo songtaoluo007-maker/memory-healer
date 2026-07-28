@@ -7,7 +7,7 @@ from typing import Literal, Protocol
 
 from backend.content.models import VoiceCueContent, VoiceProfileContent
 
-VoiceProviderName = Literal["fixed", "cosyvoice", "edge", "silent"]
+VoiceProviderName = Literal["fixed", "remote", "edge", "silent"]
 
 
 @dataclass(frozen=True, slots=True)

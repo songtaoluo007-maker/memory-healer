@@ -293,8 +293,6 @@ def validate_voice_assets(
             _issue(issues, line_id, "PROFILE_VERSION_MISMATCH", asset_path)
         if asset.get("seed_provenance") != "edge_tts_synthetic":
             _issue(issues, line_id, "SEED_PROVENANCE_INVALID", asset_path)
-        if asset.get("seed_provenance") != profile.get("seed_provenance"):
-            _issue(issues, line_id, "SEED_PROVENANCE_MISMATCH", asset_path)
 
         text = line.get("text")
         expected_text_hash = (
@@ -363,11 +361,17 @@ def validate_voice_assets(
                 manifest_path,
             )
 
-    fixed_root = (public_root / "fixed").resolve()
-    if fixed_root.is_dir():
-        for path in sorted(fixed_root.iterdir()):
-            if path.is_file() and path.resolve() not in expected_asset_paths:
-                _issue(issues, "<stale>", "STALE_FIXED_ASSET", path)
+    active_roots = {
+        Path(str(asset.get("filename", ""))).parent
+        for asset in manifest
+        if isinstance(asset, dict)
+    }
+    for active_root in active_roots:
+        scan_root = (public_root / active_root).resolve()
+        if scan_root.is_dir():
+            for path in sorted(scan_root.iterdir()):
+                if path.is_file() and path.resolve() not in expected_asset_paths:
+                    _issue(issues, "<stale>", "STALE_FIXED_ASSET", path)
     return issues
 
 

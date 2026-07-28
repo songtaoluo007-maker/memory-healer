@@ -28,6 +28,10 @@ from backend.api.butterfly import router as butterfly_router
 from backend.api.game import router as game_router
 from backend.config import settings
 from backend.domain.errors import DomainError
+from backend.application.voice_metrics import (
+    close_default_voice_metrics,
+    start_default_voice_metrics,
+)
 
 
 # ── 日志配置 ──
@@ -44,11 +48,15 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    start_default_voice_metrics()
     logger.info("正在检查应用依赖（数据库结构由 Alembic 管理）...")
     init_db()
     logger.info("拾忆 · 后端启动完成 (log_level={})", settings.LOG_LEVEL)
-    yield
-    logger.info("拾忆 · 后端已关闭")
+    try:
+        yield
+    finally:
+        close_default_voice_metrics()
+        logger.info("拾忆 · 后端已关闭")
 
 
 app = FastAPI(

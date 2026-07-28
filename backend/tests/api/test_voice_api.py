@@ -13,7 +13,7 @@ class SuccessfulVoiceService:
     async def speak_npc(self, **_kwargs) -> VoiceSynthesisResult:
         return VoiceSynthesisResult(
             url="/voice/cache/generated.wav",
-            provider="cosyvoice",
+            provider="remote",
             cache_hit=False,
             media_type="audio/wav",
             duration_ms=None,
@@ -70,7 +70,7 @@ def test_voice_api_returns_provider_neutral_response(monkeypatch) -> None:
     assert response.status_code == 200
     assert response.json() == {
         "url": "/voice/cache/generated.wav",
-        "provider": "cosyvoice",
+        "provider": "remote",
         "cached": False,
         "media_type": "audio/wav",
         "duration_ms": None,

@@ -433,11 +433,6 @@ class ContentRegistry:
                     "VOICE_ASSET_PROFILE_VERSION_MISMATCH",
                     f"语音资产 {asset.id} 的声音档案版本不匹配",
                 )
-            if asset.seed_provenance != profile.seed_provenance:
-                self._raise(
-                    "VOICE_ASSET_SEED_PROVENANCE_MISMATCH",
-                    f"语音资产 {asset.id} 的种子来源不匹配",
-                )
             text_sha256 = sha256(line.text.encode("utf-8")).hexdigest()
             if asset.text_sha256 != text_sha256:
                 self._raise(

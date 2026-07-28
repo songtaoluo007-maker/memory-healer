@@ -47,22 +47,16 @@ class Settings(BaseSettings):
         le=10 * 1024 * 1024 * 1024,
     )
     VOICE_PUBLIC_DIR: Path = ROOT_DIR / "backend" / "data" / "voice_public"
-    VOICE_SEED_DIR: Path = ROOT_DIR / "data" / "voice_seeds"
     VOICE_PRIMARY_ENABLED: bool = False
     VOICE_GENERATION_MAX_CONCURRENCY: int = Field(default=1, ge=1, le=4)
     VOICE_CACHE_MAX_FILES: int = Field(default=500, ge=1, le=10000)
     VOICE_CACHE_MAX_BYTES: int = Field(default=2_147_483_648, ge=1_048_576)
-    COSYVOICE_BASE_URL: str = ""
-    COSYVOICE_BRIDGE_TOKEN: str = ""
-    COSYVOICE_CONNECT_TIMEOUT_SECONDS: float = Field(default=0.5, ge=0.1, le=10)
-    COSYVOICE_TOTAL_TIMEOUT_SECONDS: float = Field(default=2.5, ge=0.5, le=30)
-    COSYVOICE_FAILURE_THRESHOLD: int = Field(default=3, ge=1, le=20)
-    COSYVOICE_COOLDOWN_SECONDS: float = Field(default=30, ge=1, le=600)
-    COSYVOICE_MODEL_REVISION: str = "Fun-CosyVoice3-0.5B-2512"
-    COSYVOICE_MODEL_COMMIT: str = Field(
-        default="9f9c56f2514700ef79d64fd0afb693e0d672373b",
-        pattern=r"^[0-9a-f]{40}$",
-    )
+    VOICE_PRIMARY_BASE_URL: str = ""
+    VOICE_PRIMARY_TOKEN: str = ""
+    VOICE_PRIMARY_CONNECT_TIMEOUT_SECONDS: float = Field(default=0.5, ge=0.1, le=10)
+    VOICE_PRIMARY_TOTAL_TIMEOUT_SECONDS: float = Field(default=2.5, ge=0.5, le=30)
+    VOICE_PRIMARY_FAILURE_THRESHOLD: int = Field(default=3, ge=1, le=20)
+    VOICE_PRIMARY_COOLDOWN_SECONDS: float = Field(default=30, ge=1, le=600)
 
     @property
     def cors_origins_list(self) -> List[str]:
@@ -108,20 +102,35 @@ class Settings(BaseSettings):
 
         if not self.VOICE_PRIMARY_ENABLED:
             return self
-        if not self.COSYVOICE_BRIDGE_TOKEN.strip():
+        if not self.VOICE_PRIMARY_TOKEN.strip():
             raise ValueError(
-                "COSYVOICE_BRIDGE_TOKEN is required when VOICE_PRIMARY_ENABLED=true"
+                "VOICE_PRIMARY_TOKEN is required when VOICE_PRIMARY_ENABLED=true"
             )
-        parsed = urlsplit(self.COSYVOICE_BASE_URL)
+        parsed = urlsplit(self.VOICE_PRIMARY_BASE_URL)
         hostname = parsed.hostname or ""
-        is_loopback = hostname == "localhost" or hostname.endswith(".localhost")
         try:
-            is_loopback = is_loopback or ipaddress.ip_address(hostname).is_loopback
+            normalized_host = (
+                hostname.rstrip(".").casefold().encode("idna").decode("ascii")
+            )
+        except UnicodeError:
+            normalized_host = ""
+        is_loopback = (
+            normalized_host == "localhost"
+            or normalized_host.endswith(".localhost")
+        )
+        try:
+            address = ipaddress.ip_address(normalized_host)
+            is_loopback = is_loopback or address.is_loopback
+            if isinstance(address, ipaddress.IPv6Address):
+                mapped = address.ipv4_mapped
+                is_loopback = is_loopback or (
+                    mapped is not None and mapped.is_loopback
+                )
         except ValueError:
             pass
-        if parsed.scheme != "https" or not hostname or is_loopback:
+        if parsed.scheme.casefold() != "https" or not normalized_host or is_loopback:
             raise ValueError(
-                "COSYVOICE_BASE_URL must be a remote HTTPS URL when "
+                "VOICE_PRIMARY_BASE_URL must be a remote HTTPS URL when "
                 "VOICE_PRIMARY_ENABLED=true"
             )
         return self

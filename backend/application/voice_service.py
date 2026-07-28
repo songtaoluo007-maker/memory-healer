@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import time
 from collections.abc import Callable
 
-from loguru import logger
-
+from backend.application.voice_metrics import (
+    VoiceMetricsEmitter,
+    default_voice_metrics,
+)
 from backend.content.registry import ContentRegistry
 from backend.domain.errors import DomainError
 from backend.integrations.voice_contracts import (
@@ -16,19 +17,6 @@ from backend.integrations.voice_contracts import (
     VoiceSynthesisRequest,
     VoiceSynthesisResult,
 )
-
-
-def _log_voice_event(event: dict[str, object]) -> None:
-    logger.info(
-        "{}",
-        json.dumps(
-            event,
-            ensure_ascii=False,
-            separators=(",", ":"),
-            sort_keys=True,
-        ),
-    )
-
 
 class VoiceCircuitBreaker:
     """Stops repeated primary-provider attempts for a bounded cooldown."""
@@ -70,7 +58,7 @@ class VoiceService:
         cooldown_seconds: float = 30,
         max_primary_concurrency: int = 1,
         monotonic: Callable[[], float] = time.monotonic,
-        event_sink: Callable[[dict[str, object]], None] = _log_voice_event,
+        metrics: VoiceMetricsEmitter = default_voice_metrics,
         latency_clock: Callable[[], float] = time.perf_counter,
     ) -> None:
         self.registry = registry
@@ -84,7 +72,7 @@ class VoiceService:
         self._primary_slots = asyncio.Semaphore(
             max(1, max_primary_concurrency)
         )
-        self.event_sink = event_sink
+        self.metrics = metrics
         self.latency_clock = latency_clock
 
     async def speak_npc(
@@ -154,6 +142,7 @@ class VoiceService:
             "event": "voice_synthesis",
             "provider": result.provider,
             "cache_hit": result.cache_hit,
+            "asset_hit": result.provider == "fixed",
             "latency_ms": round(
                 max(0.0, self.latency_clock() - started_at) * 1_000,
                 3,
@@ -162,7 +151,7 @@ class VoiceService:
             "silent_degradation": result.provider == "silent",
         }
         try:
-            self.event_sink(event)
+            self.metrics.emit(event)
         except Exception:
             pass
         return result
@@ -183,7 +172,7 @@ class VoiceService:
             result = VoiceSynthesisResult(
                 url=f"/voice/{asset.filename.lstrip('/')}",
                 provider="fixed",
-                cache_hit=True,
+                cache_hit=False,
                 media_type=asset.media_type,
                 duration_ms=asset.duration_ms,
                 line_id=line_id,

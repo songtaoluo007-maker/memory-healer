@@ -221,7 +221,7 @@ describe('API Layer', () => {
     mockPost.mockResolvedValue({
       data: {
         url: '/voice/cache/generated.wav',
-        provider: 'cosyvoice',
+        provider: 'remote',
         cached: false,
         media_type: 'audio/wav',
         duration_ms: null,
@@ -233,7 +233,7 @@ describe('API Layer', () => {
 
     const response = await requestNpcVoice('台词', 'chen_shouyi_young', 'warm', 0.4)
 
-    expect(response.data.provider).toBe('cosyvoice')
+    expect(response.data.provider).toBe('remote')
     expect(mockPost).toHaveBeenCalledWith('/voice/speak', {
       text: '台词',
       npc_id: 'chen_shouyi_young',

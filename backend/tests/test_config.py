@@ -67,42 +67,35 @@ def test_voice_settings_have_safe_disabled_defaults() -> None:
         settings.VOICE_PUBLIC_DIR
         == ROOT_DIR / "backend" / "data" / "voice_public"
     )
-    assert settings.VOICE_SEED_DIR == ROOT_DIR / "data" / "voice_seeds"
     assert settings.VOICE_PRIMARY_ENABLED is False
     assert settings.VOICE_GENERATION_MAX_CONCURRENCY == 1
     assert settings.VOICE_CACHE_MAX_FILES == 500
     assert settings.VOICE_CACHE_MAX_BYTES == 2_147_483_648
-    assert settings.COSYVOICE_BASE_URL == ""
-    assert settings.COSYVOICE_BRIDGE_TOKEN == ""
-    assert settings.COSYVOICE_CONNECT_TIMEOUT_SECONDS == 0.5
-    assert settings.COSYVOICE_TOTAL_TIMEOUT_SECONDS == 2.5
-    assert settings.COSYVOICE_FAILURE_THRESHOLD == 3
-    assert settings.COSYVOICE_COOLDOWN_SECONDS == 30
-    assert settings.COSYVOICE_MODEL_REVISION == "Fun-CosyVoice3-0.5B-2512"
-    assert (
-        settings.COSYVOICE_MODEL_COMMIT
-        == "9f9c56f2514700ef79d64fd0afb693e0d672373b"
-    )
+    assert settings.VOICE_PRIMARY_BASE_URL == ""
+    assert settings.VOICE_PRIMARY_TOKEN == ""
+    assert settings.VOICE_PRIMARY_CONNECT_TIMEOUT_SECONDS == 0.5
+    assert settings.VOICE_PRIMARY_TOTAL_TIMEOUT_SECONDS == 2.5
+    assert settings.VOICE_PRIMARY_FAILURE_THRESHOLD == 3
+    assert settings.VOICE_PRIMARY_COOLDOWN_SECONDS == 30
+    assert not hasattr(settings, "VOICE_SEED_DIR")
+    assert not hasattr(settings, "COSYVOICE_MODEL_REVISION")
+    assert not hasattr(settings, "COSYVOICE_MODEL_COMMIT")
 
 
 def test_disabled_voice_boot_creates_only_separate_cache_and_fixed_directories(
     tmp_path,
 ) -> None:
     public_dir = tmp_path / "public"
-    seed_dir = tmp_path / "seeds"
-
     settings = make_settings(
         VOICE_PUBLIC_DIR=public_dir,
-        VOICE_SEED_DIR=seed_dir,
         VOICE_PRIMARY_ENABLED=False,
-        COSYVOICE_BASE_URL="",
-        COSYVOICE_BRIDGE_TOKEN="",
+        VOICE_PRIMARY_BASE_URL="",
+        VOICE_PRIMARY_TOKEN="",
     )
 
     assert settings.VOICE_PRIMARY_ENABLED is False
     assert (public_dir / "cache").is_dir()
     assert (public_dir / "fixed").is_dir()
-    assert not seed_dir.exists()
 
 
 def test_voice_public_tree_cannot_overlap_the_tts_cache(tmp_path) -> None:
@@ -119,36 +112,75 @@ def test_remote_primary_credentials_are_required_only_when_enabled(tmp_path) -> 
     disabled = make_settings(
         VOICE_PUBLIC_DIR=tmp_path / "disabled-public",
         VOICE_PRIMARY_ENABLED=False,
-        COSYVOICE_BASE_URL="",
-        COSYVOICE_BRIDGE_TOKEN="",
+        VOICE_PRIMARY_BASE_URL="",
+        VOICE_PRIMARY_TOKEN="",
     )
 
     assert disabled.VOICE_PRIMARY_ENABLED is False
 
-    with pytest.raises(ValidationError, match="COSYVOICE_BRIDGE_TOKEN"):
+    with pytest.raises(ValidationError, match="VOICE_PRIMARY_TOKEN"):
         make_settings(
             VOICE_PUBLIC_DIR=tmp_path / "missing-token-public",
             VOICE_PRIMARY_ENABLED=True,
-            COSYVOICE_BASE_URL="https://voice-provider.example",
-            COSYVOICE_BRIDGE_TOKEN="",
-        )
-
-    with pytest.raises(ValidationError, match="remote HTTPS"):
-        make_settings(
-            VOICE_PUBLIC_DIR=tmp_path / "loopback-public",
-            VOICE_PRIMARY_ENABLED=True,
-            COSYVOICE_BASE_URL="http://127.0.0.1:50000",
-            COSYVOICE_BRIDGE_TOKEN="test-remote-token",
+            VOICE_PRIMARY_BASE_URL="https://voice-provider.example",
+            VOICE_PRIMARY_TOKEN="",
         )
 
     enabled = make_settings(
         VOICE_PUBLIC_DIR=tmp_path / "enabled-public",
         VOICE_PRIMARY_ENABLED=True,
-        COSYVOICE_BASE_URL="https://voice-provider.example",
-        COSYVOICE_BRIDGE_TOKEN="test-remote-token",
+        VOICE_PRIMARY_BASE_URL="https://voice-provider.example",
+        VOICE_PRIMARY_TOKEN="test-remote-token",
     )
 
-    assert enabled.COSYVOICE_BASE_URL == "https://voice-provider.example"
+    assert enabled.VOICE_PRIMARY_BASE_URL == "https://voice-provider.example"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://voice-provider.example",
+        "https://localhost.",
+        "https://LOCALHOST",
+        "https://api.localhost.",
+        "https://127.0.0.1.",
+        "https://[::1]",
+        "https://[::ffff:127.0.0.1]",
+    ],
+)
+def test_remote_primary_rejects_non_remote_or_loopback_urls(
+    tmp_path,
+    url: str,
+) -> None:
+    with pytest.raises(ValidationError, match="remote HTTPS"):
+        make_settings(
+            VOICE_PUBLIC_DIR=tmp_path / "public",
+            VOICE_PRIMARY_ENABLED=True,
+            VOICE_PRIMARY_BASE_URL=url,
+            VOICE_PRIMARY_TOKEN="test-remote-token",
+        )
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://voice-provider.example",
+        "https://VOICE-PROVIDER.EXAMPLE.",
+        "https://语音.example",
+    ],
+)
+def test_remote_primary_allows_normalized_remote_https_urls(
+    tmp_path,
+    url: str,
+) -> None:
+    settings = make_settings(
+        VOICE_PUBLIC_DIR=tmp_path / "public",
+        VOICE_PRIMARY_ENABLED=True,
+        VOICE_PRIMARY_BASE_URL=url,
+        VOICE_PRIMARY_TOKEN="test-remote-token",
+    )
+
+    assert settings.VOICE_PRIMARY_BASE_URL == url
 
 
 @pytest.mark.parametrize(
@@ -158,12 +190,10 @@ def test_remote_primary_credentials_are_required_only_when_enabled(tmp_path) -> 
         ("VOICE_GENERATION_MAX_CONCURRENCY", 5),
         ("VOICE_CACHE_MAX_FILES", 0),
         ("VOICE_CACHE_MAX_BYTES", 1_048_575),
-        ("COSYVOICE_CONNECT_TIMEOUT_SECONDS", 0.09),
-        ("COSYVOICE_TOTAL_TIMEOUT_SECONDS", 31),
-        ("COSYVOICE_FAILURE_THRESHOLD", 21),
-        ("COSYVOICE_COOLDOWN_SECONDS", 0),
-        ("COSYVOICE_MODEL_COMMIT", "main"),
-        ("COSYVOICE_MODEL_COMMIT", "9F9C56F2514700EF79D64FD0AFB693E0D672373B"),
+        ("VOICE_PRIMARY_CONNECT_TIMEOUT_SECONDS", 0.09),
+        ("VOICE_PRIMARY_TOTAL_TIMEOUT_SECONDS", 31),
+        ("VOICE_PRIMARY_FAILURE_THRESHOLD", 21),
+        ("VOICE_PRIMARY_COOLDOWN_SECONDS", 0),
     ],
 )
 def test_voice_settings_reject_unsafe_bounds(field: str, value: object) -> None:
