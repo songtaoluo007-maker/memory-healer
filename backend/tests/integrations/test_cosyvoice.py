@@ -34,7 +34,7 @@ def make_profile(*, seed_name: str = "seed.wav") -> VoiceProfileContent:
             "cosyvoice_instruction": "calm, restrained Mandarin",
             "edge_voice": "zh-CN-XiaoxiaoNeural",
         },
-        seed_provenance="cosyvoice_sft_synthetic",
+        seed_provenance="edge_tts_synthetic",
         version=2,
     )
 

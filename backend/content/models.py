@@ -33,7 +33,7 @@ class VoiceProfileContent(ContentModel):
     emotion_limits: dict[str, float] = Field(default_factory=dict)
     forbidden_traits: tuple[str, ...] = ()
     provider: VoiceProviderProfile
-    seed_provenance: Literal["edge_tts_synthetic", "cosyvoice_sft_synthetic"]
+    seed_provenance: Literal["edge_tts_synthetic"]
     version: int = Field(ge=1)
 
 
@@ -66,10 +66,11 @@ class VoiceAssetContent(ContentModel):
     text_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     integrated_lufs: float = Field(ge=-30, le=-10)
     true_peak_dbfs: float = Field(le=0)
-    generator: Literal["cosyvoice3"]
+    generator: Literal["edge_tts"]
     generator_revision: str
     model_id: str
-    seed_provenance: Literal["edge_tts_synthetic", "cosyvoice_sft_synthetic"]
+    seed_provenance: Literal["edge_tts_synthetic"]
+    line_version: int = Field(ge=1)
     profile_version: int = Field(ge=1)
     postprocess_version: int = Field(ge=1)
     cues: tuple[VoiceCueContent, ...] = ()

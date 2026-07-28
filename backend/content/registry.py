@@ -27,8 +27,7 @@ from .models import (
 
 ContentItem = TypeVar("ContentItem", bound=BaseModel)
 
-COSYVOICE3_REVISION = "074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc"
-COSYVOICE3_MODEL_ID = "FunAudioLLM/CosyVoice3-0.5B"
+EDGE_TTS_REVISION = "7.2.8"
 
 
 class ContentValidationError(DomainError):
@@ -413,17 +412,22 @@ class ContentRegistry:
                     "VOICE_ASSET_NOT_APPROVED",
                     f"语音资产 {asset.id} 未获准进入运行时清单",
                 )
-            if asset.generator_revision != COSYVOICE3_REVISION:
+            if asset.generator_revision != EDGE_TTS_REVISION:
                 self._raise(
                     "VOICE_ASSET_GENERATOR_REVISION_INVALID",
                     f"语音资产 {asset.id} 的生成器版本不受信任",
                 )
-            if asset.model_id != COSYVOICE3_MODEL_ID:
+            profile = self.voice_profiles[line.speaker_profile]
+            if asset.model_id != profile.provider.edge_voice:
                 self._raise(
                     "VOICE_ASSET_MODEL_ID_INVALID",
                     f"语音资产 {asset.id} 的模型标识不受信任",
                 )
-            profile = self.voice_profiles[line.speaker_profile]
+            if asset.line_version != line.version:
+                self._raise(
+                    "VOICE_ASSET_LINE_VERSION_MISMATCH",
+                    f"语音资产 {asset.id} 的语音行版本不匹配",
+                )
             if asset.profile_version != profile.version:
                 self._raise(
                     "VOICE_ASSET_PROFILE_VERSION_MISMATCH",

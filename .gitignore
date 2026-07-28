@@ -15,6 +15,7 @@ venv/
 .env.local
 .env.*.local
 .local/
+.codex-run/
 
 # Data
 data/game.db

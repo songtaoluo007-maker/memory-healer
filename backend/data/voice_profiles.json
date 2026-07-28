@@ -10,7 +10,7 @@
     "emotion_limits": {"warm": 0.8, "guarded": 0.4},
     "forbidden_traits": ["elderly", "high-pitched"],
     "provider": {"cosyvoice_seed": "seeds/chen_shouyi-base.wav", "cosyvoice_instruction": "warm young male, low-mid register, mild Xi'an accent", "edge_voice": "zh-CN-YunxiNeural"},
-    "seed_provenance": "cosyvoice_sft_synthetic",
+    "seed_provenance": "edge_tts_synthetic",
     "version": 1
   },
   {
@@ -24,7 +24,7 @@
     "emotion_limits": {"warm": 0.7, "guarded": 0.7},
     "forbidden_traits": ["elderly", "high-pitched"],
     "provider": {"cosyvoice_seed": "seeds/chen_shouyi-base.wav", "cosyvoice_instruction": "same timbre, thicker register, restrained hesitation", "edge_voice": "zh-CN-YunxiNeural"},
-    "seed_provenance": "cosyvoice_sft_synthetic",
+    "seed_provenance": "edge_tts_synthetic",
     "version": 1
   },
   {
@@ -38,7 +38,7 @@
     "emotion_limits": {"sad": 0.7, "warm": 0.6},
     "forbidden_traits": ["young", "brisk"],
     "provider": {"cosyvoice_seed": "seeds/chen_shouyi-base.wav", "cosyvoice_instruction": "same timbre, slower, breathy, clear elderly speech", "edge_voice": "zh-CN-YunyangNeural"},
-    "seed_provenance": "cosyvoice_sft_synthetic",
+    "seed_provenance": "edge_tts_synthetic",
     "version": 1
   },
   {
@@ -52,7 +52,7 @@
     "emotion_limits": {"guarded": 0.5, "sad": 0.6},
     "forbidden_traits": ["elderly", "authoritative"],
     "provider": {"cosyvoice_seed": "seeds/xiaoyu-base.wav", "cosyvoice_instruction": "clear young woman, controlled anxiety", "edge_voice": "zh-CN-XiaoyiNeural"},
-    "seed_provenance": "cosyvoice_sft_synthetic",
+    "seed_provenance": "edge_tts_synthetic",
     "version": 1
   },
   {
@@ -66,7 +66,7 @@
     "emotion_limits": {"warm": 0.8, "hopeful": 0.7},
     "forbidden_traits": ["young", "shrill"],
     "provider": {"cosyvoice_seed": "seeds/xiaoyu-base.wav", "cosyvoice_instruction": "same timbre, mature public-speaking strength", "edge_voice": "zh-CN-XiaoxiaoNeural"},
-    "seed_provenance": "cosyvoice_sft_synthetic",
+    "seed_provenance": "edge_tts_synthetic",
     "version": 1
   },
   {
@@ -80,7 +80,7 @@
     "emotion_limits": {"warm": 0.7, "guarded": 0.6},
     "forbidden_traits": ["young", "frail"],
     "provider": {"cosyvoice_seed": "seeds/xiaoyu-base.wav", "cosyvoice_instruction": "same timbre, slow and clear, retained agency", "edge_voice": "zh-CN-XiaoxiaoNeural"},
-    "seed_provenance": "cosyvoice_sft_synthetic",
+    "seed_provenance": "edge_tts_synthetic",
     "version": 1
   },
   {
@@ -94,7 +94,7 @@
     "emotion_limits": {"hopeful": 0.8, "warm": 0.6},
     "forbidden_traits": ["elderly", "slow"],
     "provider": {"cosyvoice_seed": "seeds/stranger-1990.wav", "cosyvoice_instruction": "bright male, brisk, mild Hunan accent", "edge_voice": "zh-CN-YunjianNeural"},
-    "seed_provenance": "cosyvoice_sft_synthetic",
+    "seed_provenance": "edge_tts_synthetic",
     "version": 1
   },
   {
@@ -108,7 +108,7 @@
     "emotion_limits": {"warm": 0.6, "neutral": 0.8},
     "forbidden_traits": ["elderly", "theatrical"],
     "provider": {"cosyvoice_seed": "seeds/journalist-2050.wav", "cosyvoice_instruction": "clear, restrained, warm professional voice", "edge_voice": "zh-CN-XiaoyiNeural"},
-    "seed_provenance": "cosyvoice_sft_synthetic",
+    "seed_provenance": "edge_tts_synthetic",
     "version": 1
   },
   {
@@ -121,7 +121,7 @@
     "emotion_limits": {"neutral": 0.8, "warm": 0.5},
     "forbidden_traits": ["character imitation", "theatrical"],
     "provider": {"cosyvoice_seed": "seeds/memory-narrator.wav", "cosyvoice_instruction": "low-saturation archive narration with distance", "edge_voice": "zh-CN-XiaoxiaoNeural"},
-    "seed_provenance": "cosyvoice_sft_synthetic",
+    "seed_provenance": "edge_tts_synthetic",
     "version": 1
   }
 ]
