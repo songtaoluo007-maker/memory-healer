@@ -81,6 +81,43 @@ def test_dialogue_records_both_roles_and_applies_valid_effects(
     assert result.degraded is False
 
 
+def test_explore_collects_fragment_previously_revealed_by_dialogue(
+    registry: ContentRegistry,
+    initial_state,
+) -> None:
+    dialogue_service = DialogueService(
+        registry,
+        StubDialogueClient(
+            suggestion(fragment_revealed="fragment_grandpa_knife")
+        ),
+    )
+    revealed = dialogue_service.chat(
+        initial_state,
+        npc_id="chen_shouyi_young",
+        player_input="你为什么还想把皮影传下去？",
+        expected_revision=initial_state.revision,
+    )
+    game_service = GameService(
+        registry,
+        now_provider=lambda: datetime(2026, 7, 26, 12, 0, tzinfo=timezone.utc),
+    )
+
+    collected = game_service.explore(
+        revealed.state,
+        "hotspot_1972_knife",
+        expected_revision=revealed.state.revision,
+    )
+
+    assert collected.state.revision == revealed.state.revision + 1
+    assert collected.state.revealed_fragments == ["fragment_grandpa_knife"]
+    assert collected.state.collected_fragments == ["fragment_grandpa_knife"]
+    fragment = collected.state.fragment_states["fragment_grandpa_knife"]
+    assert fragment.status == "collected"
+    assert fragment.revealed is True
+    assert fragment.collected is True
+    assert collected.events[0].type == "fragment.collected"
+
+
 def test_dialogue_rejects_npc_from_another_scene(
     registry: ContentRegistry,
     initial_state,

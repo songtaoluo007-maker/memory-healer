@@ -168,7 +168,8 @@ class GameService:
 
         payload = state.model_dump(mode="python")
         fragment_id = hotspot.fragment_id
-        payload["revealed_fragments"].append(fragment_id)
+        if fragment_id not in payload["revealed_fragments"]:
+            payload["revealed_fragments"].append(fragment_id)
         payload["collected_fragments"].append(fragment_id)
         fragment_state = payload["fragment_states"][fragment_id]
         fragment_state["status"] = "collected"
