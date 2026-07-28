@@ -66,8 +66,10 @@ class VoiceAssetContent(ContentModel):
     text_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     integrated_lufs: float = Field(ge=-30, le=-10)
     true_peak_dbfs: float = Field(le=0)
-    generator: str
+    generator: Literal["cosyvoice3"]
     generator_revision: str
+    model_id: str
+    seed_provenance: Literal["edge_tts_synthetic", "cosyvoice_sft_synthetic"]
     profile_version: int = Field(ge=1)
     postprocess_version: int = Field(ge=1)
     cues: tuple[VoiceCueContent, ...] = ()

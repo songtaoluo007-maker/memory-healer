@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import subprocess
 import sys
@@ -39,6 +40,40 @@ def expect_validation_code(documents: dict[str, object], code: str) -> None:
     with pytest.raises(ContentValidationError) as caught:
         ContentRegistry.from_documents(documents)
     assert caught.value.code == code
+
+
+def voice_asset_candidate(
+    line_id: str = "scene_1972.transition_in",
+) -> dict[str, object]:
+    line_text = next(
+        (
+            item["text"]
+            for item in json.loads(
+                (DATA_DIR / "voice_lines.json").read_text(encoding="utf-8")
+            )
+            if item["id"] == line_id
+        ),
+        "missing canonical line",
+    )
+    assert isinstance(line_text, str)
+    return {
+        "id": line_id,
+        "filename": "fixed/scene-1972-transition-in.opus",
+        "media_type": "audio/ogg; codecs=opus",
+        "duration_ms": 1200,
+        "sha256": "0" * 64,
+        "text_sha256": hashlib.sha256(line_text.encode("utf-8")).hexdigest(),
+        "integrated_lufs": -18.0,
+        "true_peak_dbfs": -1.0,
+        "generator": "cosyvoice3",
+        "generator_revision": "074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc",
+        "model_id": "FunAudioLLM/CosyVoice3-0.5B",
+        "seed_provenance": "cosyvoice_sft_synthetic",
+        "profile_version": 1,
+        "postprocess_version": 1,
+        "cues": [],
+        "approved": True,
+    }
 
 
 def test_shipping_content_counts_and_references() -> None:
@@ -186,26 +221,100 @@ def test_voice_asset_line_must_exist(shipping_documents: dict[str, object]) -> N
     documents = copy.deepcopy(shipping_documents)
     assets = documents["voice_assets"]
     assert isinstance(assets, list)
-    assets.append(
-        {
-            "id": "missing.line",
-            "filename": "fixed/missing.opus",
-            "media_type": "audio/ogg; codecs=opus",
-            "duration_ms": 1200,
-            "sha256": "0" * 64,
-            "text_sha256": "0" * 64,
-            "integrated_lufs": -18.0,
-            "true_peak_dbfs": -1.0,
-            "generator": "cosyvoice3",
-            "generator_revision": "074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc",
-            "profile_version": 1,
-            "postprocess_version": 1,
-            "cues": [],
-            "approved": True,
-        }
-    )
+    assets.append(voice_asset_candidate("missing.line"))
 
     expect_validation_code(documents, "VOICE_ASSET_LINE_NOT_FOUND")
+
+
+def test_unapproved_voice_asset_is_rejected(
+    shipping_documents: dict[str, object],
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    assets = documents["voice_assets"]
+    assert isinstance(assets, list)
+    candidate = voice_asset_candidate()
+    candidate["approved"] = False
+    assets.append(candidate)
+
+    expect_validation_code(documents, "VOICE_ASSET_NOT_APPROVED")
+
+
+def test_voice_asset_generator_must_be_cosyvoice3(
+    shipping_documents: dict[str, object],
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    assets = documents["voice_assets"]
+    assert isinstance(assets, list)
+    candidate = voice_asset_candidate()
+    candidate["generator"] = "human_recording"
+    assets.append(candidate)
+
+    expect_validation_code(documents, "CONTENT_SCHEMA_INVALID")
+
+
+def test_voice_asset_generator_revision_must_be_trusted(
+    shipping_documents: dict[str, object],
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    assets = documents["voice_assets"]
+    assert isinstance(assets, list)
+    candidate = voice_asset_candidate()
+    candidate["generator_revision"] = "untrusted-revision"
+    assets.append(candidate)
+
+    expect_validation_code(documents, "VOICE_ASSET_GENERATOR_REVISION_INVALID")
+
+
+def test_voice_asset_model_identity_must_be_trusted(
+    shipping_documents: dict[str, object],
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    assets = documents["voice_assets"]
+    assert isinstance(assets, list)
+    candidate = voice_asset_candidate()
+    candidate["model_id"] = "unknown-model"
+    assets.append(candidate)
+
+    expect_validation_code(documents, "VOICE_ASSET_MODEL_ID_INVALID")
+
+
+def test_voice_asset_profile_version_must_match_speaker_profile(
+    shipping_documents: dict[str, object],
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    assets = documents["voice_assets"]
+    assert isinstance(assets, list)
+    candidate = voice_asset_candidate()
+    candidate["profile_version"] = 2
+    assets.append(candidate)
+
+    expect_validation_code(documents, "VOICE_ASSET_PROFILE_VERSION_MISMATCH")
+
+
+def test_voice_asset_seed_provenance_must_match_speaker_profile(
+    shipping_documents: dict[str, object],
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    assets = documents["voice_assets"]
+    assert isinstance(assets, list)
+    candidate = voice_asset_candidate()
+    candidate["seed_provenance"] = "edge_tts_synthetic"
+    assets.append(candidate)
+
+    expect_validation_code(documents, "VOICE_ASSET_SEED_PROVENANCE_MISMATCH")
+
+
+def test_voice_asset_text_hash_must_match_canonical_line(
+    shipping_documents: dict[str, object],
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    assets = documents["voice_assets"]
+    assert isinstance(assets, list)
+    candidate = voice_asset_candidate()
+    candidate["text_sha256"] = "0" * 64
+    assets.append(candidate)
+
+    expect_validation_code(documents, "VOICE_ASSET_TEXT_HASH_MISMATCH")
 
 
 def test_voice_line_text_must_equal_authoritative_source(

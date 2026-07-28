@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 from collections.abc import Mapping
 from pathlib import Path
 from types import MappingProxyType
@@ -25,6 +26,9 @@ from .models import (
 
 
 ContentItem = TypeVar("ContentItem", bound=BaseModel)
+
+COSYVOICE3_REVISION = "074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc"
+COSYVOICE3_MODEL_ID = "FunAudioLLM/CosyVoice3-0.5B"
 
 
 class ContentValidationError(DomainError):
@@ -398,10 +402,43 @@ class ContentRegistry:
                 )
 
         for asset in self.voice_assets.values():
-            if asset.id not in self.voice_lines:
+            line = self.voice_lines.get(asset.id)
+            if line is None:
                 self._raise(
                     "VOICE_ASSET_LINE_NOT_FOUND",
                     f"语音资产 {asset.id} 引用了不存在的语音行",
+                )
+            if not asset.approved:
+                self._raise(
+                    "VOICE_ASSET_NOT_APPROVED",
+                    f"语音资产 {asset.id} 未获准进入运行时清单",
+                )
+            if asset.generator_revision != COSYVOICE3_REVISION:
+                self._raise(
+                    "VOICE_ASSET_GENERATOR_REVISION_INVALID",
+                    f"语音资产 {asset.id} 的生成器版本不受信任",
+                )
+            if asset.model_id != COSYVOICE3_MODEL_ID:
+                self._raise(
+                    "VOICE_ASSET_MODEL_ID_INVALID",
+                    f"语音资产 {asset.id} 的模型标识不受信任",
+                )
+            profile = self.voice_profiles[line.speaker_profile]
+            if asset.profile_version != profile.version:
+                self._raise(
+                    "VOICE_ASSET_PROFILE_VERSION_MISMATCH",
+                    f"语音资产 {asset.id} 的声音档案版本不匹配",
+                )
+            if asset.seed_provenance != profile.seed_provenance:
+                self._raise(
+                    "VOICE_ASSET_SEED_PROVENANCE_MISMATCH",
+                    f"语音资产 {asset.id} 的种子来源不匹配",
+                )
+            text_sha256 = sha256(line.text.encode("utf-8")).hexdigest()
+            if asset.text_sha256 != text_sha256:
+                self._raise(
+                    "VOICE_ASSET_TEXT_HASH_MISMATCH",
+                    f"语音资产 {asset.id} 的文本摘要不匹配",
                 )
 
         for scene in self.scenes.values():
@@ -529,4 +566,5 @@ class ContentRegistry:
             raise DomainError("VOICE_LINE_NOT_FOUND", f"语音行不存在：{line_id}") from exc
 
     def get_voice_asset(self, line_id: str) -> VoiceAssetContent | None:
-        return self.voice_assets.get(line_id)
+        asset = self.voice_assets.get(line_id)
+        return asset if asset is None or asset.approved else None
