@@ -79,6 +79,22 @@ const ruleBodies = (source: string, selector: string) =>
     (match) => match[1]!,
   )
 
+const cssBlockBody = (source: string, header: string) => {
+  const headerStart = source.indexOf(header)
+  const blockStart = source.indexOf('{', headerStart)
+  if (headerStart === -1 || blockStart === -1) throw new Error(`Missing CSS block: ${header}`)
+
+  let depth = 0
+  for (let index = blockStart; index < source.length; index += 1) {
+    if (source[index] === '{') depth += 1
+    if (source[index] !== '}') continue
+    depth -= 1
+    if (depth === 0) return source.slice(blockStart + 1, index)
+  }
+
+  throw new Error(`Unclosed CSS block: ${header}`)
+}
+
 const remValue = (body: string, property: string) => {
   const match = body.match(new RegExp(`${property}:\\s*([\\d.]+)rem`))
   if (!match) throw new Error(`Missing ${property} rem declaration`)
@@ -355,7 +371,7 @@ describe('Ending voice controls', () => {
     app.unmount()
   })
 
-  it('moves the ending heading out of the narrow top-sheet safe-zone while controls are open', async () => {
+  it('keeps the ending heading visual and aria state in sync at the 900x400 narrow boundary', async () => {
     installMatchMedia(true)
     const playback = {
       isSpeaking: ref(false),
@@ -386,9 +402,33 @@ describe('Ending voice controls', () => {
 
     expect(host.querySelector('.ending')?.classList.contains('voice-controls-open')).toBe(true)
     expect(host.querySelector('.ending-heading')?.getAttribute('aria-hidden')).toBe('true')
-    expect(endingSource).toMatch(
+    expect(window.matchMedia).toHaveBeenCalledWith(
+      '(max-width: 900px), (max-aspect-ratio: 1/1)',
+    )
+    expect(
+      cssBlockBody(
+        endingSource,
+        '@media (max-width: 900px), (max-aspect-ratio: 1/1)',
+      ),
+    ).toMatch(
       /\.ending\.voice-controls-open\s+\.ending-heading\s*\{[\s\S]*?visibility:\s*hidden/,
     )
     app.unmount()
+  })
+
+  it('keeps the phone story below a four-row top sheet with a 59px safe-area inset', () => {
+    const rootRem = 16
+    const safeAreaInsetTop = 59
+    const panelTop = safeAreaInsetTop + 3.35 * rootRem
+    const panelBottom = panelTop + 4 * 2.75 * rootRem + 2
+    const storyTop = Math.max(18 * rootRem, safeAreaInsetTop + 15 * rootRem)
+
+    expect(endingSource).toContain(
+      '--ending-story-top: max(18rem, calc(env(safe-area-inset-top) + 15rem));',
+    )
+    expect(endingSource).toMatch(
+      /\.ending-story\s*\{[\s\S]*?top:\s*var\(--ending-story-top\)/,
+    )
+    expect(panelBottom).toBeLessThan(storyTop)
   })
 })

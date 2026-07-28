@@ -528,7 +528,19 @@ const shareEnding = async () => {
   background: rgba(214, 173, 102, 0.22);
 }
 
+@media (max-width: 900px), (max-aspect-ratio: 1/1) {
+  .ending.voice-controls-open .ending-heading {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
 @media (max-width: 800px), (max-aspect-ratio: 4/5) {
+  .ending {
+    --ending-story-top: max(18rem, calc(env(safe-area-inset-top) + 15rem));
+  }
+
   .ending-grade {
     background: rgba(3, 4, 3, 0.78);
   }
@@ -541,12 +553,6 @@ const shareEnding = async () => {
   .ending-voice-controls {
     top: max(3.5rem, calc(env(safe-area-inset-top) + 3rem));
     right: 1rem;
-  }
-
-  .ending.voice-controls-open .ending-heading {
-    visibility: hidden;
-    opacity: 0;
-    pointer-events: none;
   }
 
   .ending-heading {
@@ -575,11 +581,11 @@ const shareEnding = async () => {
   }
 
   .ending-story {
-    top: 18rem;
+    top: var(--ending-story-top);
     right: 1rem;
     left: 1rem;
     width: auto;
-    height: calc(100vh - 31rem);
+    height: calc(100vh - var(--ending-story-top) - 13rem);
     min-height: 9rem;
   }
 
