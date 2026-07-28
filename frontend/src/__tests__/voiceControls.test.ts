@@ -3,8 +3,10 @@ import { createApp, defineComponent, h, nextTick, ref } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AUDIO_STORAGE_KEY, createAudioMixer } from '../audio/mixer'
 import VoiceControls from '../components/VoiceControls.vue'
+import voiceControlsSource from '../components/VoiceControls.vue?raw'
 import type { VoicePlaybackRequest, VoiceResponse } from '../types/game'
 import Ending from '../views/Ending.vue'
+import endingSource from '../views/Ending.vue?raw'
 
 const installMatchMedia = (matches: boolean) => {
   vi.stubGlobal(
@@ -70,6 +72,38 @@ const approvedEndingVoice: VoiceResponse = {
   line_id: 'ending.hope',
   cues: [],
   degraded: false,
+}
+
+const ruleBodies = (source: string, selector: string) =>
+  [...source.matchAll(new RegExp(`\\${selector}\\s*\\{([^}]+)\\}`, 'g'))].map(
+    (match) => match[1]!,
+  )
+
+const remValue = (body: string, property: string) => {
+  const match = body.match(new RegExp(`${property}:\\s*([\\d.]+)rem`))
+  if (!match) throw new Error(`Missing ${property} rem declaration`)
+  return Number(match[1])
+}
+
+const hexToRgb = (hex: string) => {
+  const value = Number.parseInt(hex.slice(1), 16)
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255] as const
+}
+
+const relativeLuminance = (rgb: readonly number[]) => {
+  const channels = rgb.map((channel) => {
+    const normalized = channel / 255
+    return normalized <= 0.04045
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!
+}
+
+const contrastRatio = (foreground: readonly number[], background: readonly number[]) => {
+  const light = Math.max(relativeLuminance(foreground), relativeLuminance(background))
+  const dark = Math.min(relativeLuminance(foreground), relativeLuminance(background))
+  return (light + 0.05) / (dark + 0.05)
 }
 
 describe('VoiceControls', () => {
@@ -216,6 +250,61 @@ describe('VoiceControls', () => {
     expect(toggleMute).toHaveBeenCalledOnce()
     app.unmount()
   })
+
+  it('keeps the narrow disclosure trigger at least 44px on both axes', () => {
+    const narrowTriggerRule = ruleBodies(voiceControlsSource, '.voice-controls-trigger').find(
+      (body) => body.includes('min-width'),
+    )!
+
+    expect(remValue(narrowTriggerRule, 'width') * 16).toBeGreaterThanOrEqual(44)
+    expect(remValue(narrowTriggerRule, 'min-width') * 16).toBeGreaterThanOrEqual(44)
+    expect(remValue(narrowTriggerRule, 'min-height') * 16).toBeGreaterThanOrEqual(44)
+  })
+
+  it.each([320, 360, 760, 900])(
+    'keeps the open panel outside the active portrait safe-zone at %ipx',
+    (viewportWidth) => {
+      const panelRules = ruleBodies(voiceControlsSource, '.voice-controls-panel')
+      const declaredWidths = panelRules
+        .map((body) => body.match(/width:\s*([\d.]+)rem/)?.[1])
+        .filter((width): width is string => width !== undefined)
+        .map(Number)
+      const panelLeft = (viewportWidth <= 760 ? 0.75 : 0.85) * 16
+      const panelWidth =
+        (viewportWidth <= 760
+          ? Math.min(...declaredWidths)
+          : Math.max(...declaredWidths)) * 16
+      const panelRight = panelLeft + panelWidth + 2
+      const portraitWidth = Math.min(viewportWidth * 0.68, 24 * 16)
+      const portraitLeft = viewportWidth + 3.5 * 16 - portraitWidth
+
+      expect(panelRight).toBeLessThanOrEqual(portraitLeft)
+      expect(voiceControlsSource).toContain('@media (max-width: 650px)')
+      expect(voiceControlsSource).toMatch(
+        /@media \(max-width: 650px\)[\s\S]*?:global\(\.game-cinema \.scene-info\)\s*\{[\s\S]*?display:\s*none/,
+      )
+    },
+  )
+
+  it('keeps muted trigger text above 4.5:1 while retaining its border state', () => {
+    const mutedRule = ruleBodies(voiceControlsSource, '.voice-controls.muted .voice-controls-trigger')[0]!
+
+    expect(mutedRule).toContain('color: var(--paper-300)')
+    expect(mutedRule).toContain('border-style: dashed')
+    expect(contrastRatio(hexToRgb('#d7c4a2'), hexToRgb('#050606'))).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('allocates separate phone rows to skip/mute and the full-width volume control', () => {
+    const phoneVolumeRule = ruleBodies(voiceControlsSource, '.voice-volume').find((body) =>
+      body.includes('minmax(0, 1fr)'),
+    )!
+    const phoneMuteRule = ruleBodies(voiceControlsSource, '.voice-mute-secondary').find((body) =>
+      body.includes('grid-row: 3'),
+    )!
+
+    expect(phoneMuteRule).toContain('grid-column: 2')
+    expect(phoneVolumeRule).toContain('grid-row: 4')
+  })
 })
 
 describe('Ending voice controls', () => {
@@ -263,6 +352,43 @@ describe('Ending voice controls', () => {
     expect(playback.stop).toHaveBeenCalledOnce()
     expect(playback.lastRequest.value).toBeNull()
     expect(restart).toHaveBeenCalledOnce()
+    app.unmount()
+  })
+
+  it('moves the ending heading out of the narrow top-sheet safe-zone while controls are open', async () => {
+    installMatchMedia(true)
+    const playback = {
+      isSpeaking: ref(false),
+      isPaused: ref(false),
+      lastRequest: ref<VoicePlaybackRequest | null>(null),
+      playResponse: vi.fn().mockResolvedValue(true),
+      pause: vi.fn(),
+      resume: vi.fn().mockResolvedValue(true),
+      replay: vi.fn().mockResolvedValue(true),
+      skip: vi.fn(),
+      stop: vi.fn(),
+      waitingForUserGesture: ref(false),
+      resumeAfterUserGesture: vi.fn().mockResolvedValue(true),
+      activeCue: ref(null),
+      currentLineId: ref<string | null>(null),
+    }
+    const host = document.createElement('div')
+    document.body.append(host)
+    const app = createApp(Ending, {
+      endingType: 'hope',
+      voicePlayback: playback,
+    })
+    app.mount(host)
+    await nextTick()
+
+    host.querySelector<HTMLButtonElement>('[aria-label="展开语音控制"]')!.click()
+    await nextTick()
+
+    expect(host.querySelector('.ending')?.classList.contains('voice-controls-open')).toBe(true)
+    expect(host.querySelector('.ending-heading')?.getAttribute('aria-hidden')).toBe('true')
+    expect(endingSource).toMatch(
+      /\.ending\.voice-controls-open\s+\.ending-heading\s*\{[\s\S]*?visibility:\s*hidden/,
+    )
     app.unmount()
   })
 })

@@ -26,6 +26,7 @@ useVoiceRouteLifecycle(voice)
 const voiceIsSpeaking = computed(() => voice.isSpeaking?.value ?? false)
 const voiceIsPaused = computed(() => voice.isPaused?.value ?? false)
 const hasReplay = computed(() => Boolean(voice.lastRequest?.value))
+const voiceControlsOpen = ref(false)
 const phase = ref(0)
 const shareStatus = ref('')
 const timers: number[] = []
@@ -149,7 +150,14 @@ const shareEnding = async () => {
 </script>
 
 <template>
-  <main class="ending" :class="`ending-${endingType}`" aria-labelledby="ending-title">
+  <main
+    class="ending"
+    :class="{
+      [`ending-${endingType}`]: true,
+      'voice-controls-open': voiceControlsOpen,
+    }"
+    aria-labelledby="ending-title"
+  >
     <img class="ending-backdrop" :src="endingBackdrop" alt="" aria-hidden="true" />
     <div class="ending-grade" aria-hidden="true" />
     <img
@@ -178,10 +186,15 @@ const shareEnding = async () => {
         @skip="skipVoice"
         @toggle-mute="toggleMute"
         @update:voice-volume="setVoiceVolume"
+        @expanded-change="voiceControlsOpen = $event"
       />
     </div>
 
-    <section class="ending-heading" :class="{ visible: phase >= 1 }">
+    <section
+      class="ending-heading"
+      :class="{ visible: phase >= 1 }"
+      :aria-hidden="voiceControlsOpen ? 'true' : undefined"
+    >
       <span class="ending-serial">{{ endingData.serial }}</span>
       <div class="ending-mark" aria-hidden="true">{{ endingData.mark }}</div>
       <h1 id="ending-title">{{ endingData.title }}</h1>
@@ -528,6 +541,12 @@ const shareEnding = async () => {
   .ending-voice-controls {
     top: max(3.5rem, calc(env(safe-area-inset-top) + 3rem));
     right: 1rem;
+  }
+
+  .ending.voice-controls-open .ending-heading {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
   }
 
   .ending-heading {

@@ -199,7 +199,7 @@ onUnmounted(() => {
 }
 
 .voice-controls.muted .voice-controls-trigger {
-  color: rgba(215, 196, 162, 0.42);
+  color: var(--paper-300);
   border-style: dashed;
 }
 
@@ -266,8 +266,8 @@ onUnmounted(() => {
   }
 
   .voice-controls-trigger {
-    width: 2.5rem;
-    min-width: 2.5rem;
+    width: 2.75rem;
+    min-width: 2.75rem;
     min-height: 2.75rem;
   }
 
@@ -276,6 +276,7 @@ onUnmounted(() => {
     z-index: 92;
     top: max(3.85rem, calc(env(safe-area-inset-top) + 3.35rem));
     right: 0.85rem;
+    width: 15rem;
     display: grid;
     grid-template-columns: 4rem repeat(4, minmax(2.75rem, auto));
     min-height: 2.75rem;
@@ -306,6 +307,8 @@ onUnmounted(() => {
 
   .voice-mute-secondary {
     display: block;
+    grid-row: 1;
+    grid-column: 5;
   }
 
   .voice-volume {
@@ -325,7 +328,7 @@ onUnmounted(() => {
   .voice-controls-panel {
     right: auto;
     left: 0.75rem;
-    width: 10.5rem;
+    width: 8.5rem;
     grid-template-columns: 1fr 1fr;
   }
 
@@ -342,6 +345,22 @@ onUnmounted(() => {
 
   .voice-control-action {
     font-size: 0.56rem;
+  }
+
+  .voice-volume {
+    grid-row: 4;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .voice-mute-secondary {
+    grid-row: 3;
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 650px) {
+  :global(.game-cinema .scene-info) {
+    display: none;
   }
 }
 
