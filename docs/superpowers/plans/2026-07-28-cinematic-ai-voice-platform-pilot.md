@@ -4,20 +4,23 @@
 
 **Goal:** Build a provider-neutral cinematic voice platform, validate it with a fully playable 1972 first-act pilot, and preserve the ability to expand the rewritten story without reworking voice infrastructure.
 
-**Architecture:** Canonical voice profiles and fixed voice lines live in the existing content registry. A backend `VoiceService` resolves approved fixed assets first, then uses a pinned CosyVoice 3 bridge and the existing Edge TTS integration as runtime fallbacks. The frontend receives one playback contract and routes it through a dedicated voice queue and mixer instead of embedding provider behavior in dialogue components.
+**Architecture:** Canonical voice profiles and fixed voice lines live in the existing content registry. Approved fixed assets are generated at build time through managed cloud AI voices and shipped with the game. A backend `VoiceService` resolves approved fixed assets first, then uses the existing Edge TTS integration for runtime dialogue; the already-implemented provider-neutral HTTP primary remains optional, remote-only, and disabled by default. The frontend receives one playback contract and routes it through a dedicated voice queue and mixer instead of embedding provider behavior in dialogue components.
 
-**Tech Stack:** Python 3.12 / FastAPI / Pydantic 2 / httpx / pytest, CosyVoice pinned at `074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc`, Edge TTS 7.2.8, FFmpeg 8.1, Vue 3 / TypeScript / Vitest, Web Audio API, Git LFS.
+**Tech Stack:** Python 3.12 / FastAPI / Pydantic 2 / httpx / pytest, Edge TTS 7.2.8, FFmpeg 8.1, an optional disabled-by-default provider-neutral HTTP primary, Vue 3 / TypeScript / Vitest, Web Audio API, Git LFS.
+
+> **User override — 2026-07-28:** Do not install, download, bundle, or run a local speech model. Task 3 is retained only as an already-completed optional remote-provider contract. Task 5 generates the seven approved 1972 fixed assets directly through Edge managed cloud voices. Tasks 11–12 must document and verify the no-local-model path. This override governs every older CosyVoice-local instruction below.
 
 ## Global Constraints
 
 - All character voices must be purely synthetic; never import human recordings as prompts, seeds, training data, or fine-tuning data.
-- Use CosyVoice 3 as the primary generator and the existing Edge TTS path only as a non-blocking fallback.
+- Use Edge managed cloud voices for the fixed-asset pilot and runtime dialogue. Any optional primary provider must be remote, disabled by default, and must never be required for boot or play.
+- Never create `.local/cosyvoice`, install a model runtime, download model weights, or require a local speech-model process.
 - Preserve text-first gameplay: voice failure must never block dialogue, state mutation, scene navigation, saving, or endings.
 - Keep one stable `voice_lineage_id` across Chen Shouyi ages 25/43/77 and one across Xiaoyu ages 22/48/87.
 - Correct Xiaoyu's canonical age to 87 in 2089 and remove the current “22-year-old student” contradiction.
 - Serve the first complete fixed-voice pilot only for the 1972 act; do not batch-produce the remaining eras until the separate narrative-expansion specification freezes their scripts.
 - Fixed voice assets must be approved before entering the manifest; unapproved candidates stay outside the runtime asset path.
-- Lock the CosyVoice source commit, model identity, seed provenance, voice profile version, and post-processing version in every generated manifest entry.
+- Lock the cloud voice ID, `edge-tts` package revision, synthetic provenance, voice profile version, line version, and post-processing version in every generated manifest entry.
 - Preserve the existing same-origin `/api` contract and add same-origin `/voice` assets for local Vite and production Nginx.
 - Keep the current backend and frontend test suites green; add focused red-green tests for every new contract and failure path.
 - Follow the existing cinematic palette, typography, and accessibility patterns for voice controls; do not introduce floating orb controls or unrelated visual redesign.
