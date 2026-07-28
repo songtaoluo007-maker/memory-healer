@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { describe, expect, it } from 'vitest'
 import { buildFragmentGraph } from '../domain/fragmentGraph'
 import { useHotspots } from '../composables/useHotspots'
+import { useScene } from '../composables/useScene'
 import type { FragmentState, SceneView } from '../types/game'
 
 const makeSceneView = (sceneId: string, hotspotId: string): SceneView => ({
@@ -37,6 +38,19 @@ const makeSceneView = (sceneId: string, hotspotId: string): SceneView => ({
     },
   ],
   choices: [],
+  hypotheses:
+    sceneId === 'scene_1972'
+      ? [
+          {
+            id: 'hypothesis_1972_legacy',
+            scene_id: 'scene_1972',
+            question: '陈守义为什么仍想把皮影传下去？',
+            statement: '刻刀与戏幕共同指向传承。',
+            evidence_ids: ['fragment_grandpa_knife', 'fragment_shadow_puppet'],
+            resolution: '两条记忆互相印证。',
+          },
+        ]
+      : [],
   content_version: 1,
 })
 
@@ -86,5 +100,15 @@ describe('canonical scene flow', () => {
         (link) => fragmentStates[link.from] !== undefined && fragmentStates[link.to] !== undefined,
       ),
     ).toBe(true)
+  })
+
+  it('exposes the current scene hypothesis without retaining the prior act', () => {
+    const { hypotheses, replaceSceneView } = useScene()
+
+    replaceSceneView(makeSceneView('scene_1972', 'hotspot_1972_shadow_stage'))
+    expect(hypotheses.value.map((hypothesis) => hypothesis.id)).toEqual(['hypothesis_1972_legacy'])
+
+    replaceSceneView(makeSceneView('scene_1990', 'hotspot_1990_train_ticket'))
+    expect(hypotheses.value).toEqual([])
   })
 })

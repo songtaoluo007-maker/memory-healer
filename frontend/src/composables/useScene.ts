@@ -11,6 +11,7 @@ export function useScene() {
   const currentNpcs = computed(() => sceneView.value?.npcs ?? [])
   const sceneFragments = computed(() => sceneView.value?.fragments ?? [])
   const choices = computed(() => sceneView.value?.choices ?? [])
+  const hypotheses = computed(() => sceneView.value?.hypotheses ?? [])
 
   const replaceSceneView = (nextView: SceneView) => {
     sceneView.value = structuredClone(nextView)
@@ -34,6 +35,7 @@ export function useScene() {
     currentNpcs,
     sceneFragments,
     choices,
+    hypotheses,
     narrativeText,
     sceneTransitioning,
     replaceSceneView,

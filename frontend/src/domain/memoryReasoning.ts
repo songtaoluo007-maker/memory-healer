@@ -33,11 +33,16 @@ export function buildReasoningSnapshot(
   fragments: readonly SceneFragment[],
   selectedIds: readonly string[],
   confirmed: boolean,
+  collectedIds?: readonly string[],
 ): ReasoningSnapshot {
   const fragmentById = new Map(fragments.map((fragment) => [fragment.id, fragment]))
+  const authoritativeCollectedIds = new Set(
+    collectedIds ??
+      fragments.filter((fragment) => fragment.is_collected).map((fragment) => fragment.id),
+  )
   const evidence = hypothesis.evidence_ids.map((evidenceId) => {
     const fragment = fragmentById.get(evidenceId)
-    const available = fragment?.is_collected ?? false
+    const available = authoritativeCollectedIds.has(evidenceId)
     return {
       id: evidenceId,
       name: fragment?.name ?? '未识别证据',

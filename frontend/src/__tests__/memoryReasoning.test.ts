@@ -43,9 +43,10 @@ describe('memory reasoning', () => {
   it('keeps only collected configured evidence selectable', () => {
     const snapshot = buildReasoningSnapshot(
       hypothesis,
-      [knife, stage],
+      [{ ...knife, is_collected: false }, stage],
       ['fragment_grandpa_knife', 'fragment_shadow_puppet'],
       false,
+      ['fragment_grandpa_knife'],
     )
 
     expect(snapshot.evidence.map((item) => [item.id, item.available, item.selected])).toEqual([

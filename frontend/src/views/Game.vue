@@ -10,6 +10,7 @@ import { useTypewriter } from '../composables/useTypewriter'
 import { useUiStore, type CinematicOverlay } from '../stores/ui'
 import FragmentArtwork from '../components/FragmentArtwork.vue'
 import { getFragmentPresentation } from '../stage/fragmentPresentation'
+import { isSceneDecisionUnlocked, toggleEvidenceSelection } from '../domain/memoryReasoning'
 import type {
   ChatMessage,
   Choice,
@@ -24,6 +25,9 @@ const SceneIllustration = defineAsyncComponent(() => import('../components/Scene
 const CinematicStage = defineAsyncComponent(() => import('../components/CinematicStage.vue'))
 const NpcAvatar = defineAsyncComponent(() => import('../components/NpcAvatar.vue'))
 const HotspotOverlay = defineAsyncComponent(() => import('../components/HotspotOverlay.vue'))
+const MemoryReasoningPanel = defineAsyncComponent(
+  () => import('../components/MemoryReasoningPanel.vue'),
+)
 const SceneTransition = defineAsyncComponent(() => import('../components/SceneTransition.vue'))
 const ButterflyPanel = defineAsyncComponent(() => import('../components/ButterflyPanel.vue'))
 const StoryLog = defineAsyncComponent(() => import('../components/StoryLog.vue'))
@@ -41,6 +45,7 @@ const {
   loadFromSlot,
   saveToSlot,
   exploreHotspot,
+  confirmHypothesis: confirmMemoryHypothesis,
   submitChoice,
   collectedCount,
   totalFragments,
@@ -51,6 +56,7 @@ const {
   currentNpcs,
   sceneFragments,
   choices,
+  hypotheses,
   narrativeText,
   sceneTransitioning,
   replaceSceneView,
@@ -76,9 +82,28 @@ const popupPresentation = computed(() =>
   popupFragment.value ? getFragmentPresentation(popupFragment.value.id) : null,
 )
 const actionPending = ref(false)
+const scanMode = ref(false)
+const selectedEvidenceIds = ref<string[]>([])
 const mounted = ref(false)
 const endingPending = ref(false)
 const chatPanelRef = ref<{ clearHistory: () => void; chatHistory: ChatMessage[] } | null>(null)
+const activeHypothesis = computed(() => hypotheses.value[0] ?? null)
+const hypothesisConfirmed = computed(() => {
+  if (!activeHypothesis.value || !gameState.value) return false
+  return (
+    gameState.value.confirmed_hypotheses?.[gameState.value.current_scene] ===
+    activeHypothesis.value.id
+  )
+})
+const decisionUnlocked = computed(() =>
+  gameState.value
+    ? isSceneDecisionUnlocked(
+        gameState.value.current_scene,
+        hypotheses.value,
+        gameState.value.confirmed_hypotheses ?? {},
+      )
+    : false,
+)
 
 const autoSave = async () => {
   if (!gameState.value) return
@@ -165,6 +190,12 @@ const handleExplore = async (hotspot: Hotspot) => {
 
     const collectedEvent = result.events.find((event) => event.type === 'fragment.collected')
     if (collectedEvent?.content_id) {
+      if (
+        activeHypothesis.value?.evidence_ids.includes(collectedEvent.content_id) &&
+        !selectedEvidenceIds.value.includes(collectedEvent.content_id)
+      ) {
+        selectedEvidenceIds.value = [...selectedEvidenceIds.value, collectedEvent.content_id]
+      }
       const fragment = fragmentForPopup(collectedEvent.content_id)
       if (fragment) {
         playSFX('fragment_found')
@@ -180,6 +211,34 @@ const handleExplore = async (hotspot: Hotspot) => {
     void autoSave()
   } catch (caught: unknown) {
     narrativeText.value = (caught as Error).message || '这段记忆暂时无法触碰。'
+    typeStart(narrativeText.value)
+  } finally {
+    actionPending.value = false
+  }
+}
+
+const toggleReasoningEvidence = (evidenceId: string) => {
+  if (!activeHypothesis.value || hypothesisConfirmed.value) return
+  const fragment = sceneFragments.value.find((candidate) => candidate.id === evidenceId)
+  if (!fragment?.is_collected) return
+  selectedEvidenceIds.value = toggleEvidenceSelection(
+    selectedEvidenceIds.value,
+    evidenceId,
+    activeHypothesis.value.evidence_ids,
+  )
+}
+
+const handleConfirmHypothesis = async () => {
+  if (!activeHypothesis.value || actionPending.value || hypothesisConfirmed.value) return
+  actionPending.value = true
+  try {
+    await confirmMemoryHypothesis(activeHypothesis.value.id, selectedEvidenceIds.value)
+    playSFX('fragment_found')
+    narrativeText.value = activeHypothesis.value.resolution
+    typeStart(activeHypothesis.value.resolution)
+    void autoSave()
+  } catch (caught: unknown) {
+    narrativeText.value = (caught as Error).message || '这些证据还无法形成可靠的解释。'
     typeStart(narrativeText.value)
   } finally {
     actionPending.value = false
@@ -262,6 +321,8 @@ watch(
   async (nextScene, previousScene) => {
     if (!mounted.value || !nextScene || nextScene === previousScene) return
     closeDialogue()
+    scanMode.value = false
+    selectedEvidenceIds.value = []
     chatPanelRef.value?.clearHistory()
     await loadCurrentScene()
   },
@@ -326,6 +387,7 @@ onMounted(async () => {
         :hotspots="hotspots"
         :explored-ids="exploredIds"
         :scene-id="gameState.current_scene"
+        :scan-mode="scanMode"
         @explore="handleExplore"
       />
     </div>
@@ -392,6 +454,25 @@ onMounted(async () => {
     </aside>
 
     <div
+      v-if="activeHypothesis"
+      class="reasoning-panel-host"
+      :class="{ obscured: selectedNpc || showFragmentPopup }"
+    >
+      <MemoryReasoningPanel
+        :hypothesis="activeHypothesis"
+        :fragments="sceneFragments"
+        :collected-ids="gameState.collected_fragments"
+        :selected-ids="selectedEvidenceIds"
+        :confirmed="hypothesisConfirmed"
+        :pending="actionPending"
+        :scan-mode="scanMode"
+        @toggle-evidence="toggleReasoningEvidence"
+        @confirm="handleConfirmHypothesis"
+        @toggle-scan="scanMode = !scanMode"
+      />
+    </div>
+
+    <div
       v-if="narrativeText"
       class="narrative-float"
       role="complementary"
@@ -438,7 +519,7 @@ onMounted(async () => {
       </button>
     </div>
 
-    <div v-if="choices.length" class="scene-nav" aria-label="剧情选择">
+    <div v-if="choices.length && decisionUnlocked" class="scene-nav" aria-label="剧情选择">
       <span class="choice-kicker">CAUSAL DECISION</span>
       <button
         v-for="(choice, index) in choices"
@@ -451,6 +532,13 @@ onMounted(async () => {
         <span>{{ choice.label }}</span>
         <span aria-hidden="true">→</span>
       </button>
+    </div>
+    <div v-else-if="choices.length" class="scene-nav choice-lock" aria-live="polite">
+      <span class="choice-kicker">CAUSAL DECISION / 尚未开放</span>
+      <div class="choice-lock-plate">
+        <strong>先建立一条能够承担后果的解释</strong>
+        <span>取得并连接本幕证据后，因果选择才会显现。</span>
+      </div>
     </div>
 
     <div
