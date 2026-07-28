@@ -1,5 +1,6 @@
-import { getCurrentInstance, onUnmounted, ref } from 'vue'
-import { getFixedVoiceLine } from '../api'
+import { getCurrentInstance, onUnmounted, ref, watch } from 'vue'
+import { getFixedVoiceLine, requestNpcVoice } from '../api'
+import { type AudioMixer, useAudioMixer } from '../audio/mixer'
 import type { VoiceCue, VoicePlaybackRequest, VoicePriority, VoiceResponse } from '../types/game'
 
 const priorityRank: Record<VoicePriority, number> = {
@@ -14,6 +15,7 @@ type AudioFactory = (url: string) => HTMLAudioElement
 
 interface VoicePlaybackOptions {
   audioFactory?: AudioFactory
+  mixer?: AudioMixer
 }
 
 const defaultAudioFactory: AudioFactory = (url) => new Audio(url)
@@ -29,6 +31,7 @@ const errorFrom = (error: unknown, fallback: string) => {
 
 export function createVoicePlayback(options: VoicePlaybackOptions = {}) {
   const audioFactory = options.audioFactory ?? defaultAudioFactory
+  const mixer = options.mixer ?? useAudioMixer()
   const isSpeaking = ref(false)
   const isPaused = ref(false)
   const currentLineId = ref<string | null>(null)
@@ -42,6 +45,10 @@ export function createVoicePlayback(options: VoicePlaybackOptions = {}) {
   let currentPriority: VoicePriority | null = null
   let gestureRetryConsumed = false
 
+  const applyVoiceVolume = (audio: HTMLAudioElement) => {
+    audio.volume = mixer.effectiveVoiceVolume.value
+  }
+
   const clearCurrent = (preserveLastRequest = true) => {
     const audio = currentAudio
     currentAudio = null
@@ -51,6 +58,7 @@ export function createVoicePlayback(options: VoicePlaybackOptions = {}) {
     currentLineId.value = null
     activeCue.value = null
     waitingForUserGesture.value = false
+    mixer.setVoiceDucking(false)
     if (!preserveLastRequest) lastRequest.value = null
 
     if (audio) {
@@ -67,6 +75,7 @@ export function createVoicePlayback(options: VoicePlaybackOptions = {}) {
   }
 
   const startAudio = async (audio: HTMLAudioElement): Promise<boolean> => {
+    applyVoiceVolume(audio)
     try {
       await audio.play()
       if (audio !== currentAudio) return false
@@ -74,6 +83,7 @@ export function createVoicePlayback(options: VoicePlaybackOptions = {}) {
       isPaused.value = false
       waitingForUserGesture.value = false
       lastError.value = null
+      mixer.setVoiceDucking(true)
       return true
     } catch (error) {
       if (audio !== currentAudio) return false
@@ -104,6 +114,7 @@ export function createVoicePlayback(options: VoicePlaybackOptions = {}) {
 
     const audio = audioFactory(request.url)
     audio.src = request.url
+    applyVoiceVolume(audio)
     currentAudio = audio
     currentPriority = request.priority
     currentLineId.value = request.lineId
@@ -148,6 +159,7 @@ export function createVoicePlayback(options: VoicePlaybackOptions = {}) {
           const audio = audioFactory(data.url)
           audio.src = data.url
           audio.preload = 'auto'
+          applyVoiceVolume(audio)
         }
         return data
       })
@@ -187,6 +199,19 @@ export function createVoicePlayback(options: VoicePlaybackOptions = {}) {
     return startAudio(currentAudio)
   }
 
+  const speak = async (text: string, npcId: string) => {
+    try {
+      const response = await requestNpcVoice(text, npcId, 'neutral', 0.5)
+      return playResponse(response.data, 'dialogue')
+    } catch {
+      return false
+    }
+  }
+
+  watch(mixer.effectiveVoiceVolume, (volume) => {
+    if (currentAudio) currentAudio.volume = volume
+  })
+
   if (getCurrentInstance()) onUnmounted(stop)
 
   return {
@@ -201,9 +226,16 @@ export function createVoicePlayback(options: VoicePlaybackOptions = {}) {
     playResponse,
     preloadFixedLine,
     stop,
+    stopSpeak: stop,
+    skip: stop,
     pause,
     resume,
     replay,
     resumeAfterUserGesture,
+    speak,
   }
+}
+
+export function useVoicePlayback() {
+  return createVoicePlayback()
 }
