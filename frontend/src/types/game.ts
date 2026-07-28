@@ -14,6 +14,8 @@ export interface Scene {
   triggers?: Record<string, string>
   transition_in?: string
   transition_out?: string
+  transition_in_voice_line_id?: string | null
+  transition_out_voice_line_id?: string | null
   fallback_asset: string
 }
 
@@ -92,6 +94,7 @@ export interface NpcSummary {
   title: string
   avatar: string
   initial_trust: number
+  initial_voice_line_id?: string | null
 }
 
 export interface SceneFragment {
@@ -104,6 +107,7 @@ export interface SceneFragment {
   memory_text: string
   is_revealed: boolean
   is_collected: boolean
+  memory_voice_line_id?: string | null
 }
 
 export interface Hotspot {
@@ -141,6 +145,7 @@ export interface Hypothesis {
   statement: string
   evidence_ids: string[]
   resolution: string
+  resolution_voice_line_id?: string | null
 }
 
 export interface SceneView {
@@ -198,6 +203,7 @@ export interface EndingContent {
     min_key_choices: number
     required_npc_trust: Record<string, number>
   }
+  voice_line_id?: string | null
 }
 
 export interface SaveSlot {
@@ -236,6 +242,33 @@ export interface AuthUser {
 }
 
 export type EndingType = 'hope' | 'bittersweet' | 'tragic' | 'legacy'
+
+export type VoiceProvider = 'fixed' | 'cosyvoice' | 'edge' | 'silent'
+export type VoicePriority = 'ending' | 'critical' | 'dialogue' | 'narration' | 'system'
+
+export interface VoiceCue {
+  start_ms: number
+  end_ms: number
+  text: string
+}
+
+export interface VoiceResponse {
+  url: string | null
+  provider: VoiceProvider
+  cached: boolean
+  media_type: string | null
+  duration_ms: number | null
+  line_id: string | null
+  cues: VoiceCue[]
+  degraded: boolean
+}
+
+export interface VoicePlaybackRequest {
+  url: string
+  priority: VoicePriority
+  lineId: string | null
+  cues: VoiceCue[]
+}
 
 // 场景ID类型
 export type SceneId = 'scene_1972' | 'scene_1990' | 'scene_2024' | 'scene_2050' | 'scene_2089'

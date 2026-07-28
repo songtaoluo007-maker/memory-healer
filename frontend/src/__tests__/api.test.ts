@@ -72,7 +72,9 @@ import {
   listSaves,
   deleteSave,
   healthCheck,
+  getFixedVoiceLine,
   recordChoice,
+  requestNpcVoice,
 } from '../api'
 
 describe('API Layer', () => {
@@ -213,5 +215,38 @@ describe('API Layer', () => {
       game_state: gameState,
       expected_revision: 3,
     })
+  })
+
+  it('requests provider-neutral NPC voice', async () => {
+    mockPost.mockResolvedValue({
+      data: {
+        url: '/voice/cache/generated.wav',
+        provider: 'cosyvoice',
+        cached: false,
+        media_type: 'audio/wav',
+        duration_ms: null,
+        line_id: null,
+        cues: [],
+        degraded: false,
+      },
+    })
+
+    const response = await requestNpcVoice('台词', 'chen_shouyi_young', 'warm', 0.4)
+
+    expect(response.data.provider).toBe('cosyvoice')
+    expect(mockPost).toHaveBeenCalledWith('/voice/speak', {
+      text: '台词',
+      npc_id: 'chen_shouyi_young',
+      emotion: 'warm',
+      intensity: 0.4,
+    })
+  })
+
+  it('requests fixed voice lines with an encoded ID', async () => {
+    mockGet.mockResolvedValue({ data: { line_id: 'scene 1972/transition' } })
+
+    await getFixedVoiceLine('scene 1972/transition')
+
+    expect(mockGet).toHaveBeenCalledWith('/voice/lines/scene%201972%2Ftransition')
   })
 })

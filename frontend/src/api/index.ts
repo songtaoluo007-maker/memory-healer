@@ -10,6 +10,7 @@ import type {
   SaveMutationResult,
   SaveSlot,
   SceneView,
+  VoiceResponse,
 } from '../types/game'
 
 const api = axios.create({
@@ -64,6 +65,17 @@ export const recordChoice = (choiceId: string, gameState: GameState, expectedRev
 
 export const chatWithNpc = (data: DialogueRequest) =>
   api.post<DialogueResponse>('/dialogue/chat', data)
+
+export const requestNpcVoice = (text: string, npcId: string, emotion: string, intensity: number) =>
+  api.post<VoiceResponse>('/voice/speak', {
+    text,
+    npc_id: npcId,
+    emotion,
+    intensity,
+  })
+
+export const getFixedVoiceLine = (lineId: string) =>
+  api.get<VoiceResponse>(`/voice/lines/${encodeURIComponent(lineId)}`)
 
 // 存档
 export const saveGame = (
