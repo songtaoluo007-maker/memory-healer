@@ -13,6 +13,7 @@ const apiMocks = vi.hoisted(() => ({
   exploreHotspot: vi.fn(),
   recordChoice: vi.fn(),
   chatWithNpc: vi.fn(),
+  getFixedVoiceLine: vi.fn(),
   getNewGame: vi.fn(),
   loadGame: vi.fn(),
   requestNpcVoice: vi.fn(),
@@ -30,6 +31,7 @@ vi.mock('../composables/useSfxBus', () => ({
 }))
 
 import { StateRevisionError, useGameState } from '../composables/useGameState'
+import { createVoicePlayback } from '../composables/useVoicePlayback'
 import ChatPanel from '../components/ChatPanel.vue'
 
 const makeState = (overrides: Partial<GameState> = {}): GameState => ({
@@ -214,7 +216,7 @@ describe('dynamic NPC voice', () => {
     vi.unstubAllGlobals()
   })
 
-  const mountChat = () => {
+  const mountChat = (voicePlayback?: ReturnType<typeof createVoicePlayback>) => {
     const state = useGameState().gameState
     app = createApp(
       defineComponent({
@@ -226,6 +228,7 @@ describe('dynamic NPC voice', () => {
               },
               selectedNpc,
               gameState: state.value,
+              voicePlayback,
             })
         },
       }),
@@ -353,4 +356,39 @@ describe('dynamic NPC voice', () => {
 
     expect(audio.pause).toHaveBeenCalledOnce()
   })
+
+  it.each(['silent', 'reject'] as const)(
+    'stops older dialogue audio when the new authoritative voice is %s',
+    async (outcome) => {
+      const oldAudio = {
+        addEventListener: vi.fn(),
+        pause: vi.fn(),
+        play: vi.fn().mockResolvedValue(undefined),
+        preload: '',
+        src: '',
+        volume: 1,
+      }
+      vi.stubGlobal('Audio', vi.fn(() => oldAudio))
+      const playback = createVoicePlayback()
+      await playback.play({
+        url: '/voice/runtime/old-reply.mp3',
+        priority: 'dialogue',
+        lineId: null,
+        cues: [],
+      })
+      if (outcome === 'silent') {
+        apiMocks.requestNpcVoice.mockResolvedValue({ data: silentVoice })
+      } else {
+        apiMocks.requestNpcVoice.mockRejectedValue(new Error('voice unavailable'))
+      }
+      mountChat(playback)
+
+      const reply = await submitMessage('这是新的权威文本。')
+      await flushUi()
+
+      expect(host!.textContent).toContain(reply)
+      expect(host!.querySelector<HTMLInputElement>('.chat-input')!.disabled).toBe(false)
+      expect(oldAudio.pause).toHaveBeenCalledOnce()
+    },
+  )
 })

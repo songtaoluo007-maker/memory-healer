@@ -81,7 +81,7 @@ const { playSFX } = useSfxBus()
 const { isMuted, toggleMute } = useAudioMixer()
 const voice = useVoicePlayback()
 const sceneVoice = createSceneVoiceIntegration(voice)
-useVoiceRouteLifecycle(voice)
+useVoiceRouteLifecycle(voice, sceneVoice.cancelPending)
 const { lang, toggleLang } = useI18n()
 const ui = useUiStore()
 const { hotspots, exploredIds, markExplored, explorationProgress } = useHotspots(
@@ -156,20 +156,24 @@ const loadCurrentScene = async () => {
   }
 }
 
-const selectNpc = (npc: NpcSummary) => {
-  if (selectedNpc.value?.id === npc.id) return
-  chatPanelRef.value?.stopVoice()
+const selectNpc = (npc: NpcSummary, playIntro = true) => {
+  if (selectedNpc.value?.id === npc.id && playIntro) return
+  if (chatPanelRef.value) {
+    chatPanelRef.value.stopVoice()
+  } else {
+    sceneVoice.cancelPending()
+  }
   selectedNpc.value = npc
   ui.setStageMode('dialogue')
   playSFX('dialogue_start')
-  void sceneVoice.playNpcIntro(npc)
+  if (playIntro) void sceneVoice.playNpcIntro(npc)
 }
 
 const closeDialogue = () => {
   if (chatPanelRef.value) {
     chatPanelRef.value.stopVoice()
   } else {
-    voice.stop()
+    sceneVoice.cancelPending()
   }
   selectedNpc.value = null
   ui.setStageMode('observe')
@@ -214,6 +218,7 @@ const handleExplore = async (hotspot: Hotspot) => {
     typeStart(hotspot.label)
 
     const collectedEvent = result.events.find((event) => event.type === 'fragment.collected')
+    let collectedFragment: (typeof sceneFragments.value)[number] | null = null
     if (collectedEvent?.content_id) {
       if (
         activeHypothesis.value?.evidence_ids.includes(collectedEvent.content_id) &&
@@ -227,15 +232,21 @@ const handleExplore = async (hotspot: Hotspot) => {
         popupFragment.value = { ...fragment, just_collected: true }
         showFragmentPopup.value = true
         ui.setStageMode('fragment')
-        const canonicalFragment = sceneFragments.value.find(
+        collectedFragment = sceneFragments.value.find(
           (candidate) => candidate.id === fragment.id,
-        )
-        if (canonicalFragment) void sceneVoice.playFragmentMemory(canonicalFragment)
+        ) ?? null
       }
     }
+    let interactionNpc: NpcSummary | null = null
     if (hotspot.npc_id) {
       const npc = currentNpcs.value.find((candidate) => candidate.id === hotspot.npc_id)
-      if (npc) selectNpc(npc)
+      if (npc) {
+        interactionNpc = npc
+        selectNpc(npc, collectedFragment === null)
+      }
+    }
+    if (collectedFragment) {
+      void sceneVoice.playInteractionVoice(collectedFragment, interactionNpc)
     }
     void autoSave()
   } catch (caught: unknown) {
@@ -336,6 +347,7 @@ const onDialogueComplete = (result: DialogueResponse) => {
       just_collected: false,
     }
     showFragmentPopup.value = true
+    void sceneVoice.playDialogueFragment(result.fragment_data)
   }
   void autoSave()
 }
@@ -598,6 +610,7 @@ onMounted(async () => {
           :selected-npc="selectedNpc"
           :game-state="gameState"
           :voice-playback="voice"
+          :voice-coordinator="sceneVoice"
           @dialogue-complete="onDialogueComplete"
         />
       </div>

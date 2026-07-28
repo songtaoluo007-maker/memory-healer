@@ -3,6 +3,10 @@ import { computed, nextTick, onUnmounted, ref } from 'vue'
 import NpcAvatar from './NpcAvatar.vue'
 import { requestNpcVoice } from '../api'
 import { useGameState } from '../composables/useGameState'
+import {
+  createSceneVoiceIntegration,
+  type SceneVoiceIntegration,
+} from '../composables/useScene'
 import { useSfxBus } from '../composables/useSfxBus'
 import { useVoicePlayback } from '../composables/useVoicePlayback'
 import type { ChatMessage, DialogueResponse, GameState, NpcSummary } from '../types/game'
@@ -11,6 +15,7 @@ const props = defineProps<{
   selectedNpc: NpcSummary | null
   gameState: GameState | null
   voicePlayback?: ReturnType<typeof useVoicePlayback>
+  voiceCoordinator?: SceneVoiceIntegration
 }>()
 
 const emit = defineEmits<{
@@ -25,8 +30,8 @@ const statusMessage = ref('')
 
 const { playSFX } = useSfxBus()
 const voice = props.voicePlayback ?? useVoicePlayback()
+const voiceCoordinator = props.voiceCoordinator ?? createSceneVoiceIntegration(voice)
 const { sendDialogue } = useGameState()
-let voiceRequestGeneration = 0
 const chatHistory = computed<ChatMessage[]>(() =>
   (props.gameState?.dialogue_history ?? []).slice(visibleFromIndex.value).map((message) => ({
     role: message.role,
@@ -68,18 +73,15 @@ const sendMessage = async (text?: string) => {
     if (result.degraded) {
       statusMessage.value = '记忆回声暂时不稳定，已切换为角色本地对白。'
     }
+    const dialogueGeneration = voiceCoordinator.beginDialogueVoice()
     emit('dialogueComplete', result)
     scrollToBottom()
-    const requestGeneration = ++voiceRequestGeneration
     void requestNpcVoice(result.reply, npc.id, result.npc_mood, 0.5)
       .then((response) => {
-        if (
-          requestGeneration !== voiceRequestGeneration ||
-          props.selectedNpc?.id !== npc.id
-        ) {
+        if (props.selectedNpc?.id !== npc.id) {
           return false
         }
-        return voice.playResponse(response.data, 'dialogue')
+        return voiceCoordinator.playDialogueResponse(dialogueGeneration, response.data)
       })
       .catch(() => false)
   } catch (caught: unknown) {
@@ -90,8 +92,7 @@ const sendMessage = async (text?: string) => {
 }
 
 function stopVoice() {
-  voiceRequestGeneration += 1
-  voice.stop()
+  voiceCoordinator.cancelPending()
 }
 
 function clearHistory() {

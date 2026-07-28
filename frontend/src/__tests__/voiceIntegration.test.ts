@@ -62,6 +62,20 @@ const knife: SceneFragment = {
   memory_voice_line_id: 'fragment_grandpa_knife.memory',
 }
 
+const shadowStage: SceneFragment = {
+  ...knife,
+  id: 'fragment_shadow_puppet',
+  name: '皮影戏台',
+  memory_voice_line_id: 'fragment_shadow_puppet.memory',
+}
+
+const threeKings: SceneFragment = {
+  ...knife,
+  id: 'fragment_three_kings',
+  name: '三英战吕布',
+  memory_voice_line_id: 'fragment_three_kings.memory',
+}
+
 const hypothesis: Hypothesis = {
   id: 'hypothesis_1972_legacy',
   scene_id: 'scene_1972',
@@ -130,6 +144,55 @@ describe('first-act voice boundaries', () => {
     expect(playback.playResponse).not.toHaveBeenCalled()
   })
 
+  it('invalidates a pending fixed lookup when dialogue closes', async () => {
+    const playback = createPlaybackDouble()
+    let resolveLine!: (value: { data: VoiceResponse }) => void
+    const getFixedLine = vi.fn(
+      () =>
+        new Promise<{ data: VoiceResponse }>((resolve) => {
+          resolveLine = resolve
+        }),
+    )
+    const integration = createSceneVoiceIntegration(playback, getFixedLine)
+
+    const pending = integration.playNpcIntro(chen)
+    integration.cancelPending()
+    resolveLine({ data: fixedResponse('npc.chen_shouyi_young.intro') })
+    await pending
+
+    expect(playback.stop).toHaveBeenCalledOnce()
+    expect(playback.playResponse).not.toHaveBeenCalled()
+  })
+
+  it('invalidates a pending fixed lookup when its route unmounts', async () => {
+    const playback = createPlaybackDouble()
+    let resolveLine!: (value: { data: VoiceResponse }) => void
+    const getFixedLine = vi.fn(
+      () =>
+        new Promise<{ data: VoiceResponse }>((resolve) => {
+          resolveLine = resolve
+        }),
+    )
+    const integration = createSceneVoiceIntegration(playback, getFixedLine)
+    const app = createApp(
+      defineComponent({
+        setup() {
+          useVoiceRouteLifecycle(playback, integration.cancelPending)
+          return () => null
+        },
+      }),
+    )
+    const host = document.createElement('div')
+    app.mount(host)
+    const pending = integration.playNpcIntro(chen)
+
+    app.unmount()
+    resolveLine({ data: fixedResponse('npc.chen_shouyi_young.intro') })
+    await pending
+
+    expect(playback.playResponse).not.toHaveBeenCalled()
+  })
+
   it('discards an older fixed-line lookup after a newer state boundary wins', async () => {
     const playback = createPlaybackDouble()
     const resolvers = new Map<string, (value: { data: VoiceResponse }) => void>()
@@ -159,6 +222,64 @@ describe('first-act voice boundaries', () => {
     )
   })
 
+  it('lets the latest authoritative dynamic reply invalidate a delayed NPC intro', async () => {
+    const playback = createPlaybackDouble()
+    let resolveIntro!: (value: { data: VoiceResponse }) => void
+    const getFixedLine = vi.fn(
+      () =>
+        new Promise<{ data: VoiceResponse }>((resolve) => {
+          resolveIntro = resolve
+        }),
+    )
+    const integration = createSceneVoiceIntegration(playback, getFixedLine)
+    const introPending = integration.playNpcIntro(chen)
+
+    const dialogueEpoch = integration.beginDialogueVoice()
+    await integration.playDialogueResponse(
+      dialogueEpoch,
+      fixedResponse('runtime.dynamic.reply'),
+    )
+    resolveIntro({ data: fixedResponse('npc.chen_shouyi_young.intro') })
+    await introPending
+
+    expect(playback.stop).toHaveBeenCalledOnce()
+    expect(playback.playResponse).toHaveBeenCalledOnce()
+    expect(playback.playResponse).toHaveBeenCalledWith(
+      fixedResponse('runtime.dynamic.reply'),
+      'dialogue',
+    )
+  })
+
+  it.each([shadowStage, threeKings])(
+    'gives $id memory authority over the NPC intro for one fragment-and-NPC interaction',
+    async (fragment) => {
+      const playback = createPlaybackDouble()
+      const getFixedLine = vi.fn(async (lineId: string) => ({ data: fixedResponse(lineId) }))
+      const integration = createSceneVoiceIntegration(playback, getFixedLine)
+
+      await integration.playInteractionVoice(fragment, chen)
+
+      expect(getFixedLine).toHaveBeenCalledOnce()
+      expect(getFixedLine).toHaveBeenCalledWith(fragment.memory_voice_line_id)
+      expect(playback.playResponse).toHaveBeenCalledWith(
+        fixedResponse(fragment.memory_voice_line_id!),
+        'narration',
+      )
+    },
+  )
+
+  it('plays a dialogue-revealed fragment at popup open and deduplicates its line ID', async () => {
+    const playback = createPlaybackDouble()
+    const getFixedLine = vi.fn(async (lineId: string) => ({ data: fixedResponse(lineId) }))
+    const integration = createSceneVoiceIntegration(playback, getFixedLine)
+
+    await integration.playDialogueFragment(threeKings)
+    await integration.playDialogueFragment(threeKings)
+
+    expect(getFixedLine).toHaveBeenCalledOnce()
+    expect(getFixedLine).toHaveBeenCalledWith('fragment_three_kings.memory')
+  })
+
   it('keeps fixed lookup failures silent and excludes dynamic cues from the overlay', async () => {
     const playback = createPlaybackDouble()
     playback.activeCue.value = { start_ms: 0, end_ms: 1000, text: '动态对白' }
@@ -179,7 +300,7 @@ describe('voice route lifecycle', () => {
   })
 
   it.each(['pointerdown', 'keydown'])(
-    'retries a blocked line once after a real %s event and removes listeners',
+    'retries a blocked line once after a %s event and removes listeners',
     async (eventName) => {
       const playback = createPlaybackDouble()
       playback.waitingForUserGesture.value = true
