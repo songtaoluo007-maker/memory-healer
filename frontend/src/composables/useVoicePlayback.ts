@@ -44,6 +44,7 @@ export function createVoicePlayback(options: VoicePlaybackOptions = {}) {
   let currentAudio: HTMLAudioElement | null = null
   let currentPriority: VoicePriority | null = null
   let gestureRetryConsumed = false
+  const duckingOwner = Symbol('voice-playback')
 
   const applyVoiceVolume = (audio: HTMLAudioElement) => {
     audio.volume = mixer.effectiveVoiceVolume.value
@@ -58,7 +59,7 @@ export function createVoicePlayback(options: VoicePlaybackOptions = {}) {
     currentLineId.value = null
     activeCue.value = null
     waitingForUserGesture.value = false
-    mixer.setVoiceDucking(false)
+    mixer.setVoiceDucking(false, duckingOwner)
     if (!preserveLastRequest) lastRequest.value = null
 
     if (audio) {
@@ -83,7 +84,7 @@ export function createVoicePlayback(options: VoicePlaybackOptions = {}) {
       isPaused.value = false
       waitingForUserGesture.value = false
       lastError.value = null
-      mixer.setVoiceDucking(true)
+      mixer.setVoiceDucking(true, duckingOwner)
       return true
     } catch (error) {
       if (audio !== currentAudio) return false

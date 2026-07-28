@@ -15,6 +15,8 @@ export interface AudioStorage {
   setItem(key: string, value: string): void
 }
 
+export type VoiceDuckingOwner = symbol
+
 export interface AudioMixer {
   isMuted: Ref<boolean>
   musicVolume: Ref<number>
@@ -32,7 +34,7 @@ export interface AudioMixer {
   setBgmVolume(volume: number): void
   setSfxVolume(volume: number): void
   setVoiceVolume(volume: number): void
-  setVoiceDucking(active: boolean): void
+  setVoiceDucking(active: boolean, owner?: VoiceDuckingOwner): void
 }
 
 interface AudioMixerOptions {
@@ -90,6 +92,8 @@ export function createAudioMixer(options: AudioMixerOptions = {}): AudioMixer {
   const musicDuckDb = ref(0)
   const ambienceDuckDb = ref(0)
   let restoreDuckingTimer: ReturnType<typeof setTimeout> | null = null
+  const duckingOwners = new Set<VoiceDuckingOwner>()
+  const defaultDuckingOwner = Symbol('default-voice-duck')
 
   const persist = () => {
     if (!storage) return
@@ -120,17 +124,22 @@ export function createAudioMixer(options: AudioMixerOptions = {}): AudioMixer {
   }
 
   const setVolume = (target: Ref<number>, volume: number) => {
+    if (!Number.isFinite(volume)) return
     target.value = clamp(volume)
     persist()
   }
 
-  const setVoiceDucking = (active: boolean) => {
+  const setVoiceDucking = (active: boolean, owner = defaultDuckingOwner) => {
     clearRestoreTimer()
     if (active) {
+      duckingOwners.add(owner)
       musicDuckDb.value = -8
       ambienceDuckDb.value = -3
       return
     }
+
+    duckingOwners.delete(owner)
+    if (duckingOwners.size > 0) return
 
     restoreDuckingTimer = setTimeout(() => {
       musicDuckDb.value = 0
