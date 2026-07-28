@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import subprocess
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
@@ -64,6 +65,7 @@ def make_provider(
         "seed_root": tmp_path,
         "client": httpx.AsyncClient(transport=httpx.MockTransport(handler)),
         "model_revision": "Fun-CosyVoice3-0.5B-2512",
+        "model_commit": "9f9c56f2514700ef79d64fd0afb693e0d672373b",
     }
     options.update(overrides)
     return CosyVoiceHttpProvider(**options)
@@ -75,6 +77,7 @@ def expected_cache_path(tmp_path: Path, request: VoiceSynthesisRequest) -> Path:
         "instruction": request.profile.provider.cosyvoice_instruction,
         "intensity": request.intensity,
         "model_revision": "Fun-CosyVoice3-0.5B-2512",
+        "model_commit": "9f9c56f2514700ef79d64fd0afb693e0d672373b",
         "profile_id": request.profile.id,
         "profile_version": request.profile.version,
         "seed": request.profile.provider.cosyvoice_seed,
@@ -195,6 +198,63 @@ async def test_cosyvoice_provider_rejects_missing_seed(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_cosyvoice_provider_rejects_seed_swapped_to_external_symlink(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seed_root = tmp_path / "seed-root"
+    seed_directory = seed_root / "voice"
+    seed_directory.mkdir(parents=True)
+    seed = seed_directory / "seed.wav"
+    seed.write_bytes(b"RIFFsynthetic")
+    outside_directory = tmp_path / "outside"
+    outside_directory.mkdir()
+    outside = outside_directory / "seed.wav"
+    outside.write_bytes(b"RIFFexternal")
+    requests = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal requests
+        requests += 1
+        return httpx.Response(
+            200,
+            headers={"content-type": "audio/wav"},
+            content=b"RIFFgenerated",
+        )
+
+    provider = make_provider(tmp_path, handler, seed_root=seed_root)
+    original_resolve = provider._resolve_seed
+
+    def swap_after_validation(logical_name: str) -> Path:
+        validated = original_resolve(logical_name)
+        validated.unlink()
+        seed_directory.rmdir()
+        if os.name == "nt":
+            subprocess.run(
+                [
+                    "cmd.exe",
+                    "/c",
+                    "mklink",
+                    "/J",
+                    str(seed_directory),
+                    str(outside_directory),
+                ],
+                check=True,
+                capture_output=True,
+            )
+        else:
+            seed_directory.symlink_to(outside_directory, target_is_directory=True)
+        return seed_directory / validated.name
+
+    monkeypatch.setattr(provider, "_resolve_seed", swap_after_validation)
+
+    with pytest.raises(VoiceProviderError, match="seed root"):
+        await provider.synthesize(make_request(seed_name="voice/seed.wav"))
+
+    assert requests == 0
+
+
+@pytest.mark.asyncio
 async def test_cosyvoice_provider_translates_http_timeout(tmp_path: Path) -> None:
     (tmp_path / "seed.wav").write_bytes(b"RIFFsynthetic")
 
@@ -246,6 +306,39 @@ async def test_identical_requests_use_cache_after_one_http_request(tmp_path: Pat
     assert calls == 1
     assert first.cache_hit is False
     assert second.cache_hit is True
+
+
+@pytest.mark.asyncio
+async def test_different_immutable_model_commits_do_not_share_cache(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "seed.wav").write_bytes(b"RIFFsynthetic")
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(
+            200,
+            headers={"content-type": "audio/wav"},
+            content=b"RIFFgenerated",
+        )
+
+    first_provider = make_provider(tmp_path, handler)
+    second_provider = make_provider(
+        tmp_path,
+        handler,
+        model_commit="0123456789abcdef0123456789abcdef01234567",
+    )
+    request = make_request()
+
+    first = await first_provider.synthesize(request)
+    second = await second_provider.synthesize(request)
+
+    assert calls == 2
+    assert first.url != second.url
+    assert first.cache_hit is False
+    assert second.cache_hit is False
 
 
 @pytest.mark.asyncio

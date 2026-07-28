@@ -57,6 +57,10 @@ class Settings(BaseSettings):
     COSYVOICE_FAILURE_THRESHOLD: int = Field(default=3, ge=1, le=20)
     COSYVOICE_COOLDOWN_SECONDS: float = Field(default=30, ge=1, le=600)
     COSYVOICE_MODEL_REVISION: str = "Fun-CosyVoice3-0.5B-2512"
+    COSYVOICE_MODEL_COMMIT: str = Field(
+        default="9f9c56f2514700ef79d64fd0afb693e0d672373b",
+        pattern=r"^[0-9a-f]{40}$",
+    )
 
     @property
     def cors_origins_list(self) -> List[str]:

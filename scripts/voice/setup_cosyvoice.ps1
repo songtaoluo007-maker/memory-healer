@@ -5,6 +5,7 @@ $CosyVoiceDirectory = Join-Path $RepositoryRoot ".local\cosyvoice"
 $CosyVoiceCommit = "074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc"
 $CosyVoiceRepository = "https://github.com/QwenAudio/CosyVoice.git"
 $ModelId = "FunAudioLLM/Fun-CosyVoice3-0.5B-2512"
+$ModelCommit = "9f9c56f2514700ef79d64fd0afb693e0d672373b"
 $ModelDirectory = Join-Path $CosyVoiceDirectory "pretrained_models\Fun-CosyVoice3-0.5B"
 $VirtualEnvironment = Join-Path $CosyVoiceDirectory ".venv"
 $PythonExecutable = Join-Path $VirtualEnvironment "Scripts\python.exe"
@@ -25,6 +26,7 @@ uv venv --python 3.10 $VirtualEnvironment
 uv pip install --python $PythonExecutable -r (Join-Path $CosyVoiceDirectory "requirements.txt")
 & $ModelScopeExecutable download `
     --model $ModelId `
+    --revision $ModelCommit `
     --local_dir $ModelDirectory
 
 $BridgeApp = Join-Path $RepositoryRoot "tools\cosyvoice_bridge\app.py"

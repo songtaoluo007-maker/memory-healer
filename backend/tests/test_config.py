@@ -76,6 +76,10 @@ def test_voice_settings_have_safe_disabled_defaults() -> None:
     assert settings.COSYVOICE_FAILURE_THRESHOLD == 3
     assert settings.COSYVOICE_COOLDOWN_SECONDS == 30
     assert settings.COSYVOICE_MODEL_REVISION == "Fun-CosyVoice3-0.5B-2512"
+    assert (
+        settings.COSYVOICE_MODEL_COMMIT
+        == "9f9c56f2514700ef79d64fd0afb693e0d672373b"
+    )
 
 
 def test_voice_settings_create_separate_cache_fixed_and_seed_directories(
@@ -102,6 +106,8 @@ def test_voice_settings_create_separate_cache_fixed_and_seed_directories(
         ("COSYVOICE_TOTAL_TIMEOUT_SECONDS", 31),
         ("COSYVOICE_FAILURE_THRESHOLD", 21),
         ("COSYVOICE_COOLDOWN_SECONDS", 0),
+        ("COSYVOICE_MODEL_COMMIT", "main"),
+        ("COSYVOICE_MODEL_COMMIT", "9F9C56F2514700EF79D64FD0AFB693E0D672373B"),
     ],
 )
 def test_voice_settings_reject_unsafe_bounds(field: str, value: object) -> None:

@@ -36,6 +36,7 @@ class CosyVoiceHttpProvider:
         cache_dir: Path,
         seed_root: Path,
         model_revision: str,
+        model_commit: str,
         client: httpx.AsyncClient | None = None,
         connect_timeout_seconds: float = 0.5,
         total_timeout_seconds: float = 2.5,
@@ -48,6 +49,7 @@ class CosyVoiceHttpProvider:
         self.cache_dir = Path(cache_dir)
         self.seed_root = Path(seed_root).resolve()
         self.model_revision = model_revision
+        self.model_commit = model_commit
         self.max_cache_files = max_cache_files
         self.max_cache_bytes = max_cache_bytes
         self._timeout = httpx.Timeout(
@@ -128,6 +130,7 @@ class CosyVoiceHttpProvider:
             "instruction": request.profile.provider.cosyvoice_instruction,
             "seed": request.profile.provider.cosyvoice_seed,
             "model_revision": self.model_revision,
+            "model_commit": self.model_commit,
         }
         serialized = json.dumps(
             payload,
@@ -143,6 +146,7 @@ class CosyVoiceHttpProvider:
         seed_path: Path,
     ) -> bytes:
         async with self._generation_slots:
+            seed_bytes = self._read_seed_bytes(seed_path)
             try:
                 response = await self._client.post(
                     f"{self.base_url}/v1/synthesize",
@@ -154,7 +158,7 @@ class CosyVoiceHttpProvider:
                     files={
                         "prompt_wav": (
                             seed_path.name,
-                            seed_path.read_bytes(),
+                            seed_bytes,
                             "audio/wav",
                         )
                     },
@@ -175,6 +179,80 @@ class CosyVoiceHttpProvider:
         if not response.content:
             raise VoiceProviderError("CosyVoice bridge returned an empty WAV")
         return response.content
+
+    def _read_seed_bytes(self, seed_path: Path) -> bytes:
+        try:
+            relative_path = seed_path.relative_to(self.seed_root)
+        except ValueError as exc:
+            raise VoiceProviderError("CosyVoice seed path escapes the seed root") from exc
+
+        try:
+            if os.name == "nt":
+                with seed_path.open("rb") as seed_file:
+                    final_path = self._windows_final_path(seed_file.fileno())
+                    try:
+                        final_path.relative_to(self.seed_root)
+                    except ValueError as exc:
+                        raise VoiceProviderError(
+                            "CosyVoice seed handle escapes the seed root"
+                        ) from exc
+                    return seed_file.read()
+            return self._read_seed_bytes_posix(relative_path)
+        except VoiceProviderError:
+            raise
+        except OSError as exc:
+            raise VoiceProviderError("Unable to safely read CosyVoice seed") from exc
+
+    def _read_seed_bytes_posix(self, relative_path: Path) -> bytes:
+        directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+        file_flags = os.O_RDONLY | os.O_NOFOLLOW
+        if hasattr(os, "O_CLOEXEC"):
+            directory_flags |= os.O_CLOEXEC
+            file_flags |= os.O_CLOEXEC
+
+        directory_fd = os.open(self.seed_root, directory_flags)
+        try:
+            for part in relative_path.parts[:-1]:
+                next_fd = os.open(part, directory_flags, dir_fd=directory_fd)
+                os.close(directory_fd)
+                directory_fd = next_fd
+            seed_fd = os.open(
+                relative_path.parts[-1],
+                file_flags,
+                dir_fd=directory_fd,
+            )
+            with os.fdopen(seed_fd, "rb") as seed_file:
+                return seed_file.read()
+        finally:
+            os.close(directory_fd)
+
+    @staticmethod
+    def _windows_final_path(file_descriptor: int) -> Path:
+        import ctypes
+        import msvcrt
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        get_final_path = kernel32.GetFinalPathNameByHandleW
+        get_final_path.argtypes = [
+            wintypes.HANDLE,
+            wintypes.LPWSTR,
+            wintypes.DWORD,
+            wintypes.DWORD,
+        ]
+        get_final_path.restype = wintypes.DWORD
+        buffer = ctypes.create_unicode_buffer(32_768)
+        handle = msvcrt.get_osfhandle(file_descriptor)
+        length = get_final_path(handle, buffer, len(buffer), 0)
+        if length == 0 or length >= len(buffer):
+            raise ctypes.WinError(ctypes.get_last_error())
+
+        final_path = buffer.value
+        if final_path.startswith("\\\\?\\UNC\\"):
+            final_path = "\\\\" + final_path[8:]
+        elif final_path.startswith("\\\\?\\"):
+            final_path = final_path[4:]
+        return Path(final_path)
 
     def _write_atomically(self, cache_path: Path, wav_bytes: bytes) -> None:
         temporary_path: Path | None = None
