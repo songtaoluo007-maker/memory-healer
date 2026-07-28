@@ -29,7 +29,10 @@ def main() -> int:
         f"{len(registry.fragments)} fragments, "
         f"{len(registry.hotspots)} hotspots, "
         f"{len(registry.choices)} choices, "
-        f"{len(registry.endings)} endings."
+        f"{len(registry.endings)} endings, "
+        f"{len(registry.voice_profiles)} voice profiles, "
+        f"{len(registry.voice_lines)} voice lines, "
+        f"{len(registry.voice_assets)} voice assets."
     )
     return 0
 

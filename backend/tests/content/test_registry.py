@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import copy
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -19,6 +21,9 @@ DOCUMENT_FILES = {
     "choices": "choices.json",
     "hypotheses": "hypotheses.json",
     "endings": "endings.json",
+    "voice_profiles": "voice_profiles.json",
+    "voice_lines": "voice_lines.json",
+    "voice_assets": "voice_assets.json",
 }
 
 
@@ -44,12 +49,27 @@ def test_shipping_content_counts_and_references() -> None:
     assert len(registry.fragments) == 17
     assert len(registry.hypotheses) == 1
     assert len(registry.endings) == 4
+    assert len(registry.voice_profiles) == 9
+    assert len(registry.voice_lines) == 7
+    assert len(registry.voice_assets) == 0
     assert {
         hotspot.fragment_id
         for hotspot in registry.hotspots.values()
         if hotspot.fragment_id is not None
     } == set(registry.fragments)
     registry.validate()
+
+
+def test_content_validator_reports_voice_registry() -> None:
+    result = subprocess.run(
+        [sys.executable, "scripts/validate_content.py"],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "9 voice profiles, 7 voice lines, 0 voice assets" in result.stdout
 
 
 def test_registry_loads_first_act_hypothesis() -> None:
@@ -62,6 +82,18 @@ def test_registry_loads_first_act_hypothesis() -> None:
         "fragment_grandpa_knife",
         "fragment_shadow_puppet",
     )
+
+
+def test_registry_loads_voice_profiles_and_first_act_lines() -> None:
+    registry = ContentRegistry.load(DATA_DIR)
+
+    assert registry.get_npc("chen_shouyi_young").voice_profile_id == "chen_shouyi.age_25"
+    assert registry.get_npc("xiaoyu").age == 87
+    assert registry.get_npc("xiaoyu").voice_profile_id == "xiaoyu.age_87"
+    assert registry.get_voice_profile("chen_shouyi.age_43").voice_lineage_id == "chen_shouyi"
+    assert registry.get_voice_profile("xiaoyu.age_87").voice_lineage_id == "xiaoyu"
+    assert registry.get_voice_line("hypothesis_1972_legacy.resolution").delivery == "pre_generated"
+    assert registry.get_voice_asset("hypothesis_1972_legacy.resolution") is None
 
 
 def test_duplicate_internal_ids_are_rejected(shipping_documents: dict[str, object]) -> None:
@@ -128,6 +160,76 @@ def test_ending_condition_npcs_must_exist(shipping_documents: dict[str, object])
     endings[0]["conditions"]["required_npc_trust"] = {"missing_npc": 60}
 
     expect_validation_code(documents, "ENDING_NPC_NOT_FOUND")
+
+
+def test_npc_voice_profile_must_exist(shipping_documents: dict[str, object]) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    npcs = documents["npcs"]
+    assert isinstance(npcs, dict)
+    npcs["chen_shouyi_young"]["voice_profile_id"] = "missing.profile"
+
+    expect_validation_code(documents, "NPC_VOICE_PROFILE_NOT_FOUND")
+
+
+def test_duplicate_voice_line_ids_are_rejected(
+    shipping_documents: dict[str, object],
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    lines = documents["voice_lines"]
+    assert isinstance(lines, list)
+    lines.append(copy.deepcopy(lines[0]))
+
+    expect_validation_code(documents, "CONTENT_DUPLICATE_ID")
+
+
+def test_voice_asset_line_must_exist(shipping_documents: dict[str, object]) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    assets = documents["voice_assets"]
+    assert isinstance(assets, list)
+    assets.append(
+        {
+            "id": "missing.line",
+            "filename": "fixed/missing.opus",
+            "media_type": "audio/ogg; codecs=opus",
+            "duration_ms": 1200,
+            "sha256": "0" * 64,
+            "text_sha256": "0" * 64,
+            "integrated_lufs": -18.0,
+            "true_peak_dbfs": -1.0,
+            "generator": "cosyvoice3",
+            "generator_revision": "074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc",
+            "profile_version": 1,
+            "postprocess_version": 1,
+            "cues": [],
+            "approved": True,
+        }
+    )
+
+    expect_validation_code(documents, "VOICE_ASSET_LINE_NOT_FOUND")
+
+
+def test_voice_line_text_must_equal_authoritative_source(
+    shipping_documents: dict[str, object],
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    lines = documents["voice_lines"]
+    assert isinstance(lines, list)
+    line = next(item for item in lines if item["id"] == "scene_1972.transition_in")
+    line["text"] = "漂移后的副本。"
+
+    expect_validation_code(documents, "VOICE_LINE_TEXT_STALE")
+
+
+def test_pre_generated_subtitles_must_reconstruct_line(
+    shipping_documents: dict[str, object],
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    lines = documents["voice_lines"]
+    assert isinstance(lines, list)
+    line = next(item for item in lines if item["id"] == "scene_1972.transition_in")
+    line["subtitle_segments"] = ["不一致的字幕。"]
+
+    expect_validation_code(documents, "VOICE_LINE_SUBTITLE_MISMATCH")
 
 
 def test_unknown_lookup_raises_machine_readable_domain_error() -> None:

@@ -18,6 +18,9 @@ from .models import (
     HypothesisContent,
     NpcContent,
     SceneContent,
+    VoiceAssetContent,
+    VoiceLineContent,
+    VoiceProfileContent,
 )
 
 
@@ -39,6 +42,9 @@ class ContentRegistry:
         choices: Mapping[str, ChoiceContent],
         hypotheses: Mapping[str, HypothesisContent],
         endings: Mapping[str, EndingContent],
+        voice_profiles: Mapping[str, VoiceProfileContent],
+        voice_lines: Mapping[str, VoiceLineContent],
+        voice_assets: Mapping[str, VoiceAssetContent],
     ) -> None:
         self.scenes = MappingProxyType(dict(scenes))
         self.npcs = MappingProxyType(dict(npcs))
@@ -47,6 +53,9 @@ class ContentRegistry:
         self.choices = MappingProxyType(dict(choices))
         self.hypotheses = MappingProxyType(dict(hypotheses))
         self.endings = MappingProxyType(dict(endings))
+        self.voice_profiles = MappingProxyType(dict(voice_profiles))
+        self.voice_lines = MappingProxyType(dict(voice_lines))
+        self.voice_assets = MappingProxyType(dict(voice_assets))
 
     @classmethod
     def load(cls, data_dir: Path) -> "ContentRegistry":
@@ -58,6 +67,9 @@ class ContentRegistry:
             "choices": "choices.json",
             "hypotheses": "hypotheses.json",
             "endings": "endings.json",
+            "voice_profiles": "voice_profiles.json",
+            "voice_lines": "voice_lines.json",
+            "voice_assets": "voice_assets.json",
         }
         try:
             documents = {
@@ -88,6 +100,15 @@ class ContentRegistry:
                 "hypotheses",
             )
             endings = cls._parse_list(documents["endings"], EndingContent, "endings")
+            voice_profiles = cls._parse_list(
+                documents["voice_profiles"], VoiceProfileContent, "voice_profiles"
+            )
+            voice_lines = cls._parse_list(
+                documents["voice_lines"], VoiceLineContent, "voice_lines"
+            )
+            voice_assets = cls._parse_list(
+                documents["voice_assets"], VoiceAssetContent, "voice_assets"
+            )
         except KeyError as exc:
             raise ContentValidationError(
                 "CONTENT_DOCUMENT_MISSING",
@@ -108,6 +129,9 @@ class ContentRegistry:
             choices=choices,
             hypotheses=hypotheses,
             endings=endings,
+            voice_profiles=voice_profiles,
+            voice_lines=voice_lines,
+            voice_assets=voice_assets,
         )
         registry.validate()
         return registry
@@ -233,6 +257,11 @@ class ContentRegistry:
                         "NPC_FRAGMENT_SCENE_MISMATCH",
                         f"NPC {npc.id} 不能揭露其他场景碎片 {fragment_id}",
                     )
+            if npc.voice_profile_id not in self.voice_profiles:
+                self._raise(
+                    "NPC_VOICE_PROFILE_NOT_FOUND",
+                    f"NPC {npc.id} 引用了不存在的声音档案 {npc.voice_profile_id}",
+                )
 
         hotspot_fragments: set[str] = set()
         for hotspot in self.hotspots.values():
@@ -298,7 +327,6 @@ class ContentRegistry:
                         "CHOICE_FRAGMENT_NOT_FOUND",
                         f"选择 {choice.id} 引用了不存在的碎片 {fragment_id}",
                     )
-
         for hypothesis in self.hypotheses.values():
             if hypothesis.scene_id not in self.scenes:
                 self._raise(
@@ -342,6 +370,111 @@ class ContentRegistry:
                         f"结局 {ending.id} 的信任阈值无效",
                     )
 
+        self._validate_voice_content()
+
+    def _validate_voice_content(self) -> None:
+        for line in self.voice_lines.values():
+            if line.speaker_profile not in self.voice_profiles:
+                self._raise(
+                    "VOICE_LINE_PROFILE_NOT_FOUND",
+                    f"语音行 {line.id} 引用了不存在的声音档案 {line.speaker_profile}",
+                )
+            source_text = self._voice_source_text(line.source_ref)
+            if line.text != source_text:
+                self._raise(
+                    "VOICE_LINE_TEXT_STALE",
+                    f"语音行 {line.id} 与规范内容不一致",
+                    line_id=line.id,
+                    source_ref=line.source_ref,
+                )
+            if line.delivery == "pre_generated" and (
+                not line.subtitle_segments
+                or "".join(line.subtitle_segments) != line.text
+            ):
+                self._raise(
+                    "VOICE_LINE_SUBTITLE_MISMATCH",
+                    f"预生成语音行 {line.id} 的字幕不能重建原文",
+                    line_id=line.id,
+                )
+
+        for asset in self.voice_assets.values():
+            if asset.id not in self.voice_lines:
+                self._raise(
+                    "VOICE_ASSET_LINE_NOT_FOUND",
+                    f"语音资产 {asset.id} 引用了不存在的语音行",
+                )
+
+        for scene in self.scenes.values():
+            self._validate_voice_reference(
+                scene.transition_in_voice_line_id,
+                f"scene:{scene.id}.transition_in",
+            )
+            self._validate_voice_reference(
+                scene.transition_out_voice_line_id,
+                f"scene:{scene.id}.transition_out",
+            )
+        for npc in self.npcs.values():
+            self._validate_voice_reference(
+                npc.initial_voice_line_id,
+                f"npc:{npc.id}.fallback_dialogue",
+            )
+        for fragment in self.fragments.values():
+            self._validate_voice_reference(
+                fragment.memory_voice_line_id,
+                f"fragment:{fragment.id}.memory_text",
+            )
+        for hypothesis in self.hypotheses.values():
+            self._validate_voice_reference(
+                hypothesis.resolution_voice_line_id,
+                f"hypothesis:{hypothesis.id}.resolution",
+            )
+        for ending in self.endings.values():
+            self._validate_voice_reference(
+                ending.voice_line_id,
+                f"ending:{ending.id}.description",
+            )
+
+    def _validate_voice_reference(self, line_id: str | None, source_ref: str) -> None:
+        if line_id is None:
+            return
+        line = self.voice_lines.get(line_id)
+        if line is None:
+            self._raise(
+                "VOICE_LINE_NOT_FOUND",
+                f"规范内容引用了不存在的语音行 {line_id}",
+            )
+        if line.source_ref != source_ref:
+            self._raise(
+                "VOICE_LINE_SOURCE_MISMATCH",
+                f"语音行 {line_id} 未引用规范内容 {source_ref}",
+            )
+
+    def _voice_source_text(self, source_ref: str) -> str:
+        try:
+            source_type, source_path = source_ref.split(":", maxsplit=1)
+            source_id, field_name = source_path.rsplit(".", maxsplit=1)
+            sources: Mapping[str, Mapping[str, BaseModel]] = {
+                "scene": self.scenes,
+                "npc": self.npcs,
+                "fragment": self.fragments,
+                "hypothesis": self.hypotheses,
+                "ending": self.endings,
+            }
+            source = sources[source_type][source_id]
+            text = getattr(source, field_name)
+        except (AttributeError, KeyError, ValueError) as exc:
+            self._raise(
+                "VOICE_LINE_SOURCE_NOT_FOUND",
+                f"语音行引用不存在的规范内容 {source_ref}",
+            )
+            raise AssertionError("unreachable") from exc
+        if not isinstance(text, str):
+            self._raise(
+                "VOICE_LINE_SOURCE_INVALID",
+                f"语音行引用的规范内容不是文本 {source_ref}",
+            )
+        return text
+
     def get_scene(self, scene_id: str) -> SceneContent:
         try:
             return self.scenes[scene_id]
@@ -382,3 +515,18 @@ class ContentRegistry:
                 "HYPOTHESIS_INVALID",
                 f"推理命题不存在：{hypothesis_id}",
             ) from exc
+
+    def get_voice_profile(self, profile_id: str) -> VoiceProfileContent:
+        try:
+            return self.voice_profiles[profile_id]
+        except KeyError as exc:
+            raise DomainError("VOICE_PROFILE_NOT_FOUND", f"声音档案不存在：{profile_id}") from exc
+
+    def get_voice_line(self, line_id: str) -> VoiceLineContent:
+        try:
+            return self.voice_lines[line_id]
+        except KeyError as exc:
+            raise DomainError("VOICE_LINE_NOT_FOUND", f"语音行不存在：{line_id}") from exc
+
+    def get_voice_asset(self, line_id: str) -> VoiceAssetContent | None:
+        return self.voice_assets.get(line_id)

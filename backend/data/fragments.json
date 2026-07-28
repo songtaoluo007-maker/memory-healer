@@ -7,6 +7,7 @@
     "unlock_method": "dialogue",
     "unlock_hint": "和陈守义聊聊他最拿手的剧目",
     "memory_text": "陈守义最拿手的是三英战吕布。他说爷爷教他的时候，他才5岁，够不到戏台，要站在板凳上。",
+    "memory_voice_line_id": "fragment_shadow_puppet.memory",
     "collected": false
   },
   "fragment_grandpa_knife": {
@@ -17,6 +18,7 @@
     "unlock_method": "explore",
     "unlock_hint": "仔细看看戏台旁边的工具箱",
     "memory_text": "这把刻刀是爷爷传给陈守义的。爷爷说，皮影匠人的刻刀就像剑客的剑，从不离身。",
+    "memory_voice_line_id": "fragment_grandpa_knife.memory",
     "collected": false
   },
   "fragment_three_kings": {
@@ -27,6 +29,7 @@
     "unlock_method": "trust",
     "unlock_hint": "让陈守义信任你到一定程度",
     "memory_text": "陈守义说，他这辈子最骄傲的事，就是1970年在西安城墙下给300个人演了一场三英战吕布。",
+    "memory_voice_line_id": "fragment_three_kings.memory",
     "collected": false
   },
   "train_ticket_fragment": {

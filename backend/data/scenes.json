@@ -23,6 +23,8 @@
     },
     "transition_in": "记忆修复程序启动……你睁开眼，回到了1972年的西安老巷。",
     "transition_out": "老巷的光影渐渐模糊，陈守义的身影远去。时光开始流转……",
+    "transition_in_voice_line_id": "scene_1972.transition_in",
+    "transition_out_voice_line_id": "scene_1972.transition_out",
     "fallback_asset": "procedural-svg:scene_1972"
   },
   "scene_1990": {
@@ -115,7 +117,7 @@
     "title": "2089年 · 拾忆实验室",
     "time_period": "2089",
     "location": "深圳·拾忆科技记忆修复实验室",
-    "description": "全息投影在空中漂浮，淡蓝色的光粒子缓缓旋转。实验室中央是一张舒适的躺椅，周围环绕着神经接口设备。一个年轻女孩坐在控制台前，眼眶微红，手里攥着一张泛黄的全家福。",
+    "description": "全息投影在空中漂浮，淡蓝色的光粒子缓缓旋转。实验室中央是一张舒适的躺椅，周围环绕着神经接口设备。87岁的小雨坐在控制台前，眼眶微红，手里攥着一张泛黄的全家福。",
     "mood": "bittersweet",
     "bgm": "ambient_future.mp3",
     "npcs": [

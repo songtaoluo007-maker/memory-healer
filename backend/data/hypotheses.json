@@ -8,6 +8,7 @@
       "fragment_grandpa_knife",
       "fragment_shadow_puppet"
     ],
-    "resolution": "两条记忆互相印证。你可以带着这份理解作出选择。"
+    "resolution": "两条记忆互相印证。你可以带着这份理解作出选择。",
+    "resolution_voice_line_id": "hypothesis_1972_legacy.resolution"
   }
 ]
