@@ -65,7 +65,7 @@ class VoiceService:
             monotonic=monotonic,
         )
         self._primary_slots = asyncio.Semaphore(
-            max(1, min(max_primary_concurrency, failure_threshold))
+            max(1, max_primary_concurrency)
         )
 
     async def speak_npc(

@@ -66,6 +66,7 @@ class BlockingSuccessfulProvider:
         self.calls = 0
         self.first_entered = asyncio.Event()
         self.second_entered = asyncio.Event()
+        self.fourth_entered = asyncio.Event()
         self.release = asyncio.Event()
 
     async def synthesize(self, request) -> VoiceSynthesisResult:
@@ -73,6 +74,8 @@ class BlockingSuccessfulProvider:
         self.first_entered.set()
         if self.calls == 2:
             self.second_entered.set()
+        if self.calls == 4:
+            self.fourth_entered.set()
         await self.release.wait()
         return VoiceSynthesisResult(
             url="/voice/cache/generated.wav",
@@ -340,6 +343,40 @@ async def test_voice_service_honors_non_default_primary_concurrency(
 
     assert primary.calls == 3
     assert [result.provider for result in results] == ["cosyvoice"] * 3
+
+
+@pytest.mark.asyncio
+async def test_healthy_primary_concurrency_is_not_capped_by_failure_threshold(
+    registry: ContentRegistry,
+) -> None:
+    primary = BlockingSuccessfulProvider()
+    service = VoiceService(
+        registry,
+        primary=primary,
+        failure_threshold=1,
+        max_primary_concurrency=4,
+    )
+
+    requests = [
+        asyncio.create_task(
+            service.speak_npc(
+                npc_id="chen_shouyi_young",
+                text=f"第 {index} 句。",
+                emotion="neutral",
+                intensity=0.2,
+            )
+        )
+        for index in range(4)
+    ]
+    try:
+        await asyncio.wait_for(primary.fourth_entered.wait(), timeout=0.2)
+    finally:
+        primary.release.set()
+
+    results = await asyncio.gather(*requests)
+
+    assert primary.calls == 4
+    assert [result.provider for result in results] == ["cosyvoice"] * 4
 
 
 @pytest.mark.asyncio
