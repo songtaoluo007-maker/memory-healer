@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from sqlalchemy import create_engine, inspect
 
 from backend import database
-from backend.config import Settings
+from backend.config import ROOT_DIR, Settings
 from backend.main import app
 
 
@@ -58,3 +58,52 @@ def test_application_startup_never_creates_unmigrated_tables(tmp_path, monkeypat
     database.init_db()
 
     assert inspect(empty_engine).get_table_names() == []
+
+
+def test_voice_settings_have_safe_disabled_defaults() -> None:
+    settings = make_settings()
+
+    assert settings.VOICE_PUBLIC_DIR == ROOT_DIR / "data" / "voice_public"
+    assert settings.VOICE_SEED_DIR == ROOT_DIR / "data" / "voice_seeds"
+    assert settings.VOICE_PRIMARY_ENABLED is False
+    assert settings.VOICE_GENERATION_MAX_CONCURRENCY == 1
+    assert settings.VOICE_CACHE_MAX_FILES == 500
+    assert settings.VOICE_CACHE_MAX_BYTES == 2_147_483_648
+    assert settings.COSYVOICE_BASE_URL == "http://127.0.0.1:50000"
+    assert settings.COSYVOICE_BRIDGE_TOKEN == ""
+    assert settings.COSYVOICE_CONNECT_TIMEOUT_SECONDS == 0.5
+    assert settings.COSYVOICE_TOTAL_TIMEOUT_SECONDS == 2.5
+    assert settings.COSYVOICE_FAILURE_THRESHOLD == 3
+    assert settings.COSYVOICE_COOLDOWN_SECONDS == 30
+    assert settings.COSYVOICE_MODEL_REVISION == "Fun-CosyVoice3-0.5B-2512"
+
+
+def test_voice_settings_create_separate_cache_fixed_and_seed_directories(
+    tmp_path,
+) -> None:
+    public_dir = tmp_path / "public"
+    seed_dir = tmp_path / "seeds"
+
+    make_settings(VOICE_PUBLIC_DIR=public_dir, VOICE_SEED_DIR=seed_dir)
+
+    assert (public_dir / "cache").is_dir()
+    assert (public_dir / "fixed").is_dir()
+    assert seed_dir.is_dir()
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("VOICE_GENERATION_MAX_CONCURRENCY", 0),
+        ("VOICE_GENERATION_MAX_CONCURRENCY", 5),
+        ("VOICE_CACHE_MAX_FILES", 0),
+        ("VOICE_CACHE_MAX_BYTES", 1_048_575),
+        ("COSYVOICE_CONNECT_TIMEOUT_SECONDS", 0.09),
+        ("COSYVOICE_TOTAL_TIMEOUT_SECONDS", 31),
+        ("COSYVOICE_FAILURE_THRESHOLD", 21),
+        ("COSYVOICE_COOLDOWN_SECONDS", 0),
+    ],
+)
+def test_voice_settings_reject_unsafe_bounds(field: str, value: object) -> None:
+    with pytest.raises(ValidationError):
+        make_settings(**{field: value})

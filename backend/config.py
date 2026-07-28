@@ -44,6 +44,19 @@ class Settings(BaseSettings):
         ge=1024,
         le=10 * 1024 * 1024 * 1024,
     )
+    VOICE_PUBLIC_DIR: Path = ROOT_DIR / "data" / "voice_public"
+    VOICE_SEED_DIR: Path = ROOT_DIR / "data" / "voice_seeds"
+    VOICE_PRIMARY_ENABLED: bool = False
+    VOICE_GENERATION_MAX_CONCURRENCY: int = Field(default=1, ge=1, le=4)
+    VOICE_CACHE_MAX_FILES: int = Field(default=500, ge=1, le=10000)
+    VOICE_CACHE_MAX_BYTES: int = Field(default=2_147_483_648, ge=1_048_576)
+    COSYVOICE_BASE_URL: str = "http://127.0.0.1:50000"
+    COSYVOICE_BRIDGE_TOKEN: str = ""
+    COSYVOICE_CONNECT_TIMEOUT_SECONDS: float = Field(default=0.5, ge=0.1, le=10)
+    COSYVOICE_TOTAL_TIMEOUT_SECONDS: float = Field(default=2.5, ge=0.5, le=30)
+    COSYVOICE_FAILURE_THRESHOLD: int = Field(default=3, ge=1, le=20)
+    COSYVOICE_COOLDOWN_SECONDS: float = Field(default=30, ge=1, le=600)
+    COSYVOICE_MODEL_REVISION: str = "Fun-CosyVoice3-0.5B-2512"
 
     @property
     def cors_origins_list(self) -> List[str]:
@@ -67,6 +80,13 @@ class Settings(BaseSettings):
             )
         if self.is_production and not self.cors_origins_list:
             raise ValueError("CORS_ORIGINS must be explicit in production")
+        return self
+
+    @model_validator(mode="after")
+    def create_voice_directories(self) -> "Settings":
+        (self.VOICE_PUBLIC_DIR / "cache").mkdir(parents=True, exist_ok=True)
+        (self.VOICE_PUBLIC_DIR / "fixed").mkdir(parents=True, exist_ok=True)
+        self.VOICE_SEED_DIR.mkdir(parents=True, exist_ok=True)
         return self
 
 
