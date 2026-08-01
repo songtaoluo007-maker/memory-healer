@@ -1,5 +1,6 @@
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { getFixedVoiceLine, getSceneView } from '../api'
+import { resolvePresentableConsequence } from '../domain/consequences'
 import type { useVoicePlayback } from './useVoicePlayback'
 import type {
   GameState,
@@ -131,11 +132,8 @@ export function useScene() {
   const choices = computed(() => sceneView.value?.choices ?? [])
   const hypotheses = computed(() => sceneView.value?.hypotheses ?? [])
   const appliedConsequences = computed(() => sceneView.value?.applied_consequences ?? [])
-  const activeConsequence = computed(
-    () =>
-      appliedConsequences.value.find(
-        (consequence) => consequence.target_scene_id === currentScene.value?.id,
-      ) ?? null,
+  const activeConsequence = computed(() =>
+    resolvePresentableConsequence(currentScene.value?.id, ...appliedConsequences.value),
   )
 
   const replaceSceneView = (nextView: SceneView) => {

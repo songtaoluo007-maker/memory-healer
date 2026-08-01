@@ -168,6 +168,26 @@ describe('canonical scene flow', () => {
     expect(scene.activeConsequence.value?.id).toBe('consequence_1972_legacy_carried')
   })
 
+  it('does not activate an unsupported consequence variant for the current scene', () => {
+    const scene = useScene()
+    const view = makeSceneView('scene_1990', 'hotspot_1990_train_ticket')
+    view.applied_consequences = [
+      {
+        id: 'consequence_future_variant',
+        source_choice_id: 'future_choice',
+        target_scene_id: 'scene_1990',
+        variant: 'future_variant',
+        scene_text: '当前客户端尚未支持这条视觉后果。',
+        npc_context: {},
+      },
+    ]
+
+    scene.replaceSceneView(view)
+
+    expect(scene.sceneView.value?.applied_consequences).toHaveLength(1)
+    expect(scene.activeConsequence.value).toBeNull()
+  })
+
   it('clears stale candidate, evidence, and rejection state when the scene view changes', () => {
     const scene = useScene()
     scene.replaceSceneView(makeSceneView('scene_1972', 'hotspot_1972_shadow_stage'))

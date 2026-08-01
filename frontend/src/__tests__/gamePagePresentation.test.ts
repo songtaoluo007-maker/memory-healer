@@ -311,6 +311,68 @@ describe('game page evidence task presentation', () => {
     expect(host.querySelector('.narrative-text')?.textContent).toContain('雨水敲着站台。')
   })
 
+  it('leaves the full base page unchanged for an unsupported consequence variant', async () => {
+    const scene = makeScene()
+    scene.applied_consequences = [
+      {
+        ...makeConsequence('legacy_carried'),
+        variant: 'future_variant',
+        scene_text: '未知后果不应进入当前页面。',
+      },
+    ]
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state: makeState(), scene_view: scene, content_version: 1 },
+    })
+
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    expect(
+      host.querySelector('.cinematic-stage-mock')?.getAttribute('data-consequence-variant'),
+    ).toBeNull()
+    expect(host.querySelector('.causal-echo')).toBeNull()
+    expect(host.textContent).not.toContain('未知后果不应进入当前页面。')
+
+    host.querySelector<HTMLElement>('.narrative-text')?.click()
+    await flushUi()
+    expect(host.querySelector('.narrative-text')?.textContent).toContain('雨水敲着站台。')
+    expect(host.querySelector('.narrative-text')?.textContent).not.toContain(
+      '未知后果不应进入当前页面。',
+    )
+  })
+
+  it('leaves the full base page unchanged when no consequence is present', async () => {
+    const scene = makeScene()
+    scene.applied_consequences = []
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state: makeState(), scene_view: scene, content_version: 1 },
+    })
+
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    expect(
+      host.querySelector('.cinematic-stage-mock')?.getAttribute('data-consequence-variant'),
+    ).toBeNull()
+    expect(host.querySelector('.causal-echo')).toBeNull()
+
+    host.querySelector<HTMLElement>('.narrative-text')?.click()
+    await flushUi()
+    expect(host.querySelector('.narrative-text')?.textContent).toContain('雨水敲着站台。')
+  })
+
   it('keeps a trust-locked hotspot available while showing its canonical hint and NPC task', async () => {
     const state = makeState()
     apiMocks.exploreHotspot.mockResolvedValue({

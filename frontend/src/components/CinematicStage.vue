@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Application, Assets, Container, Graphics, Sprite, type Ticker } from 'pixi.js'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { resolvePresentableConsequence } from '../domain/consequences'
 import { getScenePresentation, resolveCharacterMode } from '../stage/presentation'
 import type { AppliedConsequence } from '../types/game'
 
@@ -21,17 +22,9 @@ const activePortrait = computed(() => {
 const characterTreatment = computed(() =>
   resolveCharacterMode(props.sceneId, props.activeNpcId ?? ''),
 )
-const renderedConsequence = computed(() => {
-  const consequence = props.consequence
-  if (
-    props.sceneId !== 'scene_1990' ||
-    consequence?.target_scene_id !== props.sceneId ||
-    !['legacy_carried', 'legacy_suppressed'].includes(consequence.variant)
-  ) {
-    return null
-  }
-  return consequence
-})
+const renderedConsequence = computed(() =>
+  resolvePresentableConsequence(props.sceneId, props.consequence),
+)
 let app: Application | null = null
 let resizeObserver: ResizeObserver | null = null
 let generation = 0
