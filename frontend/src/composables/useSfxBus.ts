@@ -101,7 +101,10 @@ export function useSfxBus(mixer: AudioMixer = useAudioMixer()) {
     frequencies: number[],
     duration: number,
     type: OscillatorType,
-  ) => frequencies.forEach((frequency) => playTone(audioContext, destination, frequency, duration, type, 0.15))
+  ) =>
+    frequencies.forEach((frequency) =>
+      playTone(audioContext, destination, frequency, duration, type, 0.15),
+    )
 
   const playSFX = (name: string) => {
     if (mixer.isMuted.value) return

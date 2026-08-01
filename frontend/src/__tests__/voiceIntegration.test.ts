@@ -2,10 +2,7 @@
 import { createApp, defineComponent, h, nextTick, ref } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import VoiceSubtitle from '../components/VoiceSubtitle.vue'
-import {
-  createSceneVoiceIntegration,
-  useVoiceRouteLifecycle,
-} from '../composables/useScene'
+import { createSceneVoiceIntegration, useVoiceRouteLifecycle } from '../composables/useScene'
 import Ending from '../views/Ending.vue'
 import type {
   Hypothesis,
@@ -235,10 +232,7 @@ describe('first-act voice boundaries', () => {
     const introPending = integration.playNpcIntro(chen)
 
     const dialogueEpoch = integration.beginDialogueVoice()
-    await integration.playDialogueResponse(
-      dialogueEpoch,
-      fixedResponse('runtime.dynamic.reply'),
-    )
+    await integration.playDialogueResponse(dialogueEpoch, fixedResponse('runtime.dynamic.reply'))
     resolveIntro({ data: fixedResponse('npc.chen_shouyi_young.intro') })
     await introPending
 

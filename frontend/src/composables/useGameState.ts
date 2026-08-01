@@ -102,12 +102,7 @@ export function useGameState() {
     evidenceIds: string[],
   ): Promise<ActionResult> => {
     const state = currentState()
-    const response = await api.confirmHypothesis(
-      hypothesisId,
-      evidenceIds,
-      state,
-      state.revision,
-    )
+    const response = await api.confirmHypothesis(hypothesisId, evidenceIds, state, state.revision)
     return applyActionResult(response.data)
   }
 

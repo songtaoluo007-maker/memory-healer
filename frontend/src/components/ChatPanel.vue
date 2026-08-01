@@ -3,10 +3,7 @@ import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import NpcAvatar from './NpcAvatar.vue'
 import { requestNpcVoice } from '../api'
 import { useGameState } from '../composables/useGameState'
-import {
-  createSceneVoiceIntegration,
-  type SceneVoiceIntegration,
-} from '../composables/useScene'
+import { createSceneVoiceIntegration, type SceneVoiceIntegration } from '../composables/useScene'
 import { useSfxBus } from '../composables/useSfxBus'
 import { useVoicePlayback } from '../composables/useVoicePlayback'
 import type { ChatMessage, DialogueResponse, GameState, NpcSummary } from '../types/game'
@@ -93,8 +90,8 @@ const sendMessage = async (text?: string) => {
     if (props.selectedNpc?.id !== npc.id) return
     const newlyCollected = Boolean(
       result.fragment_revealed &&
-        !collectedBefore.has(result.fragment_revealed) &&
-        result.state.collected_fragments.includes(result.fragment_revealed),
+      !collectedBefore.has(result.fragment_revealed) &&
+      result.state.collected_fragments.includes(result.fragment_revealed),
     )
     const feedback: string[] = []
     if (result.trust_change !== 0) {
@@ -390,7 +387,9 @@ defineExpose({ chatHistory, clearHistory, stopVoice })
   text-align: left;
   background: linear-gradient(90deg, rgba(214, 173, 102, 0.1), rgba(8, 10, 10, 0.74));
   cursor: pointer;
-  font: 500 0.78rem/1.45 'Noto Serif SC', serif;
+  font:
+    500 0.78rem/1.45 'Noto Serif SC',
+    serif;
   letter-spacing: 0.03em;
 }
 
@@ -408,7 +407,9 @@ defineExpose({ chatHistory, clearHistory, stopVoice })
 
 .prompt-fragment {
   color: rgba(214, 173, 102, 0.78);
-  font: 600 0.54rem/1.35 ui-monospace, monospace;
+  font:
+    600 0.54rem/1.35 ui-monospace,
+    monospace;
   letter-spacing: 0.16em;
 }
 

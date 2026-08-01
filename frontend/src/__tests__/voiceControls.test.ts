@@ -75,9 +75,7 @@ const approvedEndingVoice: VoiceResponse = {
 }
 
 const ruleBodies = (source: string, selector: string) =>
-  [...source.matchAll(new RegExp(`\\${selector}\\s*\\{([^}]+)\\}`, 'g'))].map(
-    (match) => match[1]!,
-  )
+  [...source.matchAll(new RegExp(`\\${selector}\\s*\\{([^}]+)\\}`, 'g'))].map((match) => match[1]!)
 
 const cssBlockBody = (source: string, header: string) => {
   const headerStart = source.indexOf(header)
@@ -109,9 +107,7 @@ const hexToRgb = (hex: string) => {
 const relativeLuminance = (rgb: readonly number[]) => {
   const channels = rgb.map((channel) => {
     const normalized = channel / 255
-    return normalized <= 0.04045
-      ? normalized / 12.92
-      : ((normalized + 0.055) / 1.055) ** 2.4
+    return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4
   })
   return 0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!
 }
@@ -287,9 +283,7 @@ describe('VoiceControls', () => {
         .map(Number)
       const panelLeft = (viewportWidth <= 760 ? 0.75 : 0.85) * 16
       const panelWidth =
-        (viewportWidth <= 760
-          ? Math.min(...declaredWidths)
-          : Math.max(...declaredWidths)) * 16
+        (viewportWidth <= 760 ? Math.min(...declaredWidths) : Math.max(...declaredWidths)) * 16
       const panelRight = panelLeft + panelWidth + 2
       const portraitWidth = Math.min(viewportWidth * 0.68, 24 * 16)
       const portraitLeft = viewportWidth + 3.5 * 16 - portraitWidth
@@ -303,7 +297,10 @@ describe('VoiceControls', () => {
   )
 
   it('keeps muted trigger text above 4.5:1 while retaining its border state', () => {
-    const mutedRule = ruleBodies(voiceControlsSource, '.voice-controls.muted .voice-controls-trigger')[0]!
+    const mutedRule = ruleBodies(
+      voiceControlsSource,
+      '.voice-controls.muted .voice-controls-trigger',
+    )[0]!
 
     expect(mutedRule).toContain('color: var(--paper-300)')
     expect(mutedRule).toContain('border-style: dashed')
@@ -402,17 +399,10 @@ describe('Ending voice controls', () => {
 
     expect(host.querySelector('.ending')?.classList.contains('voice-controls-open')).toBe(true)
     expect(host.querySelector('.ending-heading')?.getAttribute('aria-hidden')).toBe('true')
-    expect(window.matchMedia).toHaveBeenCalledWith(
-      '(max-width: 900px), (max-aspect-ratio: 1/1)',
-    )
+    expect(window.matchMedia).toHaveBeenCalledWith('(max-width: 900px), (max-aspect-ratio: 1/1)')
     expect(
-      cssBlockBody(
-        endingSource,
-        '@media (max-width: 900px), (max-aspect-ratio: 1/1)',
-      ),
-    ).toMatch(
-      /\.ending\.voice-controls-open\s+\.ending-heading\s*\{[\s\S]*?visibility:\s*hidden/,
-    )
+      cssBlockBody(endingSource, '@media (max-width: 900px), (max-aspect-ratio: 1/1)'),
+    ).toMatch(/\.ending\.voice-controls-open\s+\.ending-heading\s*\{[\s\S]*?visibility:\s*hidden/)
     app.unmount()
   })
 
@@ -426,9 +416,7 @@ describe('Ending voice controls', () => {
     expect(endingSource).toContain(
       '--ending-story-top: max(18rem, calc(env(safe-area-inset-top) + 15rem));',
     )
-    expect(endingSource).toMatch(
-      /\.ending-story\s*\{[\s\S]*?top:\s*var\(--ending-story-top\)/,
-    )
+    expect(endingSource).toMatch(/\.ending-story\s*\{[\s\S]*?top:\s*var\(--ending-story-top\)/)
     expect(panelBottom).toBeLessThan(storyTop)
   })
 })

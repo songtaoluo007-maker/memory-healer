@@ -60,7 +60,8 @@ const loadPreferences = (storage: AudioStorage | null | undefined): AudioPrefere
     const raw = storage.getItem(AUDIO_STORAGE_KEY)
     if (!raw) return { ...defaults }
     const parsed: unknown = JSON.parse(raw)
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return { ...defaults }
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed))
+      return { ...defaults }
     const value = parsed as Partial<AudioPreferences>
     return {
       muted: typeof value.muted === 'boolean' ? value.muted : defaults.muted,

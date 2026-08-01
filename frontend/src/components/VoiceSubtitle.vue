@@ -7,13 +7,7 @@ defineProps<{
 </script>
 
 <template>
-  <div
-    v-if="cue"
-    class="voice-subtitle"
-    data-voice-subtitle
-    role="status"
-    aria-live="polite"
-  >
+  <div v-if="cue" class="voice-subtitle" data-voice-subtitle role="status" aria-live="polite">
     {{ cue.text }}
   </div>
 </template>

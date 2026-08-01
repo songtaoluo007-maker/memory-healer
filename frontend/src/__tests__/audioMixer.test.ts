@@ -41,7 +41,9 @@ const fakeVoiceAudio = () => {
 }
 
 const installFakeAudioContext = () => {
-  const gains: Array<{ gain: { value: number; linearRampToValueAtTime: ReturnType<typeof vi.fn> } }> = []
+  const gains: Array<{
+    gain: { value: number; linearRampToValueAtTime: ReturnType<typeof vi.fn> }
+  }> = []
 
   class FakeAudioContext {
     currentTime = 0

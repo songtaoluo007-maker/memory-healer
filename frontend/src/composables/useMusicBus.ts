@@ -37,12 +37,16 @@ export function useMusicBus() {
 
   const musicTarget = (sceneId: string) => {
     const config = sceneBgmConfig[sceneId] ?? sceneBgmConfig.scene_1972!
-    return config.volume * mixer.effectiveMusicVolume.value * decibelsToGain(mixer.musicDuckDb.value)
+    return (
+      config.volume * mixer.effectiveMusicVolume.value * decibelsToGain(mixer.musicDuckDb.value)
+    )
   }
 
   const ambienceTarget = (sceneId: string) => {
     const config = ambientConfig[sceneId] ?? ambientConfig.scene_1972!
-    return config.volume * mixer.effectiveMusicVolume.value * decibelsToGain(mixer.ambienceDuckDb.value)
+    return (
+      config.volume * mixer.effectiveMusicVolume.value * decibelsToGain(mixer.ambienceDuckDb.value)
+    )
   }
 
   const ramp = (gain: GainNode, target: number, duration = 0.15) => {
@@ -57,12 +61,7 @@ export function useMusicBus() {
   }
 
   watch(
-    [
-      mixer.effectiveMusicVolume,
-      mixer.musicDuckDb,
-      mixer.ambienceDuckDb,
-      () => currentScene.value,
-    ],
+    [mixer.effectiveMusicVolume, mixer.musicDuckDb, mixer.ambienceDuckDb, () => currentScene.value],
     refreshGains,
   )
 

@@ -339,7 +339,10 @@ describe('dynamic NPC voice', () => {
       src: '',
       volume: 1,
     }
-    vi.stubGlobal('Audio', vi.fn(() => audio))
+    vi.stubGlobal(
+      'Audio',
+      vi.fn(() => audio),
+    )
     apiMocks.requestNpcVoice.mockResolvedValue({
       data: {
         ...silentVoice,
@@ -369,7 +372,10 @@ describe('dynamic NPC voice', () => {
         src: '',
         volume: 1,
       }
-      vi.stubGlobal('Audio', vi.fn(() => oldAudio))
+      vi.stubGlobal(
+        'Audio',
+        vi.fn(() => oldAudio),
+      )
       const playback = createVoicePlayback()
       await playback.play({
         url: '/voice/runtime/old-reply.mp3',
