@@ -1,0 +1,22 @@
+[
+  {
+    "id": "consequence_1972_legacy_carried",
+    "source_choice_id": "encourage_art",
+    "target_scene_id": "scene_1990",
+    "variant": "legacy_carried",
+    "scene_text": "旧木箱在脚边敞开着，那个穿西装的现代皮影清楚可见。陈守义仍记得那句“手艺不该被埋没”，眼里留着试一试的亮光。",
+    "npc_context": {
+      "chen_shouyi_1990": "1972年有人告诉你“手艺不该被埋没”。你让木箱敞开着，穿西装的现代皮影清楚可见，因此更愿意谈一谈手艺的新故事。"
+    }
+  },
+  {
+    "id": "consequence_1972_legacy_suppressed",
+    "source_choice_id": "discourage_art",
+    "target_scene_id": "scene_1990",
+    "variant": "legacy_suppressed",
+    "scene_text": "旧木箱半合着，那个穿西装的现代皮影被压在传统人偶下面。陈守义护着箱扣，起初不愿谈自己的实验。",
+    "npc_context": {
+      "chen_shouyi_1990": "1972年那次劝阻让你把木箱半合起来，穿西装的现代皮影被压在下面；你起初保持戒备，不愿主动谈自己的实验。"
+    }
+  }
+]

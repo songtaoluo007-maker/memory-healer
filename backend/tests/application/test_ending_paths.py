@@ -5,9 +5,11 @@ from pathlib import Path
 
 import pytest
 
+from backend.application.dialogue_service import DialogueService
 from backend.application.game_service import GameService
 from backend.content.registry import ContentRegistry
 from backend.domain.game_state import GameState
+from backend.integrations.deepseek import DialogueSuggestion
 
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
@@ -20,23 +22,45 @@ def build_service() -> GameService:
     )
 
 
+class CanonicalDialogueClient:
+    def suggest(self, _context):
+        return DialogueSuggestion(
+            reply="我愿意讲讲这段记忆。",
+            trust_change=0,
+            npc_mood="warm",
+            fragment_revealed=None,
+            inner_thought="",
+        )
+
+
 def explore_current_scene(
     service: GameService,
     state: GameState,
     *,
     limit: int | None = None,
 ) -> GameState:
-    hotspot_ids = [
-        hotspot.id
-        for hotspot in service.get_scene_view(state).hotspots
+    view = service.get_scene_view(state)
+    fragments = view.fragments[:limit]
+    hotspots = {
+        hotspot.fragment_id: hotspot
+        for hotspot in view.hotspots
         if hotspot.fragment_id is not None
-    ]
-    for hotspot_id in hotspot_ids[:limit]:
-        state = service.explore(
-            state,
-            hotspot_id,
-            expected_revision=state.revision,
-        ).state
+    }
+    dialogue_service = DialogueService(service.registry, CanonicalDialogueClient())
+    for fragment in fragments:
+        if fragment.unlock_method == "dialogue":
+            state = dialogue_service.chat(
+                state,
+                npc_id=fragment.unlock_npc_id,
+                player_input=fragment.dialogue_prompt,
+                expected_revision=state.revision,
+            ).state
+        else:
+            state = service.explore(
+                state,
+                hotspots[fragment.id].id,
+                expected_revision=state.revision,
+            ).state
     return state
 
 
@@ -47,7 +71,11 @@ def confirm_current_scene_hypothesis(
     hypotheses = service.get_scene_view(state).hypotheses
     if not hypotheses:
         return state
-    hypothesis = hypotheses[0]
+    hypothesis_id = {
+        "scene_1972": "hypothesis_1972_legacy",
+        "scene_1990": "hypothesis_1990_modern_story",
+    }[state.current_scene]
+    hypothesis = next(item for item in hypotheses if item.id == hypothesis_id)
     return service.confirm_hypothesis(
         state,
         hypothesis.id,

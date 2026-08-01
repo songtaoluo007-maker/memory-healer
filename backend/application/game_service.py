@@ -9,11 +9,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend.content.models import (
     ChoiceContent,
+    ConsequenceContent,
     EndingContent,
     FragmentCollectedRequirementContent,
+    FragmentContent,
     HotspotContent,
     HypothesisConfirmedRequirementContent,
-    HypothesisContent,
     NpcTrustAtLeastRequirementContent,
     SceneContent,
 )
@@ -43,9 +44,23 @@ class SceneFragmentView(ApplicationModel):
     unlock_method: str
     unlock_hint: str
     memory_text: str
+    unlock_npc_id: str | None = None
+    minimum_trust: int | None = None
+    dialogue_prompt: str | None = None
+    dialogue_trust_reward: int = 0
     is_revealed: bool
     is_collected: bool
     memory_voice_line_id: str | None = None
+
+
+class HypothesisView(ApplicationModel):
+    id: str
+    scene_id: str
+    question: str
+    statement: str
+    evidence_ids: tuple[str, ...]
+    resolution: str
+    resolution_voice_line_id: str | None = None
 
 
 class SceneView(ApplicationModel):
@@ -54,7 +69,8 @@ class SceneView(ApplicationModel):
     fragments: list[SceneFragmentView]
     hotspots: list[HotspotContent]
     choices: list[ChoiceContent]
-    hypotheses: list[HypothesisContent]
+    hypotheses: list[HypothesisView]
+    applied_consequences: list[ConsequenceContent]
     content_version: int = 1
 
 
@@ -108,6 +124,10 @@ class GameService:
                     unlock_method=fragment.unlock_method,
                     unlock_hint=fragment.unlock_hint,
                     memory_text=fragment.memory_text,
+                    unlock_npc_id=fragment.unlock_npc_id,
+                    minimum_trust=fragment.minimum_trust,
+                    dialogue_prompt=fragment.dialogue_prompt,
+                    dialogue_trust_reward=fragment.dialogue_trust_reward,
                     is_revealed=fragment.id in state.revealed_fragments,
                     is_collected=fragment.id in state.collected_fragments,
                     memory_voice_line_id=fragment.memory_voice_line_id,
@@ -126,11 +146,32 @@ class GameService:
                 if choice.scene_id == scene.id
             ],
             hypotheses=[
-                hypothesis
+                HypothesisView(
+                    id=hypothesis.id,
+                    scene_id=hypothesis.scene_id,
+                    question=hypothesis.question,
+                    statement=hypothesis.statement,
+                    evidence_ids=hypothesis.evidence_ids,
+                    resolution=hypothesis.resolution,
+                    resolution_voice_line_id=hypothesis.resolution_voice_line_id,
+                )
                 for hypothesis in self.registry.hypotheses.values()
                 if hypothesis.scene_id == scene.id
             ],
+            applied_consequences=self._applied_consequences(state, scene.id),
         )
+
+    def _applied_consequences(
+        self,
+        state: GameState,
+        scene_id: str,
+    ) -> list[ConsequenceContent]:
+        return [
+            consequence
+            for consequence in self.registry.consequences.values()
+            if consequence.target_scene_id == scene_id
+            and consequence.source_choice_id in state.butterfly_choices.values()
+        ]
 
     @staticmethod
     def _check_revision(state: GameState, expected_revision: int) -> None:
@@ -169,6 +210,15 @@ class GameService:
         if hotspot.fragment_id in state.collected_fragments:
             return ActionResult(state=state.model_copy(deep=True))
 
+        fragment = self.registry.get_fragment(hotspot.fragment_id)
+        if fragment.unlock_method == "dialogue":
+            return self._locked_fragment_result(state, fragment)
+        if (
+            fragment.unlock_method == "trust"
+            and state.npc_trust[fragment.unlock_npc_id] < fragment.minimum_trust
+        ):
+            return self._locked_fragment_result(state, fragment)
+
         payload = state.model_dump(mode="python")
         fragment_id = hotspot.fragment_id
         if fragment_id not in payload["revealed_fragments"]:
@@ -192,6 +242,30 @@ class GameService:
                         "hotspot_id": hotspot.id,
                         "presentation_event": hotspot.presentation_event,
                     },
+                )
+            ],
+        )
+
+    @staticmethod
+    def _locked_fragment_result(
+        state: GameState,
+        fragment: FragmentContent,
+    ) -> ActionResult:
+        event_payload: dict[str, Any] = {
+            "method": fragment.unlock_method,
+            "hint": fragment.unlock_hint,
+            "npc_id": fragment.unlock_npc_id,
+            "prompt": fragment.dialogue_prompt,
+        }
+        if fragment.minimum_trust is not None:
+            event_payload["minimum_trust"] = fragment.minimum_trust
+        return ActionResult(
+            state=state.model_copy(deep=True),
+            events=[
+                PresentationEvent(
+                    type="fragment.locked",
+                    content_id=fragment.id,
+                    payload=event_payload,
                 )
             ],
         )
@@ -240,6 +314,20 @@ class GameService:
                         set(evidence_ids) - set(state.collected_fragments)
                     ),
                 },
+            )
+        if hypothesis.outcome == "rejected":
+            return ActionResult(
+                state=state.model_copy(deep=True),
+                events=[
+                    PresentationEvent(
+                        type="hypothesis.rejected",
+                        content_id=hypothesis.id,
+                        payload={
+                            "feedback": hypothesis.resolution,
+                            "evidence_ids": list(hypothesis.evidence_ids),
+                        },
+                    )
+                ],
             )
         if state.confirmed_hypotheses.get(state.current_scene) == hypothesis.id:
             return ActionResult(state=state.model_copy(deep=True))

@@ -6,6 +6,8 @@
     "description": "一张精致的皮影戏台，白色幕布上还残留着光影的痕迹。台上的皮影人偶栩栩如生——是三英战吕布中的关羽。",
     "unlock_method": "dialogue",
     "unlock_hint": "和陈守义聊聊他最拿手的剧目",
+    "unlock_npc_id": "chen_shouyi_young",
+    "dialogue_prompt": "你最拿手的是哪出皮影戏？",
     "memory_text": "陈守义最拿手的是三英战吕布。他说爷爷教他的时候，他才5岁，够不到戏台，要站在板凳上。",
     "memory_voice_line_id": "fragment_shadow_puppet.memory",
     "collected": false
@@ -28,6 +30,8 @@
     "description": "一段完整的皮影戏表演记忆。幕布上，刘关张三兄弟与吕布激战，锣鼓声声声入耳。",
     "unlock_method": "trust",
     "unlock_hint": "让陈守义信任你到一定程度",
+    "unlock_npc_id": "chen_shouyi_young",
+    "minimum_trust": 30,
     "memory_text": "陈守义说，他这辈子最骄傲的事，就是1970年在西安城墙下给300个人演了一场三英战吕布。",
     "memory_voice_line_id": "fragment_three_kings.memory",
     "collected": false
@@ -49,6 +53,9 @@
     "description": "一个旧木箱，里面整整齐齐码着三十多个皮影人偶。最上面是一个穿西装的现代人——和其他传统皮影格格不入。",
     "unlock_method": "dialogue",
     "unlock_hint": "问问陈守义箱子里装了什么",
+    "unlock_npc_id": "chen_shouyi_1990",
+    "dialogue_prompt": "箱子里为什么有一个穿西装的皮影？",
+    "dialogue_trust_reward": 10,
     "memory_text": "陈守义偷偷刻了那个穿西装的皮影，想看看传统手艺能不能讲现代故事。他说这是他的'实验品'。",
     "collected": false
   },
@@ -66,10 +73,12 @@
     "id": "station_clock_fragment",
     "name": "站台的时钟",
     "scene": "scene_1990",
-    "description": "深圳火车站巨大的圆形时钟，指针指向下午3:47。秒针一格一格跳动，像是在倒数什么。",
-    "unlock_method": "dialogue",
-    "unlock_hint": "和陈守义聊聊他还有多久上车",
-    "memory_text": "陈守义说，火车还有23分钟就到了。他看着时钟，突然说了一句：'时间不等人，手艺也不等人。'",
+    "description": "深圳火车站巨大的圆形时钟，指针停在下午3:47。陈守义站在出站的人潮边，手仍紧紧搭在旧木箱上。",
+    "unlock_method": "trust",
+    "unlock_hint": "让陈守义相信你愿意听完他在3:47作出的决定",
+    "unlock_npc_id": "chen_shouyi_1990",
+    "minimum_trust": 35,
+    "memory_text": "下午3:47，陈守义提起木箱，决定走出深圳火车站。那不是一班尚未到达的未来列车，而是他带着皮影走进新生活的时刻。",
     "collected": false
   },
   "fragment_letter": {
@@ -79,6 +88,8 @@
     "description": "一封被反复展开又折好的信。信纸上是小女孩歪歪扭扭的字迹：「爷爷，我好想你。你什么时候来深圳看我？」",
     "unlock_method": "dialogue",
     "unlock_hint": "问问陈守义桌上的那封信",
+    "unlock_npc_id": "chen_shouyi_old",
+    "dialogue_prompt": "桌上的那封信是谁写的？",
     "memory_text": "小雨6岁那年写了这封信。陈守义收到后，坐了36个小时的绿皮火车去深圳看她。",
     "collected": false
   },
@@ -99,6 +110,8 @@
     "description": "一段模糊的记忆。2019年，陈守义在社区活动中心演了最后一场皮影戏。台下只有3个观众，其中两个在看手机。",
     "unlock_method": "trust",
     "unlock_hint": "让陈守义信任你，他会提起最后的演出",
+    "unlock_npc_id": "chen_shouyi_old",
+    "minimum_trust": 20,
     "memory_text": "演完最后一场，陈守义收起戏台，一个人坐在社区活动中心哭了很久。",
     "collected": false
   },
@@ -119,6 +132,8 @@
     "description": "大剧院走廊的照片墙上，挂着从1972年到2050年的照片：年轻的陈守义在西安演出、中年的他在深圳火车站、老年他在出租屋刻皮影……",
     "unlock_method": "dialogue",
     "unlock_hint": "问问小雨照片墙上有什么故事",
+    "unlock_npc_id": "xiaoyu_2050",
+    "dialogue_prompt": "照片墙上的这些照片有什么故事？",
     "memory_text": "小雨说，这些照片她找了二十年。有些是她翻遍旧箱子找到的，有些是AI修复的。每一张都是爷爷的一段人生。",
     "collected": false
   },
@@ -129,6 +144,8 @@
     "description": "全息投影正在表演三英战吕布——用的是陈守义年轻时的影像数据。光影栩栩如生，仿佛他从未离开过戏台。",
     "unlock_method": "dialogue",
     "unlock_hint": "和小雨聊聊全息皮影戏的技术",
+    "unlock_npc_id": "xiaoyu_2050",
+    "dialogue_prompt": "这场全息皮影是怎么重建的？",
     "memory_text": "小雨用爷爷的记忆数据重建了他年轻时的皮影表演。她说技术不能替代真实记忆，但可以让传承继续。",
     "collected": false
   },
@@ -149,6 +166,8 @@
     "description": "一张泛黄的全家福。照片里，年轻的陈守义抱着一个小女孩，旁边站着他的妻子。小女孩笑得很开心。",
     "unlock_method": "dialogue",
     "unlock_hint": "问问小雨她小时候和爷爷的故事",
+    "unlock_npc_id": "xiaoyu",
+    "dialogue_prompt": "你小时候和爷爷看过什么皮影戏？",
     "memory_text": "小雨说，爷爷以前每年春节都会给她演一场皮影戏。她最喜欢的是西游记里的孙悟空。",
     "collected": false
   },
@@ -169,6 +188,8 @@
     "description": "一个精致的孙悟空皮影人偶，金箍棒上刻着一行小字：「送给小雨，爷爷永远爱你。」",
     "unlock_method": "trust",
     "unlock_hint": "小雨会在完全信任你时提起这个人偶",
+    "unlock_npc_id": "xiaoyu",
+    "minimum_trust": 50,
     "memory_text": "这是陈守义最后一个皮影人偶。他生病前刻的，本来想在小雨生日时送给她。",
     "collected": false
   }

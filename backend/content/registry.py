@@ -13,6 +13,7 @@ from backend.domain.errors import DomainError
 
 from .models import (
     ChoiceContent,
+    ConsequenceContent,
     EndingContent,
     FragmentCollectedRequirementContent,
     FragmentContent,
@@ -51,6 +52,7 @@ class ContentRegistry:
         voice_profiles: Mapping[str, VoiceProfileContent],
         voice_lines: Mapping[str, VoiceLineContent],
         voice_assets: Mapping[str, VoiceAssetContent],
+        consequences: Mapping[str, ConsequenceContent] | None = None,
     ) -> None:
         self.scenes = MappingProxyType(dict(scenes))
         self.npcs = MappingProxyType(dict(npcs))
@@ -58,6 +60,7 @@ class ContentRegistry:
         self.hotspots = MappingProxyType(dict(hotspots))
         self.choices = MappingProxyType(dict(choices))
         self.hypotheses = MappingProxyType(dict(hypotheses))
+        self.consequences = MappingProxyType(dict(consequences or {}))
         self.endings = MappingProxyType(dict(endings))
         self.voice_profiles = MappingProxyType(dict(voice_profiles))
         self.voice_lines = MappingProxyType(dict(voice_lines))
@@ -72,6 +75,7 @@ class ContentRegistry:
             "hotspots": "hotspots.json",
             "choices": "choices.json",
             "hypotheses": "hypotheses.json",
+            "consequences": "consequences.json",
             "endings": "endings.json",
             "voice_profiles": "voice_profiles.json",
             "voice_lines": "voice_lines.json",
@@ -105,6 +109,11 @@ class ContentRegistry:
                 HypothesisContent,
                 "hypotheses",
             )
+            consequences = cls._parse_list(
+                documents.get("consequences", []),
+                ConsequenceContent,
+                "consequences",
+            )
             endings = cls._parse_list(documents["endings"], EndingContent, "endings")
             voice_profiles = cls._parse_list(
                 documents["voice_profiles"], VoiceProfileContent, "voice_profiles"
@@ -134,6 +143,7 @@ class ContentRegistry:
             hotspots=hotspots,
             choices=choices,
             hypotheses=hypotheses,
+            consequences=consequences,
             endings=endings,
             voice_profiles=voice_profiles,
             voice_lines=voice_lines,
@@ -310,6 +320,110 @@ class ContentRegistry:
                 fragment_ids=sorted(missing_hotspots),
             )
 
+        hotspots_by_fragment = {
+            hotspot.fragment_id: hotspot
+            for hotspot in self.hotspots.values()
+            if hotspot.fragment_id is not None
+        }
+        for fragment in self.fragments.values():
+            hotspot = hotspots_by_fragment[fragment.id]
+            if fragment.unlock_method == "dialogue":
+                if fragment.unlock_npc_id is None:
+                    self._raise(
+                        "FRAGMENT_UNLOCK_NPC_REQUIRED",
+                        f"对话碎片 {fragment.id} 缺少解锁 NPC",
+                    )
+                npc = self.npcs.get(fragment.unlock_npc_id)
+                if npc is None:
+                    self._raise(
+                        "FRAGMENT_UNLOCK_NPC_NOT_FOUND",
+                        f"对话碎片 {fragment.id} 的解锁 NPC 不存在",
+                    )
+                if npc.scene != fragment.scene:
+                    self._raise(
+                        "FRAGMENT_UNLOCK_NPC_SCENE_MISMATCH",
+                        f"对话碎片 {fragment.id} 的解锁 NPC 不属于本场景",
+                    )
+                if not fragment.dialogue_prompt or not fragment.dialogue_prompt.strip():
+                    self._raise(
+                        "FRAGMENT_DIALOGUE_PROMPT_REQUIRED",
+                        f"对话碎片 {fragment.id} 缺少规范问题",
+                    )
+                if fragment.minimum_trust is not None:
+                    self._raise(
+                        "FRAGMENT_DIALOGUE_METADATA_INVALID",
+                        f"对话碎片 {fragment.id} 不能配置信任阈值",
+                    )
+            elif fragment.unlock_method == "trust":
+                if fragment.unlock_npc_id is None:
+                    self._raise(
+                        "FRAGMENT_UNLOCK_NPC_REQUIRED",
+                        f"信任碎片 {fragment.id} 缺少解锁 NPC",
+                    )
+                npc = self.npcs.get(fragment.unlock_npc_id)
+                if npc is None:
+                    self._raise(
+                        "FRAGMENT_UNLOCK_NPC_NOT_FOUND",
+                        f"信任碎片 {fragment.id} 的解锁 NPC 不存在",
+                    )
+                if npc.scene != fragment.scene:
+                    self._raise(
+                        "FRAGMENT_UNLOCK_NPC_SCENE_MISMATCH",
+                        f"信任碎片 {fragment.id} 的解锁 NPC 不属于本场景",
+                    )
+                if fragment.minimum_trust is None:
+                    self._raise(
+                        "FRAGMENT_TRUST_THRESHOLD_REQUIRED",
+                        f"信任碎片 {fragment.id} 缺少信任阈值",
+                    )
+                if (
+                    fragment.dialogue_prompt is not None
+                    or fragment.dialogue_trust_reward != 0
+                ):
+                    self._raise(
+                        "FRAGMENT_TRUST_METADATA_FORBIDDEN",
+                        f"信任碎片 {fragment.id} 不能配置对话专用字段",
+                    )
+            elif any(
+                value is not None
+                for value in (
+                    fragment.unlock_npc_id,
+                    fragment.minimum_trust,
+                    fragment.dialogue_prompt,
+                )
+            ) or fragment.dialogue_trust_reward != 0:
+                self._raise(
+                    "FRAGMENT_EXPLORE_METADATA_FORBIDDEN",
+                    f"探索碎片 {fragment.id} 不能配置其他解锁字段",
+                )
+
+            if fragment.unlock_method in {"dialogue", "trust"}:
+                if hotspot.npc_id != fragment.unlock_npc_id:
+                    self._raise(
+                        "FRAGMENT_HOTSPOT_NPC_MISMATCH",
+                        f"碎片 {fragment.id} 的热区 NPC 与解锁 NPC 不一致",
+                    )
+                npc = self.npcs[fragment.unlock_npc_id]
+                if fragment.id not in npc.fragments_to_reveal:
+                    self._raise(
+                        "NPC_FRAGMENT_UNLOCK_MISMATCH",
+                        f"NPC {npc.id} 未声明其负责解锁的碎片 {fragment.id}",
+                    )
+            elif hotspot.npc_id is not None:
+                self._raise(
+                    "FRAGMENT_HOTSPOT_NPC_MISMATCH",
+                    f"探索碎片 {fragment.id} 的热区不能绑定 NPC",
+                )
+
+        for npc in self.npcs.values():
+            for fragment_id in npc.fragments_to_reveal:
+                fragment = self.fragments[fragment_id]
+                if fragment.unlock_npc_id != npc.id:
+                    self._raise(
+                        "NPC_FRAGMENT_UNLOCK_MISMATCH",
+                        f"NPC {npc.id} 不能解锁碎片 {fragment.id}",
+                    )
+
         for choice in self.choices.values():
             if choice.scene_id not in self.scenes:
                 self._raise(
@@ -386,6 +500,36 @@ class ContentRegistry:
                     self._raise(
                         "HYPOTHESIS_FRAGMENT_SCENE_MISMATCH",
                         f"推理命题 {hypothesis.id} 引用了其他场景碎片 {fragment_id}",
+                    )
+
+        for consequence in self.consequences.values():
+            choice = self.choices.get(consequence.source_choice_id)
+            if choice is None:
+                self._raise(
+                    "CONSEQUENCE_CHOICE_NOT_FOUND",
+                    f"后果 {consequence.id} 的来源选择不存在",
+                )
+            if consequence.target_scene_id not in self.scenes:
+                self._raise(
+                    "CONSEQUENCE_SCENE_NOT_FOUND",
+                    f"后果 {consequence.id} 的目标场景不存在",
+                )
+            if choice.target_scene != consequence.target_scene_id:
+                self._raise(
+                    "CONSEQUENCE_CHOICE_TARGET_MISMATCH",
+                    f"后果 {consequence.id} 的目标场景与来源选择不一致",
+                )
+            for npc_id in consequence.npc_context:
+                npc = self.npcs.get(npc_id)
+                if npc is None:
+                    self._raise(
+                        "CONSEQUENCE_NPC_NOT_FOUND",
+                        f"后果 {consequence.id} 引用了不存在的 NPC {npc_id}",
+                    )
+                if npc.scene != consequence.target_scene_id:
+                    self._raise(
+                        "CONSEQUENCE_NPC_SCENE_MISMATCH",
+                        f"后果 {consequence.id} 的 NPC 不属于目标场景",
                     )
 
         key_choice_count = sum(choice.is_key for choice in self.choices.values())
@@ -584,6 +728,15 @@ class ContentRegistry:
             raise DomainError(
                 "HYPOTHESIS_INVALID",
                 f"推理命题不存在：{hypothesis_id}",
+            ) from exc
+
+    def get_consequence(self, consequence_id: str) -> ConsequenceContent:
+        try:
+            return self.consequences[consequence_id]
+        except KeyError as exc:
+            raise DomainError(
+                "CONSEQUENCE_NOT_FOUND",
+                f"场景后果不存在：{consequence_id}",
             ) from exc
 
     def get_voice_profile(self, profile_id: str) -> VoiceProfileContent:

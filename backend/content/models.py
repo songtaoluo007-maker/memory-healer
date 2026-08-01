@@ -118,6 +118,10 @@ class FragmentContent(ContentModel):
     unlock_method: Literal["dialogue", "explore", "trust"]
     unlock_hint: str
     memory_text: str
+    unlock_npc_id: str | None = None
+    minimum_trust: int | None = Field(default=None, ge=0, le=100)
+    dialogue_prompt: str | None = None
+    dialogue_trust_reward: int = Field(default=0, ge=0, le=20)
     memory_voice_line_id: str | None = None
     collected: bool = False
 
@@ -183,6 +187,16 @@ class HypothesisContent(ContentModel):
     evidence_ids: tuple[str, ...] = Field(min_length=2)
     resolution: str = Field(min_length=1, max_length=200)
     resolution_voice_line_id: str | None = None
+    outcome: Literal["confirmed", "rejected"] = "confirmed"
+
+
+class ConsequenceContent(ContentModel):
+    id: str
+    source_choice_id: str
+    target_scene_id: str
+    variant: str
+    scene_text: str
+    npc_context: dict[str, str]
 
 
 class EndingConditions(ContentModel):

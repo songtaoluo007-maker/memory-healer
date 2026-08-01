@@ -96,7 +96,8 @@ def test_shipping_content_counts_and_references() -> None:
     assert len(registry.scenes) == 5
     assert len(registry.npcs) == 7
     assert len(registry.fragments) == 17
-    assert len(registry.hypotheses) == 1
+    assert len(registry.hypotheses) == 3
+    assert len(registry.consequences) == 2
     assert len(registry.endings) == 4
     assert len(registry.voice_profiles) == 9
     assert len(registry.voice_lines) == 7
@@ -107,6 +108,178 @@ def test_shipping_content_counts_and_references() -> None:
         if hotspot.fragment_id is not None
     } == set(registry.fragments)
     registry.validate()
+
+
+def test_shipping_fragment_unlock_metadata_is_globally_authoritative() -> None:
+    registry = ContentRegistry.load(DATA_DIR)
+
+    for fragment in registry.fragments.values():
+        hotspot = next(
+            item
+            for item in registry.hotspots.values()
+            if item.fragment_id == fragment.id
+        )
+        if fragment.unlock_method == "dialogue":
+            assert fragment.unlock_npc_id is not None
+            assert fragment.dialogue_prompt is not None
+            assert fragment.dialogue_prompt.strip()
+            assert fragment.minimum_trust is None
+            assert hotspot.npc_id == fragment.unlock_npc_id
+        elif fragment.unlock_method == "trust":
+            assert fragment.unlock_npc_id is not None
+            assert fragment.minimum_trust is not None
+            assert fragment.dialogue_prompt is None
+            assert fragment.dialogue_trust_reward == 0
+            assert hotspot.npc_id == fragment.unlock_npc_id
+        else:
+            assert fragment.unlock_npc_id is None
+            assert fragment.minimum_trust is None
+            assert fragment.dialogue_prompt is None
+            assert fragment.dialogue_trust_reward == 0
+
+
+def test_shipping_1990_reasoning_and_consequences_match_the_story_contract() -> None:
+    registry = ContentRegistry.load(DATA_DIR)
+
+    hypotheses = [
+        item
+        for item in registry.hypotheses.values()
+        if item.scene_id == "scene_1990"
+    ]
+    assert [item.id for item in hypotheses] == [
+        "hypothesis_1990_survival",
+        "hypothesis_1990_modern_story",
+    ]
+    assert hypotheses[0].outcome == "rejected"
+    assert hypotheses[0].evidence_ids == (
+        "train_ticket_fragment",
+        "farewell_letter_fragment",
+    )
+    assert hypotheses[1].outcome == "confirmed"
+    assert hypotheses[1].evidence_ids == (
+        "puppet_trunk_fragment",
+        "station_clock_fragment",
+    )
+    assert [item.variant for item in registry.consequences.values()] == [
+        "legacy_carried",
+        "legacy_suppressed",
+    ]
+
+
+def test_2050_xiaoyu_does_not_claim_to_personally_remember_1972() -> None:
+    registry = ContentRegistry.load(DATA_DIR)
+
+    prompt = registry.get_npc("xiaoyu_2050").system_prompt
+
+    assert "回忆1972年爷爷教你" not in prompt
+    assert "照片" in prompt
+    assert "爷爷口述" in prompt
+
+
+@pytest.mark.parametrize(
+    ("fragment_id", "mutation", "code"),
+    [
+        (
+            "puppet_trunk_fragment",
+            {"dialogue_prompt": None},
+            "FRAGMENT_DIALOGUE_PROMPT_REQUIRED",
+        ),
+        (
+            "station_clock_fragment",
+            {"minimum_trust": None},
+            "FRAGMENT_TRUST_THRESHOLD_REQUIRED",
+        ),
+        (
+            "train_ticket_fragment",
+            {"dialogue_prompt": "不应存在的提示"},
+            "FRAGMENT_EXPLORE_METADATA_FORBIDDEN",
+        ),
+        (
+            "puppet_trunk_fragment",
+            {"unlock_npc_id": "xiaoyu"},
+            "FRAGMENT_UNLOCK_NPC_SCENE_MISMATCH",
+        ),
+        (
+            "puppet_trunk_fragment",
+            {"unlock_npc_id": "stranger_1990"},
+            "FRAGMENT_HOTSPOT_NPC_MISMATCH",
+        ),
+    ],
+)
+def test_fragment_unlock_contract_rejects_invalid_metadata(
+    shipping_documents: dict[str, object],
+    fragment_id: str,
+    mutation: dict[str, object],
+    code: str,
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    fragments = documents["fragments"]
+    assert isinstance(fragments, dict)
+    fragments[fragment_id].update(mutation)
+
+    expect_validation_code(documents, code)
+
+
+def test_npc_fragment_list_must_agree_with_fragment_unlock_owner(
+    shipping_documents: dict[str, object],
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    npcs = documents["npcs"]
+    assert isinstance(npcs, dict)
+    npcs["chen_shouyi_1990"]["fragments_to_reveal"].remove(
+        "puppet_trunk_fragment"
+    )
+
+    expect_validation_code(documents, "NPC_FRAGMENT_UNLOCK_MISMATCH")
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "code"),
+    [
+        ("source_choice_id", "choice_missing", "CONSEQUENCE_CHOICE_NOT_FOUND"),
+        ("target_scene_id", "scene_missing", "CONSEQUENCE_SCENE_NOT_FOUND"),
+    ],
+)
+def test_consequence_choice_and_scene_references_must_exist(
+    shipping_documents: dict[str, object],
+    field: str,
+    value: str,
+    code: str,
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    documents["consequences"] = [
+        {
+            "id": "consequence_test",
+            "source_choice_id": "encourage_art",
+            "target_scene_id": "scene_1990",
+            "variant": "test",
+            "scene_text": "测试后果。",
+            "npc_context": {"chen_shouyi_1990": "测试上下文。"},
+        }
+    ]
+    consequences = documents["consequences"]
+    assert isinstance(consequences, list)
+    consequences[0][field] = value
+
+    expect_validation_code(documents, code)
+
+
+def test_consequence_npc_must_belong_to_target_scene(
+    shipping_documents: dict[str, object],
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    documents["consequences"] = [
+        {
+            "id": "consequence_test",
+            "source_choice_id": "encourage_art",
+            "target_scene_id": "scene_1990",
+            "variant": "test",
+            "scene_text": "测试后果。",
+            "npc_context": {"xiaoyu": "错误场景的上下文。"},
+        }
+    ]
+
+    expect_validation_code(documents, "CONSEQUENCE_NPC_SCENE_MISMATCH")
 
 
 def test_content_validator_reports_voice_registry() -> None:

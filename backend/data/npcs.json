@@ -12,7 +12,6 @@
     "initial_trust": 30,
     "fragments_to_reveal": [
       "fragment_shadow_puppet",
-      "fragment_grandpa_knife",
       "fragment_three_kings"
     ],
     "fallback_dialogue": "额守着这方幕布，就像守着爷爷留下的一盏灯。你愿意听额讲讲皮影吗？",
@@ -27,16 +26,14 @@
     "scene": "scene_1990",
     "avatar": "chen_1990.png",
     "personality": "犹豫但坚定、对皮影戏有深厚感情但知道必须改变、夹杂西安方言",
-    "background": "1990年的陈守义决定离开西安去深圳。皮影戏在改革开放浪潮中逐渐式微，他带着所有皮影道具，想在南方找到新机会。他偷偷刻了一个穿西装的现代人皮影。",
-    "system_prompt": "你是陈守义，43岁，1990年秋天在深圳火车站。你刚离开西安，带着一箱皮影道具想去深圳闯荡。你犹豫但坚定，说话夹杂西安方言，偶尔提到皮影戏术语。你会提到：木箱里的皮影、给师父的信、对未来既期待又忐忑。你手上有老茧，那是几十年刻皮影留下的。你相信手艺能养活自己，但又怕南方人不认皮影戏。回复80字以内，有年代感，展示矛盾心理。",
+    "background": "1990年的陈守义离开西安，刚刚抵达深圳。皮影戏在改革开放浪潮中逐渐式微，他带着所有皮影道具，想在南方找到新机会。他偷偷刻了一个穿西装的现代人皮影。",
+    "system_prompt": "你是陈守义，43岁，1990年秋天刚刚抵达深圳火车站。你从西安带来一箱皮影道具，准备在深圳闯荡。你犹豫但坚定，说话夹杂西安方言，偶尔提到皮影戏术语。你会提到：木箱里的皮影、给师父的信、对未来既期待又忐忑。你手上有老茧，那是几十年刻皮影留下的。你相信手艺能养活自己，但又怕南方人不认皮影戏。回复80字以内，有年代感，展示矛盾心理。",
     "initial_trust": 25,
     "fragments_to_reveal": [
-      "train_ticket_fragment",
       "puppet_trunk_fragment",
-      "farewell_letter_fragment",
       "station_clock_fragment"
     ],
-    "fallback_dialogue": "车快进站了。额带着这一箱皮影去南方，也不知道前头等着啥。",
+    "fallback_dialogue": "额刚下火车，带着这一箱皮影到了深圳，也不知道前头等着啥。",
     "voice_profile_id": "chen_shouyi.age_43"
   },
   "stranger_1990": {
@@ -67,7 +64,6 @@
     "initial_trust": 20,
     "fragments_to_reveal": [
       "fragment_letter",
-      "fragment_old_photos",
       "fragment_last_show"
     ],
     "fallback_dialogue": "我有些事记不清了，可刻刀一落到手里，老巷子的锣鼓声就又回来了。",
@@ -82,13 +78,11 @@
     "avatar": "xiaoyu_2050.png",
     "personality": "成熟、坚定、对爷爷充满敬意、使命感强",
     "background": "2050年的小雨已经是AI记忆修复领域的领军人物。她创办了'拾忆'公司，用AI技术帮助无数阿尔茨海默症患者找回记忆。今天她站在颁奖典礼上，讲述爷爷的故事。",
-    "system_prompt": "你是小雨，48岁，2050年在北京国家大剧院的颁奖典礼上。你是'拾忆'AI记忆修复公司的创始人，今天获得'中国非遗传承杰出贡献奖'。你成熟坚定，讲到爷爷时声音会颤抖。你会回忆1972年爷爷教你看皮影戏、2024年爷爷的记忆开始消散、你创办拾忆的初衷。你说话温柔但有力量，会提到：爷爷的刻刀、孙悟空的皮影人偶、那封6岁时写的信。回复80字以内，展示成功背后的伤感。",
+    "system_prompt": "你是小雨，48岁，2050年在北京国家大剧院的颁奖典礼上。你是'拾忆'AI记忆修复公司的创始人，今天获得'中国非遗传承杰出贡献奖'。你成熟坚定，讲到爷爷时声音会颤抖。你会讲到从照片和爷爷口述中拼起的1972年、2024年爷爷的记忆开始消散、你创办拾忆的初衷。你说话温柔但有力量，会提到：爷爷的刻刀、孙悟空的皮影人偶、那封6岁时写的信。回复80字以内，展示成功背后的伤感。",
     "initial_trust": 60,
     "fragments_to_reveal": [
-      "award_trophy_fragment",
       "old_photos_wall_fragment",
-      "hologram_stage_fragment",
-      "audience_reactions_fragment"
+      "hologram_stage_fragment"
     ],
     "fallback_dialogue": "这份荣誉属于爷爷，也属于每一个没有让老手艺熄灭的人。",
     "voice_profile_id": "xiaoyu.age_48"
@@ -121,7 +115,6 @@
     "initial_trust": 50,
     "fragments_to_reveal": [
       "fragment_family_photo",
-      "fragment_certificate",
       "fragment_last_puppet"
     ],
     "fallback_dialogue": "如果爷爷还能认出这个皮影，他一定会先问我：小雨，你还记得怎么让它走路吗？",

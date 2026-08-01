@@ -7,10 +7,12 @@ from pathlib import Path
 
 import pytest
 
+from backend.application.dialogue_service import DialogueService
 from backend.application.game_service import GameService
 from backend.content.registry import ContentRegistry
 from backend.domain.errors import DomainError
 from backend.domain.game_state import GameState
+from backend.integrations.deepseek import DialogueSuggestion
 
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
@@ -29,14 +31,55 @@ def service(registry: ContentRegistry) -> GameService:
     )
 
 
+class CanonicalDialogueClient:
+    def suggest(self, _context):
+        return DialogueSuggestion(
+            reply="额最拿手的是三英战吕布。",
+            trust_change=0,
+            npc_mood="warm",
+            fragment_revealed="fragment_shadow_puppet",
+            inner_thought="",
+        )
+
+
 def collect_first_act_evidence(service: GameService, state: GameState) -> GameState:
-    for hotspot_id in ("hotspot_1972_knife", "hotspot_1972_shadow_stage"):
-        state = service.explore(
-            state,
-            hotspot_id,
-            expected_revision=state.revision,
-        ).state
+    state = service.explore(
+        state,
+        "hotspot_1972_knife",
+        expected_revision=state.revision,
+    ).state
+    state = DialogueService(service.registry, CanonicalDialogueClient()).chat(
+        state,
+        npc_id="chen_shouyi_young",
+        player_input="你最拿手的是哪出皮影戏？",
+        expected_revision=state.revision,
+    ).state
     return state
+
+
+def advance_to_1990(
+    service: GameService,
+    *,
+    choice_id: str = "encourage_art",
+) -> GameState:
+    state = collect_first_act_evidence(service, service.create_game())
+    state = service.confirm_hypothesis(
+        state,
+        "hypothesis_1972_legacy",
+        ["fragment_grandpa_knife", "fragment_shadow_puppet"],
+        expected_revision=state.revision,
+    ).state
+    return service.record_choice(
+        state,
+        choice_id,
+        expected_revision=state.revision,
+    ).state
+
+
+def with_npc_trust(state: GameState, npc_id: str, trust: int) -> GameState:
+    payload = state.model_dump(mode="python")
+    payload["npc_trust"][npc_id] = trust
+    return GameState.model_validate(payload)
 
 
 def load_shipping_documents() -> dict[str, object]:
@@ -290,6 +333,29 @@ def test_scene_view_exposes_first_act_voice_references(service: GameService) -> 
     )
 
 
+def test_1990_scene_exposes_two_public_hypotheses_without_server_outcomes(
+    service: GameService,
+) -> None:
+    view = service.get_scene_view(advance_to_1990(service))
+
+    assert [item.id for item in view.hypotheses] == [
+        "hypothesis_1990_survival",
+        "hypothesis_1990_modern_story",
+    ]
+    assert all("outcome" not in item.model_dump() for item in view.hypotheses)
+    trunk = next(
+        item for item in view.fragments if item.id == "puppet_trunk_fragment"
+    )
+    assert trunk.unlock_npc_id == "chen_shouyi_1990"
+    assert trunk.dialogue_prompt == "箱子里为什么有一个穿西装的皮影？"
+    assert trunk.dialogue_trust_reward == 10
+    clock = next(
+        item for item in view.fragments if item.id == "station_clock_fragment"
+    )
+    assert clock.unlock_npc_id == "chen_shouyi_1990"
+    assert clock.minimum_trust == 35
+
+
 def test_explore_rejects_hotspot_from_another_scene(service: GameService) -> None:
     state = service.create_game()
 
@@ -356,6 +422,62 @@ def test_repeated_exploration_is_idempotent(service: GameService) -> None:
     assert second.events == []
 
 
+def test_clicking_unrevealed_dialogue_fragment_returns_locked_unchanged_state(
+    service: GameService,
+) -> None:
+    state = advance_to_1990(service)
+
+    result = service.explore(
+        state,
+        "hotspot_1990_puppet_trunk",
+        expected_revision=state.revision,
+    )
+
+    assert result.state == state
+    assert result.events[0].type == "fragment.locked"
+    assert result.events[0].content_id == "puppet_trunk_fragment"
+    assert result.events[0].payload == {
+        "method": "dialogue",
+        "hint": "问问陈守义箱子里装了什么",
+        "npc_id": "chen_shouyi_1990",
+        "prompt": "箱子里为什么有一个穿西装的皮影？",
+    }
+
+
+def test_trust_fragment_locks_below_threshold_and_collects_once_at_threshold(
+    service: GameService,
+) -> None:
+    below_threshold = advance_to_1990(service)
+
+    locked = service.explore(
+        below_threshold,
+        "hotspot_1990_station_clock",
+        expected_revision=below_threshold.revision,
+    )
+
+    assert locked.state == below_threshold
+    assert locked.events[0].type == "fragment.locked"
+    assert locked.events[0].payload["method"] == "trust"
+    assert locked.events[0].payload["minimum_trust"] == 35
+
+    eligible = with_npc_trust(below_threshold, "chen_shouyi_1990", 35)
+    collected = service.explore(
+        eligible,
+        "hotspot_1990_station_clock",
+        expected_revision=eligible.revision,
+    )
+    repeated = service.explore(
+        collected.state,
+        "hotspot_1990_station_clock",
+        expected_revision=collected.state.revision,
+    )
+
+    assert collected.state.collected_fragments.count("station_clock_fragment") == 1
+    assert collected.events[0].type == "fragment.collected"
+    assert repeated.state == collected.state
+    assert repeated.events == []
+
+
 def test_confirm_hypothesis_records_authoritative_scene_reasoning(
     service: GameService,
 ) -> None:
@@ -405,6 +527,127 @@ def test_confirm_hypothesis_rejects_incorrect_evidence(service: GameService) -> 
         )
 
     assert caught.value.code == "EVIDENCE_INVALID"
+
+
+def test_rejected_1990_hypothesis_returns_feedback_without_consuming_revision(
+    service: GameService,
+) -> None:
+    state = advance_to_1990(service)
+    for hotspot_id in (
+        "hotspot_1990_train_ticket",
+        "hotspot_1990_farewell_letter",
+    ):
+        state = service.explore(
+            state,
+            hotspot_id,
+            expected_revision=state.revision,
+        ).state
+
+    result = service.confirm_hypothesis(
+        state,
+        "hypothesis_1990_survival",
+        ["train_ticket_fragment", "farewell_letter_fragment"],
+        expected_revision=state.revision,
+    )
+
+    assert result.state == state
+    assert result.state.confirmed_hypotheses.get("scene_1990") is None
+    assert result.events[0].type == "hypothesis.rejected"
+    assert result.events[0].payload["evidence_ids"] == [
+        "train_ticket_fragment",
+        "farewell_letter_fragment",
+    ]
+    feedback = result.events[0].payload["feedback"]
+    assert "压力" in feedback
+    assert "愧疚" in feedback
+    assert "穿西装" in feedback
+    assert "3:47" in feedback
+
+
+def test_confirmed_1990_hypothesis_records_scene_reasoning(service: GameService) -> None:
+    state = advance_to_1990(service)
+    state = DialogueService(
+        service.registry,
+        CanonicalDialogueClient(),
+    ).chat(
+        state,
+        npc_id="chen_shouyi_1990",
+        player_input="箱子里为什么有一个穿西装的皮影？",
+        expected_revision=state.revision,
+    ).state
+    state = service.explore(
+        state,
+        "hotspot_1990_station_clock",
+        expected_revision=state.revision,
+    ).state
+
+    result = service.confirm_hypothesis(
+        state,
+        "hypothesis_1990_modern_story",
+        ["puppet_trunk_fragment", "station_clock_fragment"],
+        expected_revision=state.revision,
+    )
+
+    assert result.state.revision == state.revision + 1
+    assert result.state.confirmed_hypotheses["scene_1990"] == (
+        "hypothesis_1990_modern_story"
+    )
+    assert result.events[0].type == "hypothesis.confirmed"
+
+
+@pytest.mark.parametrize("choice_id", ["talk_to_stranger", "ignore_stranger"])
+def test_1990_choices_require_confirmed_modern_story_hypothesis(
+    service: GameService,
+    choice_id: str,
+) -> None:
+    state = advance_to_1990(service)
+    for hotspot_id in (
+        "hotspot_1990_train_ticket",
+        "hotspot_1990_farewell_letter",
+    ):
+        state = service.explore(
+            state,
+            hotspot_id,
+            expected_revision=state.revision,
+        ).state
+    rejected = service.confirm_hypothesis(
+        state,
+        "hypothesis_1990_survival",
+        ["train_ticket_fragment", "farewell_letter_fragment"],
+        expected_revision=state.revision,
+    ).state
+
+    with pytest.raises(DomainError) as caught:
+        service.record_choice(
+            rejected,
+            choice_id,
+            expected_revision=rejected.revision,
+        )
+
+    assert caught.value.code == "HYPOTHESIS_REQUIRED"
+
+
+@pytest.mark.parametrize(
+    ("choice_id", "variant", "text_fragment"),
+    [
+        ("encourage_art", "legacy_carried", "手艺不该被埋没"),
+        ("discourage_art", "legacy_suppressed", "半合"),
+    ],
+)
+def test_1972_choice_derives_one_1990_consequence_without_persisting_it(
+    service: GameService,
+    choice_id: str,
+    variant: str,
+    text_fragment: str,
+) -> None:
+    state = advance_to_1990(service, choice_id=choice_id)
+
+    view = service.get_scene_view(state)
+
+    assert len(view.applied_consequences) == 1
+    assert view.applied_consequences[0].variant == variant
+    assert text_fragment in view.applied_consequences[0].scene_text
+    assert "applied_consequences" not in state.model_dump()
 
 
 def test_choice_requires_confirmed_scene_hypothesis(service: GameService) -> None:
