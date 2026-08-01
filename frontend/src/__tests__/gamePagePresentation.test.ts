@@ -176,6 +176,21 @@ const makeScene = (): SceneView => ({
   content_version: 1,
 })
 
+const makeReasoningScene = (): SceneView => {
+  const scene = makeScene()
+  scene.hypotheses = [
+    {
+      id: 'station-departure-hypothesis',
+      scene_id: 'scene_1990',
+      question: '他为什么站在这里？',
+      statement: '车票和时钟说明他准备南下。',
+      evidence_ids: ['station_clock_fragment', 'train_ticket_fragment'],
+      resolution: '他已经决定带着手艺离开。',
+    },
+  ]
+  return scene
+}
+
 const makeConsequence = (variant: 'legacy_carried' | 'legacy_suppressed'): AppliedConsequence => ({
   id: `consequence_1972_${variant}`,
   source_choice_id: variant === 'legacy_carried' ? 'encourage_art' : 'discourage_art',
@@ -371,6 +386,204 @@ describe('game page evidence task presentation', () => {
     host.querySelector<HTMLElement>('.narrative-text')?.click()
     await flushUi()
     expect(host.querySelector('.narrative-text')?.textContent).toContain('雨水敲着站台。')
+  })
+
+  it('enters an exclusive scan state that removes analysis chrome from focus and hit testing', async () => {
+    const scene = makeReasoningScene()
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state: makeState(), scene_view: scene, content_version: 1 },
+    })
+
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    host.querySelector<HTMLButtonElement>('.scan-action')!.click()
+    await flushUi()
+
+    const root = host.querySelector<HTMLElement>('.game-cinema')!
+    const analysisChrome = host.querySelector<HTMLElement>('.analysis-chrome')!
+    const hotspot = host.querySelector<HTMLButtonElement>('.perception-cue')!
+    const returnButton = host.querySelector<HTMLButtonElement>('.scan-return')!
+
+    expect(root.classList.contains('scan-active')).toBe(true)
+    expect(root.dataset.scanMode).toBe('active')
+    expect(analysisChrome.getAttribute('aria-hidden')).toBe('true')
+    expect(analysisChrome.hasAttribute('inert')).toBe(true)
+    expect(analysisChrome.style.display).toBe('none')
+    expect(analysisChrome.querySelector('.reasoning-panel-host')).not.toBeNull()
+    expect(analysisChrome.querySelector('.narrative-float')).not.toBeNull()
+    expect(analysisChrome.querySelector('.npc-dock')).not.toBeNull()
+    expect(analysisChrome.querySelector('.tool-rail')).not.toBeNull()
+    expect(analysisChrome.querySelector('.dialogue-float')).not.toBeNull()
+    expect(analysisChrome.querySelector('.exploration-meter')).not.toBeNull()
+    expect(analysisChrome.contains(hotspot)).toBe(false)
+    expect(hotspot.disabled).toBe(false)
+    expect(returnButton.textContent).toContain('返回推理')
+    expect(document.activeElement).toBe(returnButton)
+  })
+
+  it('returns from scan mode with the fixed control and restores the reasoning action', async () => {
+    const scene = makeReasoningScene()
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state: makeState(), scene_view: scene, content_version: 1 },
+    })
+
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    host.querySelector<HTMLButtonElement>('.scan-action')!.click()
+    await flushUi()
+    host.querySelector<HTMLButtonElement>('.scan-return')!.click()
+    await flushUi()
+
+    expect(host.querySelector('.game-cinema')?.classList.contains('scan-active')).toBe(false)
+    expect(host.querySelector<HTMLElement>('.analysis-chrome')?.style.display).not.toBe('none')
+    expect(host.querySelector('.scan-return')).toBeNull()
+    expect(document.activeElement).toBe(host.querySelector('.scan-action'))
+  })
+
+  it('returns from scan mode when Escape is pressed', async () => {
+    const scene = makeReasoningScene()
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state: makeState(), scene_view: scene, content_version: 1 },
+    })
+
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    host.querySelector<HTMLButtonElement>('.scan-action')!.click()
+    await flushUi()
+    expect(host.querySelector('.hotspot-overlay')?.classList.contains('scan-active')).toBe(true)
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }))
+    await flushUi()
+
+    expect(host.querySelector('.game-cinema')?.classList.contains('scan-active')).toBe(false)
+    expect(host.querySelector('.hotspot-overlay')?.classList.contains('scan-active')).toBe(false)
+    expect(host.querySelector('.scan-return')).toBeNull()
+    expect(document.activeElement).toBe(host.querySelector('.scan-action'))
+  })
+
+  it('keeps the authoritative hotspot path available in scan mode and exits into its fragment', async () => {
+    const initialState = makeState({ npc_trust: { chen_shouyi_1990: 35 } })
+    const collectedState = makeState({
+      revision: 5,
+      collected_fragments: ['station_clock_fragment'],
+      revealed_fragments: ['station_clock_fragment'],
+      fragment_states: {
+        ...makeState().fragment_states,
+        station_clock_fragment: {
+          ...makeState().fragment_states.station_clock_fragment,
+          status: 'collected',
+          collected: true,
+          revealed: true,
+        },
+      },
+      npc_trust: { chen_shouyi_1990: 35 },
+    })
+    const scene = makeReasoningScene()
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state: initialState, scene_view: scene, content_version: 1 },
+    })
+    apiMocks.exploreHotspot.mockResolvedValue({
+      data: {
+        state: collectedState,
+        events: [
+          {
+            type: 'fragment.collected',
+            content_id: 'station_clock_fragment',
+            payload: {},
+          },
+        ],
+      },
+    })
+
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    host.querySelector<HTMLButtonElement>('.scan-action')!.click()
+    await flushUi()
+    expect(host.querySelector('.hotspot-overlay')?.classList.contains('scan-active')).toBe(true)
+    host.querySelector<HTMLButtonElement>('.perception-cue')!.click()
+    await flushUi()
+
+    expect(apiMocks.exploreHotspot).toHaveBeenCalledWith(
+      'station-clock-hotspot',
+      expect.objectContaining({ revision: 4, npc_trust: { chen_shouyi_1990: 35 } }),
+      4,
+    )
+    expect(host.querySelector('.game-cinema')?.classList.contains('scan-active')).toBe(false)
+    expect(host.querySelector('.hotspot-overlay')?.classList.contains('scan-active')).toBe(false)
+    expect(host.querySelector('.popup-overlay')).not.toBeNull()
+  })
+
+  it('exits scan mode into the canonical NPC task when a hotspot is still locked', async () => {
+    const scene = makeReasoningScene()
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state: makeState(), scene_view: scene, content_version: 1 },
+    })
+    apiMocks.exploreHotspot.mockResolvedValue({
+      data: {
+        state: makeState(),
+        events: [
+          {
+            type: 'fragment.locked',
+            content_id: 'station_clock_fragment',
+            payload: {
+              method: 'trust',
+              hint: '信任达到“初识”后再查看',
+              npc_id: 'chen_shouyi_1990',
+              minimum_trust: 35,
+            },
+          },
+        ],
+      },
+    })
+
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    host.querySelector<HTMLButtonElement>('.scan-action')!.click()
+    await flushUi()
+    expect(host.querySelector('.hotspot-overlay')?.classList.contains('scan-active')).toBe(true)
+    host.querySelector<HTMLButtonElement>('.perception-cue')!.click()
+    await flushUi()
+
+    expect(apiMocks.exploreHotspot).toHaveBeenCalledTimes(1)
+    expect(host.querySelector('.game-cinema')?.classList.contains('scan-active')).toBe(false)
+    expect(host.querySelector('.hotspot-overlay')?.classList.contains('scan-active')).toBe(false)
+    expect(host.querySelector<HTMLButtonElement>('.perception-cue')?.disabled).toBe(false)
+    expect(host.querySelector('.dialogue-header')?.textContent).toContain('陈守义')
+    expect(host.querySelector('[role="status"]')?.textContent).toContain('当前 20 / 需要 35')
   })
 
   it('keeps a trust-locked hotspot available while showing its canonical hint and NPC task', async () => {

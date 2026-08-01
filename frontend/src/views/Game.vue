@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
+import {
+  computed,
+  defineAsyncComponent,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from 'vue'
 import { evaluateEnding } from '../api'
 import { useAudioMixer } from '../audio/mixer'
 import { useGameState } from '../composables/useGameState'
@@ -111,6 +119,8 @@ const popupPresentation = computed(() =>
 )
 const actionPending = ref(false)
 const scanMode = ref(false)
+const gameRoot = ref<HTMLElement | null>(null)
+const scanReturnButton = ref<HTMLButtonElement | null>(null)
 const voiceControlsOpen = ref(false)
 const mounted = ref(false)
 const endingPending = ref(false)
@@ -227,6 +237,40 @@ const closeFragment = () => {
   ui.setStageMode(selectedNpc.value ? 'dialogue' : 'observe')
 }
 
+const focusReasoningAction = () => {
+  void nextTick(() => {
+    gameRoot.value?.querySelector<HTMLButtonElement>('.scan-action')?.focus()
+  })
+}
+
+const enterScanMode = () => {
+  if (scanMode.value) return
+  ui.closeOverlay()
+  voiceControlsOpen.value = false
+  scanMode.value = true
+  void nextTick(() => scanReturnButton.value?.focus())
+}
+
+const exitScanMode = (restoreReasoningFocus = false) => {
+  if (!scanMode.value) return
+  scanMode.value = false
+  if (restoreReasoningFocus) focusReasoningAction()
+}
+
+const toggleScanMode = () => {
+  if (scanMode.value) {
+    exitScanMode(true)
+  } else {
+    enterScanMode()
+  }
+}
+
+const handleScanKeydown = (event: KeyboardEvent) => {
+  if (!scanMode.value || event.key !== 'Escape') return
+  event.preventDefault()
+  exitScanMode(true)
+}
+
 const fragmentForPopup = (fragmentId: string): Fragment | null => {
   const fragment = sceneFragments.value.find((candidate) => candidate.id === fragmentId)
   if (!fragment) return null
@@ -243,6 +287,7 @@ const fragmentForPopup = (fragmentId: string): Fragment | null => {
 }
 
 const handleExplore = async (hotspot: Hotspot) => {
+  exitScanMode()
   if (actionPending.value) return
   actionPending.value = true
   try {
@@ -472,6 +517,7 @@ watch(
 )
 
 onMounted(async () => {
+  window.addEventListener('keydown', handleScanKeydown)
   ui.closeOverlay()
   ui.setStageMode('observe')
   sceneTransitioning.value = true
@@ -488,16 +534,23 @@ onMounted(async () => {
   mounted.value = true
   sceneTransitioning.value = false
 })
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleScanKeydown)
+})
 </script>
 
 <template>
   <div
     v-if="gameState"
+    ref="gameRoot"
     class="game game-cinema"
     :class="{
       'has-choices': choices.length > 0,
+      'scan-active': scanMode,
       'voice-controls-open': voiceControlsOpen,
     }"
+    :data-scan-mode="scanMode ? 'active' : 'inactive'"
     :data-stage-mode="ui.stageMode"
   >
     <Transition name="fade">
@@ -520,16 +573,6 @@ onMounted(async () => {
       </CinematicStage>
     </div>
 
-    <aside
-      v-if="activeConsequence"
-      class="causal-echo"
-      :data-consequence-variant="activeConsequence.variant"
-      aria-label="因果回声"
-    >
-      <span class="causal-echo-kicker">CAUSAL ECHO / 因果回声</span>
-      <p>{{ activeConsequence.scene_text }}</p>
-    </aside>
-
     <div class="interaction-plane" :class="{ obscured: selectedNpc }">
       <HotspotOverlay
         :hotspots="hotspots"
@@ -540,196 +583,233 @@ onMounted(async () => {
       />
     </div>
 
-    <header class="top-bar cinematic-hud" role="banner" aria-label="记忆场状态">
-      <div class="brand-lockup" aria-label="拾忆">
-        <span class="brand-mark">拾</span>
-        <span class="brand-name">拾忆</span>
-        <span class="brand-index">MEMORY HEALER</span>
-      </div>
-      <div class="scene-info">
-        <span class="scene-eyebrow">CHAPTER 01 · MEMORY FIELD</span>
-        <strong class="scene-title">{{ currentScene?.title || '正在载入' }}</strong>
-        <span class="scene-meta">
-          {{ currentScene?.time_period || '····' }}
-          <i />
-          {{ currentScene?.location || '未知坐标' }}
-        </span>
-      </div>
-      <div class="status-right">
-        <button
-          class="hud-action compact"
-          :title="lang === 'zh' ? 'Switch to English' : '切换到中文'"
-          aria-label="语言切换"
-          @click="toggleLang"
-        >
-          {{ lang === 'zh' ? 'EN' : '中' }}
-        </button>
-        <VoiceControls
-          :is-speaking="voice.isSpeaking.value"
-          :is-paused="voice.isPaused.value"
-          :voice-volume="voiceVolume"
-          :has-replay="Boolean(voice.lastRequest.value)"
-          :is-muted="isMuted"
-          @pause="voice.pause"
-          @resume="voice.resume"
-          @replay="voice.replay"
-          @skip="voice.skip"
-          @toggle-mute="toggleMute"
-          @update:voice-volume="setVoiceVolume"
-          @expanded-change="voiceControlsOpen = $event"
-        />
-        <button
-          class="fragment-counter"
-          type="button"
-          aria-label="打开记忆碎片"
-          @click="toggleOverlay('inventory')"
-        >
-          <span>碎片</span>
-          <strong>{{ String(collectedCount).padStart(2, '0') }}</strong>
-          <i>/</i>
-          <span>{{ String(totalFragments).padStart(2, '0') }}</span>
-        </button>
-      </div>
-    </header>
-
-    <aside class="tool-rail" aria-label="记忆工具">
-      <button type="button" @click="toggleOverlay('memory')">
-        <span class="rail-glyph">档</span><small>档案</small>
-      </button>
-      <button type="button" @click="toggleOverlay('timeline')">
-        <span class="rail-glyph">时</span><small>时序</small>
-      </button>
-      <button type="button" @click="toggleOverlay('butterfly')">
-        <span class="rail-glyph">因</span><small>因果</small>
-      </button>
-      <button type="button" @click="toggleOverlay('story')">
-        <span class="rail-glyph">录</span><small>记录</small>
-      </button>
-    </aside>
-
     <div
-      v-if="activeHypothesis"
-      class="reasoning-panel-host"
-      :class="{ obscured: selectedNpc || showFragmentPopup }"
+      v-show="!scanMode"
+      class="analysis-chrome"
+      :inert="scanMode ? true : undefined"
+      :aria-hidden="scanMode ? 'true' : undefined"
     >
-      <MemoryReasoningPanel
-        :hypotheses="currentSceneHypotheses"
-        :selected-hypothesis-id="selectedHypothesisId"
-        :fragments="sceneFragments"
-        :collected-ids="gameState.collected_fragments"
-        :selected-ids="selectedEvidenceIds"
-        :confirmed="hypothesisConfirmed"
-        :pending="actionPending"
-        :scan-mode="scanMode"
-        :rejected-feedback="rejectedFeedback"
-        @select-hypothesis="selectHypothesis"
-        @toggle-evidence="toggleReasoningEvidence"
-        @confirm="handleConfirmHypothesis"
-        @toggle-scan="scanMode = !scanMode"
-      />
-    </div>
-
-    <div
-      v-if="narrativeText"
-      class="narrative-float"
-      role="complementary"
-      aria-label="叙事文本"
-      aria-live="polite"
-    >
-      <span class="narrative-kicker">MEMORY TRANSCRIPT</span>
-      <div class="narrative-text" @click="isTyping ? typeSkip() : null">
-        {{ typewriterText }}<span v-if="isTyping" class="cursor">|</span>
-      </div>
-      <span v-if="isTyping" class="skip-hint">单击显现全文</span>
-    </div>
-
-    <VoiceSubtitle :cue="sceneVoice.subtitleCue.value" />
-
-    <div class="npc-dock" role="toolbar" aria-label="NPC角色选择">
-      <button
-        v-for="npc in currentNpcs"
-        :key="npc.id"
-        class="npc-chip"
-        :class="{ active: selectedNpc?.id === npc.id }"
-        type="button"
-        @click="selectNpc(npc)"
+      <aside
+        v-if="activeConsequence"
+        class="causal-echo"
+        :data-consequence-variant="activeConsequence.variant"
+        aria-label="因果回声"
       >
-        <NpcAvatar
-          :npc-id="npc.id"
-          :emotion="getTrustLevel(npc.id).label === '完全信任' ? 'happy' : 'neutral'"
-          :size="36"
-        />
-        <div class="npc-chip-info">
-          <span class="npc-chip-role">{{ npc.title }}</span>
-          <span class="npc-chip-name">{{ npc.name }}</span>
-          <div class="trust-bar-container">
-            <div
-              class="trust-bar"
-              :style="{
-                width: (gameState.npc_trust[npc.id] || 0) + '%',
-                background: getTrustLevel(npc.id).color,
-              }"
-            />
-          </div>
-          <span class="npc-chip-trust" :style="{ color: getTrustLevel(npc.id).color }">
-            {{ getTrustLevel(npc.id).label }}
+        <span class="causal-echo-kicker">CAUSAL ECHO / 因果回声</span>
+        <p>{{ activeConsequence.scene_text }}</p>
+      </aside>
+
+      <header class="top-bar cinematic-hud" role="banner" aria-label="记忆场状态">
+        <div class="brand-lockup" aria-label="拾忆">
+          <span class="brand-mark">拾</span>
+          <span class="brand-name">拾忆</span>
+          <span class="brand-index">MEMORY HEALER</span>
+        </div>
+        <div class="scene-info">
+          <span class="scene-eyebrow">CHAPTER 01 · MEMORY FIELD</span>
+          <strong class="scene-title">{{ currentScene?.title || '正在载入' }}</strong>
+          <span class="scene-meta">
+            {{ currentScene?.time_period || '····' }}
+            <i />
+            {{ currentScene?.location || '未知坐标' }}
           </span>
         </div>
-      </button>
-    </div>
+        <div class="status-right">
+          <button
+            class="hud-action compact"
+            :title="lang === 'zh' ? 'Switch to English' : '切换到中文'"
+            aria-label="语言切换"
+            @click="toggleLang"
+          >
+            {{ lang === 'zh' ? 'EN' : '中' }}
+          </button>
+          <VoiceControls
+            :is-speaking="voice.isSpeaking.value"
+            :is-paused="voice.isPaused.value"
+            :voice-volume="voiceVolume"
+            :has-replay="Boolean(voice.lastRequest.value)"
+            :is-muted="isMuted"
+            @pause="voice.pause"
+            @resume="voice.resume"
+            @replay="voice.replay"
+            @skip="voice.skip"
+            @toggle-mute="toggleMute"
+            @update:voice-volume="setVoiceVolume"
+            @expanded-change="voiceControlsOpen = $event"
+          />
+          <button
+            class="fragment-counter"
+            type="button"
+            aria-label="打开记忆碎片"
+            @click="toggleOverlay('inventory')"
+          >
+            <span>碎片</span>
+            <strong>{{ String(collectedCount).padStart(2, '0') }}</strong>
+            <i>/</i>
+            <span>{{ String(totalFragments).padStart(2, '0') }}</span>
+          </button>
+        </div>
+      </header>
 
-    <div v-if="choices.length && decisionUnlocked" class="scene-nav" aria-label="剧情选择">
-      <span class="choice-kicker">CAUSAL DECISION</span>
-      <button
-        v-for="(choice, index) in unlockedChoices"
-        :key="choice.id"
-        class="nav-btn"
-        :disabled="actionPending"
-        @click="handleChoice(choice)"
+      <aside class="tool-rail" aria-label="记忆工具">
+        <button type="button" @click="toggleOverlay('memory')">
+          <span class="rail-glyph">档</span><small>档案</small>
+        </button>
+        <button type="button" @click="toggleOverlay('timeline')">
+          <span class="rail-glyph">时</span><small>时序</small>
+        </button>
+        <button type="button" @click="toggleOverlay('butterfly')">
+          <span class="rail-glyph">因</span><small>因果</small>
+        </button>
+        <button type="button" @click="toggleOverlay('story')">
+          <span class="rail-glyph">录</span><small>记录</small>
+        </button>
+      </aside>
+
+      <div
+        v-if="activeHypothesis"
+        class="reasoning-panel-host"
+        :class="{ obscured: selectedNpc || showFragmentPopup }"
       >
-        <span class="choice-index">0{{ index + 1 }}</span>
-        <span>{{ choice.label }}</span>
-        <span aria-hidden="true">→</span>
-      </button>
-    </div>
-    <div v-else-if="choices.length" class="scene-nav choice-lock" aria-live="polite">
-      <span class="choice-kicker">CAUSAL DECISION / 尚未开放</span>
-      <div class="choice-lock-plate">
-        <strong>先建立一条能够承担后果的解释</strong>
-        <span>取得并连接本幕证据后，因果选择才会显现。</span>
-      </div>
-    </div>
-
-    <div
-      class="dialogue-float"
-      :class="{ open: selectedNpc }"
-      role="dialog"
-      aria-label="NPC对话面板"
-      aria-modal="false"
-    >
-      <div class="dialogue-glass">
-        <div v-if="selectedNpc" class="dialogue-header">
-          <div>
-            <span class="dialogue-kicker">LIVE MEMORY / {{ selectedNpc.title }}</span>
-            <strong>{{ selectedNpc.name }}</strong>
-          </div>
-          <button class="close-btn" aria-label="结束对话" @click="closeDialogue">结束对话</button>
-        </div>
-        <div v-else class="dialogue-header">
-          <span>选择人物，进入这段记忆</span>
-        </div>
-        <ChatPanel
-          ref="chatPanelRef"
-          :selected-npc="selectedNpc"
-          :game-state="gameState"
-          :suggested-prompts="suggestedPrompts"
-          :task-feedback="dialogueTaskFeedback"
-          :voice-playback="voice"
-          :voice-coordinator="sceneVoice"
-          @dialogue-complete="onDialogueComplete"
+        <MemoryReasoningPanel
+          :hypotheses="currentSceneHypotheses"
+          :selected-hypothesis-id="selectedHypothesisId"
+          :fragments="sceneFragments"
+          :collected-ids="gameState.collected_fragments"
+          :selected-ids="selectedEvidenceIds"
+          :confirmed="hypothesisConfirmed"
+          :pending="actionPending"
+          :scan-mode="scanMode"
+          :rejected-feedback="rejectedFeedback"
+          @select-hypothesis="selectHypothesis"
+          @toggle-evidence="toggleReasoningEvidence"
+          @confirm="handleConfirmHypothesis"
+          @toggle-scan="toggleScanMode"
         />
       </div>
+
+      <div
+        v-if="narrativeText"
+        class="narrative-float"
+        role="complementary"
+        aria-label="叙事文本"
+        aria-live="polite"
+      >
+        <span class="narrative-kicker">MEMORY TRANSCRIPT</span>
+        <div class="narrative-text" @click="isTyping ? typeSkip() : null">
+          {{ typewriterText }}<span v-if="isTyping" class="cursor">|</span>
+        </div>
+        <span v-if="isTyping" class="skip-hint">单击显现全文</span>
+      </div>
+
+      <VoiceSubtitle :cue="sceneVoice.subtitleCue.value" />
+
+      <div class="npc-dock" role="toolbar" aria-label="NPC角色选择">
+        <button
+          v-for="npc in currentNpcs"
+          :key="npc.id"
+          class="npc-chip"
+          :class="{ active: selectedNpc?.id === npc.id }"
+          type="button"
+          @click="selectNpc(npc)"
+        >
+          <NpcAvatar
+            :npc-id="npc.id"
+            :emotion="getTrustLevel(npc.id).label === '完全信任' ? 'happy' : 'neutral'"
+            :size="36"
+          />
+          <div class="npc-chip-info">
+            <span class="npc-chip-role">{{ npc.title }}</span>
+            <span class="npc-chip-name">{{ npc.name }}</span>
+            <div class="trust-bar-container">
+              <div
+                class="trust-bar"
+                :style="{
+                  width: (gameState.npc_trust[npc.id] || 0) + '%',
+                  background: getTrustLevel(npc.id).color,
+                }"
+              />
+            </div>
+            <span class="npc-chip-trust" :style="{ color: getTrustLevel(npc.id).color }">
+              {{ getTrustLevel(npc.id).label }}
+            </span>
+          </div>
+        </button>
+      </div>
+
+      <div v-if="choices.length && decisionUnlocked" class="scene-nav" aria-label="剧情选择">
+        <span class="choice-kicker">CAUSAL DECISION</span>
+        <button
+          v-for="(choice, index) in unlockedChoices"
+          :key="choice.id"
+          class="nav-btn"
+          :disabled="actionPending"
+          @click="handleChoice(choice)"
+        >
+          <span class="choice-index">0{{ index + 1 }}</span>
+          <span>{{ choice.label }}</span>
+          <span aria-hidden="true">→</span>
+        </button>
+      </div>
+      <div v-else-if="choices.length" class="scene-nav choice-lock" aria-live="polite">
+        <span class="choice-kicker">CAUSAL DECISION / 尚未开放</span>
+        <div class="choice-lock-plate">
+          <strong>先建立一条能够承担后果的解释</strong>
+          <span>取得并连接本幕证据后，因果选择才会显现。</span>
+        </div>
+      </div>
+
+      <div
+        class="dialogue-float"
+        :class="{ open: selectedNpc }"
+        role="dialog"
+        aria-label="NPC对话面板"
+        aria-modal="false"
+      >
+        <div class="dialogue-glass">
+          <div v-if="selectedNpc" class="dialogue-header">
+            <div>
+              <span class="dialogue-kicker">LIVE MEMORY / {{ selectedNpc.title }}</span>
+              <strong>{{ selectedNpc.name }}</strong>
+            </div>
+            <button class="close-btn" aria-label="结束对话" @click="closeDialogue">结束对话</button>
+          </div>
+          <div v-else class="dialogue-header">
+            <span>选择人物，进入这段记忆</span>
+          </div>
+          <ChatPanel
+            ref="chatPanelRef"
+            :selected-npc="selectedNpc"
+            :game-state="gameState"
+            :suggested-prompts="suggestedPrompts"
+            :task-feedback="dialogueTaskFeedback"
+            :voice-playback="voice"
+            :voice-coordinator="sceneVoice"
+            @dialogue-complete="onDialogueComplete"
+          />
+        </div>
+      </div>
+
+      <div class="exploration-meter" aria-label="场景探索进度">
+        <span>{{ explorationProgress === 100 ? '场景已校准' : '场景校准中' }}</span>
+        <i><b :style="{ width: `${explorationProgress}%` }" /></i>
+        <strong>{{ String(explorationProgress).padStart(2, '0') }}%</strong>
+      </div>
     </div>
+
+    <button
+      v-if="scanMode"
+      ref="scanReturnButton"
+      class="scan-return"
+      type="button"
+      aria-label="返回推理模式"
+      aria-keyshortcuts="Escape"
+      @click="exitScanMode(true)"
+    >
+      <span class="scan-return-mark" aria-hidden="true">←</span>
+      <strong>返回推理</strong>
+      <small>ESC</small>
+    </button>
 
     <SceneTransition :active="sceneTransitioning" :scene-id="gameState.current_scene" />
 
@@ -791,12 +871,6 @@ onMounted(async () => {
       @click.self="ui.closeOverlay('butterfly')"
     >
       <ButterflyPanel :game-state="gameState" />
-    </div>
-
-    <div class="exploration-meter" aria-label="场景探索进度">
-      <span>{{ explorationProgress === 100 ? '场景已校准' : '场景校准中' }}</span>
-      <i><b :style="{ width: `${explorationProgress}%` }" /></i>
-      <strong>{{ String(explorationProgress).padStart(2, '0') }}%</strong>
     </div>
   </div>
 </template>

@@ -20,6 +20,82 @@
   transition: opacity 320ms ease;
 }
 
+.analysis-chrome {
+  display: contents;
+}
+
+.game-cinema.scan-active .interaction-plane {
+  z-index: 70;
+}
+
+.scan-return {
+  position: fixed;
+  z-index: 96;
+  top: max(1rem, env(safe-area-inset-top));
+  left: var(--safe-inline);
+  display: grid;
+  grid-template-columns: 2rem 1fr 2.25rem;
+  gap: 0.55rem;
+  align-items: center;
+  min-width: 10rem;
+  min-height: 3rem;
+  padding: 0 0.65rem;
+  border: 1px solid rgba(214, 173, 102, 0.7);
+  border-radius: 0;
+  color: rgba(241, 229, 206, 0.94);
+  background:
+    linear-gradient(180deg, rgba(57, 43, 24, 0.94), rgba(13, 13, 11, 0.96)), rgba(8, 8, 7, 0.96);
+  box-shadow:
+    inset 0 0 0 3px rgba(4, 5, 4, 0.58),
+    inset 0 1px rgba(241, 229, 206, 0.12),
+    0 0.8rem 2.4rem rgba(0, 0, 0, 0.42);
+  cursor: pointer;
+}
+
+.scan-return::before {
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(214, 173, 102, 0.16);
+  content: '';
+  pointer-events: none;
+}
+
+.scan-return-mark {
+  display: grid;
+  min-height: 1.7rem;
+  place-items: center;
+  border-right: 1px solid rgba(214, 173, 102, 0.24);
+  color: var(--gold-300);
+  font-family: ui-monospace, monospace;
+  font-size: 1rem;
+}
+
+.scan-return strong {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-align: left;
+}
+
+.scan-return small {
+  color: rgba(215, 196, 162, 0.48);
+  font:
+    600 0.5rem/1 ui-monospace,
+    monospace;
+  letter-spacing: 0.12em;
+}
+
+.scan-return:hover {
+  border-color: rgba(236, 198, 129, 0.92);
+  background:
+    linear-gradient(180deg, rgba(70, 51, 27, 0.97), rgba(18, 16, 12, 0.98)), rgba(8, 8, 7, 0.98);
+}
+
+.scan-return:focus-visible {
+  outline: 2px solid rgba(241, 229, 206, 0.92);
+  outline-offset: 3px;
+}
+
 .interaction-plane.obscured {
   opacity: 0.24;
   pointer-events: none;
@@ -931,6 +1007,12 @@
 }
 
 @media (max-width: 900px), (max-aspect-ratio: 1/1) {
+  .scan-return {
+    top: max(0.75rem, env(safe-area-inset-top));
+    left: max(0.75rem, env(safe-area-inset-left));
+    min-width: 9.5rem;
+  }
+
   .cinematic-hud {
     grid-template-columns: 1fr auto;
     padding: max(0.85rem, env(safe-area-inset-top)) 0.85rem 0;
