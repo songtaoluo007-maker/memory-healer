@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { describe, expect, it } from 'vitest'
 import { buildFragmentGraph } from '../domain/fragmentGraph'
+import { useMemoryReasoningSelection } from '../domain/memoryReasoning'
 import { useHotspots } from '../composables/useHotspots'
 import { useScene } from '../composables/useScene'
 import type { FragmentState, SceneView } from '../types/game'
@@ -50,7 +51,27 @@ const makeSceneView = (sceneId: string, hotspotId: string): SceneView => ({
             resolution: '两条记忆互相印证。',
           },
         ]
-      : [],
+      : sceneId === 'scene_1990'
+        ? [
+            {
+              id: 'hypothesis_1990_survival',
+              scene_id: 'scene_1990',
+              question: '陈守义南下是否意味着他准备抛下皮影？',
+              statement: '生存压力迫使他离开。',
+              evidence_ids: ['train_ticket_fragment', 'farewell_letter_fragment'],
+              resolution: '犹豫不能证明放弃。',
+            },
+            {
+              id: 'hypothesis_1990_modern_story',
+              scene_id: 'scene_1990',
+              question: '陈守义为什么带着整箱皮影来到深圳？',
+              statement: '他在为皮影寻找新讲法。',
+              evidence_ids: ['puppet_trunk_fragment', 'station_clock_fragment'],
+              resolution: '他带着皮影走进了新生活。',
+            },
+          ]
+        : [],
+  applied_consequences: [],
   content_version: 1,
 })
 
@@ -102,13 +123,30 @@ describe('canonical scene flow', () => {
     ).toBe(true)
   })
 
-  it('exposes the current scene hypothesis without retaining the prior act', () => {
+  it('exposes only the current scene hypotheses without retaining the prior act', () => {
     const { hypotheses, replaceSceneView } = useScene()
 
     replaceSceneView(makeSceneView('scene_1972', 'hotspot_1972_shadow_stage'))
     expect(hypotheses.value.map((hypothesis) => hypothesis.id)).toEqual(['hypothesis_1972_legacy'])
 
     replaceSceneView(makeSceneView('scene_1990', 'hotspot_1990_train_ticket'))
-    expect(hypotheses.value).toEqual([])
+    expect(hypotheses.value.map((hypothesis) => hypothesis.id)).toEqual([
+      'hypothesis_1990_survival',
+      'hypothesis_1990_modern_story',
+    ])
+  })
+
+  it('clears stale candidate, evidence, and rejection state when the scene view changes', () => {
+    const scene = useScene()
+    scene.replaceSceneView(makeSceneView('scene_1972', 'hotspot_1972_shadow_stage'))
+    const selection = useMemoryReasoningSelection(scene.sceneView)
+    selection.selectedEvidenceIds.value = ['fragment_grandpa_knife']
+    selection.rejectedFeedback.value = '旧幕反馈'
+
+    scene.replaceSceneView(makeSceneView('scene_1990', 'hotspot_1990_train_ticket'))
+
+    expect(selection.selectedHypothesisId.value).toBe('hypothesis_1990_survival')
+    expect(selection.selectedEvidenceIds.value).toEqual([])
+    expect(selection.rejectedFeedback.value).toBeNull()
   })
 })

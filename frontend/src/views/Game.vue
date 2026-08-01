@@ -19,7 +19,13 @@ import FragmentArtwork from '../components/FragmentArtwork.vue'
 import VoiceControls from '../components/VoiceControls.vue'
 import VoiceSubtitle from '../components/VoiceSubtitle.vue'
 import { getFragmentPresentation } from '../stage/fragmentPresentation'
-import { isSceneDecisionUnlocked, toggleEvidenceSelection } from '../domain/memoryReasoning'
+import {
+  isChoiceUnlocked,
+  isSceneDecisionUnlocked,
+  resolveHypothesisSubmission,
+  toggleEvidenceSelection,
+  useMemoryReasoningSelection,
+} from '../domain/memoryReasoning'
 import type {
   ChatMessage,
   Choice,
@@ -65,12 +71,19 @@ const {
   currentNpcs,
   sceneFragments,
   choices,
-  hypotheses,
   narrativeText,
   sceneTransitioning,
   replaceSceneView,
   loadScene: loadSceneData,
 } = useScene()
+const {
+  currentSceneHypotheses,
+  activeHypothesis,
+  selectedHypothesisId,
+  selectedEvidenceIds,
+  rejectedFeedback,
+  selectHypothesis,
+} = useMemoryReasoningSelection(sceneView)
 const {
   displayText: typewriterText,
   isTyping,
@@ -97,7 +110,6 @@ const popupPresentation = computed(() =>
 )
 const actionPending = ref(false)
 const scanMode = ref(false)
-const selectedEvidenceIds = ref<string[]>([])
 const voiceControlsOpen = ref(false)
 const mounted = ref(false)
 const endingPending = ref(false)
@@ -106,7 +118,6 @@ const chatPanelRef = ref<{
   stopVoice: () => void
   chatHistory: ChatMessage[]
 } | null>(null)
-const activeHypothesis = computed(() => hypotheses.value[0] ?? null)
 const hypothesisConfirmed = computed(() => {
   if (!activeHypothesis.value || !gameState.value) return false
   return (
@@ -114,13 +125,13 @@ const hypothesisConfirmed = computed(() => {
     activeHypothesis.value.id
   )
 })
+const unlockedChoices = computed(() => {
+  const state = gameState.value
+  return state ? choices.value.filter((choice) => isChoiceUnlocked(choice, state)) : []
+})
 const decisionUnlocked = computed(() =>
   gameState.value
-    ? isSceneDecisionUnlocked(
-        gameState.value.current_scene,
-        hypotheses.value,
-        gameState.value.confirmed_hypotheses ?? {},
-      )
+    ? isSceneDecisionUnlocked(gameState.value.current_scene, choices.value, gameState.value)
     : false,
 )
 
@@ -234,9 +245,8 @@ const handleExplore = async (hotspot: Hotspot) => {
         popupFragment.value = { ...fragment, just_collected: true }
         showFragmentPopup.value = true
         ui.setStageMode('fragment')
-        collectedFragment = sceneFragments.value.find(
-          (candidate) => candidate.id === fragment.id,
-        ) ?? null
+        collectedFragment =
+          sceneFragments.value.find((candidate) => candidate.id === fragment.id) ?? null
       }
     }
     let interactionNpc: NpcSummary | null = null
@@ -275,7 +285,17 @@ const handleConfirmHypothesis = async () => {
   const hypothesis = activeHypothesis.value
   actionPending.value = true
   try {
-    await confirmMemoryHypothesis(hypothesis.id, selectedEvidenceIds.value)
+    const result = await confirmMemoryHypothesis(hypothesis.id, selectedEvidenceIds.value)
+    const submission = resolveHypothesisSubmission(result.events, hypothesis.id)
+    if (submission.status === 'rejected') {
+      const feedback = submission.feedback ?? '这些证据还不能支持这项解释。'
+      rejectedFeedback.value = feedback
+      narrativeText.value = feedback
+      typeStart(feedback)
+      return
+    }
+    if (submission.status !== 'confirmed') return
+    rejectedFeedback.value = null
     playSFX('fragment_found')
     narrativeText.value = hypothesis.resolution
     typeStart(hypothesis.resolution)
@@ -368,7 +388,6 @@ watch(
     if (!mounted.value || !nextScene || nextScene === previousScene) return
     closeDialogue()
     scanMode.value = false
-    selectedEvidenceIds.value = []
     chatPanelRef.value?.clearHistory()
     await loadCurrentScene()
   },
@@ -514,13 +533,16 @@ onMounted(async () => {
       :class="{ obscured: selectedNpc || showFragmentPopup }"
     >
       <MemoryReasoningPanel
-        :hypothesis="activeHypothesis"
+        :hypotheses="currentSceneHypotheses"
+        :selected-hypothesis-id="selectedHypothesisId"
         :fragments="sceneFragments"
         :collected-ids="gameState.collected_fragments"
         :selected-ids="selectedEvidenceIds"
         :confirmed="hypothesisConfirmed"
         :pending="actionPending"
         :scan-mode="scanMode"
+        :rejected-feedback="rejectedFeedback"
+        @select-hypothesis="selectHypothesis"
         @toggle-evidence="toggleReasoningEvidence"
         @confirm="handleConfirmHypothesis"
         @toggle-scan="scanMode = !scanMode"
@@ -579,7 +601,7 @@ onMounted(async () => {
     <div v-if="choices.length && decisionUnlocked" class="scene-nav" aria-label="剧情选择">
       <span class="choice-kicker">CAUSAL DECISION</span>
       <button
-        v-for="(choice, index) in choices"
+        v-for="(choice, index) in unlockedChoices"
         :key="choice.id"
         class="nav-btn"
         :disabled="actionPending"

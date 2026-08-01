@@ -6,49 +6,97 @@ import type { Hypothesis, SceneFragment } from '../types/game'
 import FragmentArtwork from './FragmentArtwork.vue'
 
 const props = defineProps<{
-  hypothesis: Hypothesis
+  hypotheses: Hypothesis[]
+  selectedHypothesisId: string | null
   fragments: SceneFragment[]
   collectedIds: string[]
   selectedIds: string[]
   confirmed: boolean
   pending: boolean
   scanMode: boolean
+  rejectedFeedback: string | null
 }>()
 
 const emit = defineEmits<{
+  selectHypothesis: [hypothesisId: string]
   toggleEvidence: [evidenceId: string]
   confirm: []
   toggleScan: []
 }>()
 
-const snapshot = computed(() =>
-  buildReasoningSnapshot(
-    props.hypothesis,
+const activeHypothesis = computed(
+  () =>
+    props.hypotheses.find((candidate) => candidate.id === props.selectedHypothesisId) ??
+    props.hypotheses[0] ??
+    null,
+)
+const snapshot = computed(() => {
+  const hypothesis = activeHypothesis.value
+  if (!hypothesis) {
+    return { evidence: [], canConfirm: false, confirmed: false, progressLabel: '00 / 00' }
+  }
+  return buildReasoningSnapshot(
+    hypothesis,
     props.fragments,
     props.selectedIds,
     props.confirmed,
     props.collectedIds,
-  ),
-)
+  )
+})
 
 const presentationFor = (fragmentId: string) => getFragmentPresentation(fragmentId)
 </script>
 
 <template>
   <section
+    v-if="activeHypothesis"
     class="reasoning-panel"
     :class="{ resolved: confirmed }"
     aria-labelledby="memory-question-title"
   >
-    <header class="reasoning-header">
+    <nav
+      v-if="hypotheses.length > 1"
+      class="hypothesis-candidates"
+      role="tablist"
+      aria-label="选择记忆解释"
+    >
+      <button
+        v-for="(candidate, index) in hypotheses"
+        :key="candidate.id"
+        class="hypothesis-candidate"
+        :class="{ active: candidate.id === activeHypothesis.id }"
+        type="button"
+        role="tab"
+        :data-hypothesis-id="candidate.id"
+        :aria-selected="candidate.id === activeHypothesis.id"
+        :disabled="pending || confirmed"
+        @click="emit('selectHypothesis', candidate.id)"
+      >
+        <small>INTERPRETATION 0{{ index + 1 }}</small>
+        <span>{{ candidate.question }}</span>
+      </button>
+    </nav>
+
+    <header class="reasoning-header" aria-live="polite">
       <div>
         <span>MEMORY QUESTION / 本幕问题</span>
         <strong>{{ confirmed ? '推理完成' : snapshot.progressLabel }}</strong>
       </div>
-      <h2 id="memory-question-title">{{ hypothesis.question }}</h2>
-      <p v-if="confirmed">{{ hypothesis.resolution }}</p>
+      <h2 id="memory-question-title">{{ activeHypothesis.question }}</h2>
+      <p v-if="confirmed">{{ activeHypothesis.resolution }}</p>
       <p v-else>取得证据并将它们并置，建立一条能够承担选择后果的解释。</p>
     </header>
+
+    <aside
+      v-if="rejectedFeedback"
+      class="reasoning-feedback"
+      data-rejected-feedback
+      role="status"
+      aria-live="polite"
+    >
+      <small>INTERPRETATION RETURNED / 解释被退回</small>
+      <p>{{ rejectedFeedback }}</p>
+    </aside>
 
     <div class="evidence-grid" aria-label="推理证据">
       <button
@@ -79,7 +127,7 @@ const presentationFor = (fragmentId: string) => getFragmentPresentation(fragment
     </div>
 
     <blockquote v-if="snapshot.canConfirm || confirmed" class="hypothesis-statement">
-      {{ hypothesis.statement }}
+      {{ activeHypothesis.statement }}
     </blockquote>
 
     <footer class="reasoning-actions">
@@ -117,6 +165,58 @@ const presentationFor = (fragmentId: string) => getFragmentPresentation(fragment
 
 .reasoning-panel.resolved {
   border-color: rgba(214, 173, 102, 0.42);
+}
+
+.hypothesis-candidates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  padding: 1px;
+  background: rgba(215, 196, 162, 0.12);
+}
+
+.hypothesis-candidate {
+  min-height: 44px;
+  padding: 0.6rem 0.7rem;
+  border: 0;
+  color: rgba(241, 229, 206, 0.58);
+  text-align: left;
+  background: rgba(7, 8, 7, 0.96);
+  cursor: pointer;
+}
+
+.hypothesis-candidate small {
+  display: block;
+  color: rgba(214, 173, 102, 0.66);
+  font:
+    600 0.42rem/1.2 ui-monospace,
+    monospace;
+  letter-spacing: 0.13em;
+}
+
+.hypothesis-candidate span {
+  display: -webkit-box;
+  margin-top: 0.35rem;
+  overflow: hidden;
+  font-size: 0.62rem;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.hypothesis-candidate.active {
+  color: rgba(241, 229, 206, 0.94);
+  box-shadow: inset 0 -2px rgba(214, 173, 102, 0.7);
+  background: rgba(31, 25, 18, 0.96);
+}
+
+.hypothesis-candidate:focus-visible {
+  outline: 2px solid rgba(241, 229, 206, 0.86);
+  outline-offset: -3px;
+}
+
+.hypothesis-candidate:disabled {
+  cursor: default;
 }
 
 .reasoning-header {
@@ -158,6 +258,45 @@ const presentationFor = (fragmentId: string) => getFragmentPresentation(fragment
   letter-spacing: 0.04em;
 }
 
+.reasoning-feedback {
+  position: relative;
+  margin: 0;
+  padding: 0.72rem 1.05rem 0.8rem;
+  border-block: 1px solid rgba(185, 91, 54, 0.3);
+  color: rgba(244, 211, 174, 0.9);
+  background:
+    linear-gradient(96deg, rgba(154, 83, 39, 0.16), transparent 78%), rgba(33, 22, 15, 0.82);
+  box-shadow: inset 0 1px rgba(236, 189, 128, 0.06);
+}
+
+.reasoning-feedback::after {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0,
+    transparent 5px,
+    rgba(255, 231, 198, 0.018) 6px
+  );
+  content: '';
+  pointer-events: none;
+}
+
+.reasoning-feedback small {
+  color: rgba(220, 139, 85, 0.86);
+  font:
+    600 0.46rem/1.2 ui-monospace,
+    monospace;
+  letter-spacing: 0.14em;
+}
+
+.reasoning-feedback p {
+  margin: 0.42rem 0 0;
+  font-size: 0.7rem;
+  line-height: 1.75;
+  letter-spacing: 0.035em;
+}
+
 .evidence-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -169,6 +308,7 @@ const presentationFor = (fragmentId: string) => getFragmentPresentation(fragment
 .evidence-card {
   position: relative;
   min-width: 0;
+  min-height: 44px;
   padding: 0;
   overflow: hidden;
   border: 0;
@@ -340,7 +480,25 @@ const presentationFor = (fragmentId: string) => getFragmentPresentation(fragment
   }
 
   .evidence-grid {
-    display: none;
+    display: grid;
+    grid-template-columns: none;
+    grid-auto-columns: minmax(10rem, 72%);
+    grid-auto-flow: column;
+    gap: 1px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-padding-inline: 1px;
+    scroll-snap-type: inline mandatory;
+    scrollbar-width: thin;
+  }
+
+  .evidence-card {
+    min-height: 44px;
+    scroll-snap-align: start;
+  }
+
+  .evidence-copy strong {
+    white-space: normal;
   }
 
   .reasoning-actions {
@@ -348,7 +506,7 @@ const presentationFor = (fragmentId: string) => getFragmentPresentation(fragment
   }
 
   .reasoning-actions button {
-    min-height: 2.7rem;
+    min-height: 44px;
   }
 }
 

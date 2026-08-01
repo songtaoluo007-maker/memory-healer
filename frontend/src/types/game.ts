@@ -107,6 +107,10 @@ export interface SceneFragment {
   unlock_method: string
   unlock_hint: string
   memory_text: string
+  unlock_npc_id?: string | null
+  minimum_trust?: number | null
+  dialogue_prompt?: string | null
+  dialogue_trust_reward?: number
   is_revealed: boolean
   is_collected: boolean
   memory_voice_line_id?: string | null
@@ -131,6 +135,21 @@ export interface ChoiceEffects {
   current_mood: string | null
 }
 
+export type ChoiceRequirement =
+  | {
+      kind: 'hypothesis_confirmed'
+      hypothesis_id: string
+    }
+  | {
+      kind: 'fragment_collected'
+      fragment_id: string
+    }
+  | {
+      kind: 'npc_trust_at_least'
+      npc_id: string
+      minimum: number
+    }
+
 export interface Choice {
   id: string
   scene_id: string
@@ -138,6 +157,7 @@ export interface Choice {
   target_scene: string | null
   is_key: boolean
   effects: ChoiceEffects
+  requirements: ChoiceRequirement[]
 }
 
 export interface Hypothesis {
@@ -150,6 +170,15 @@ export interface Hypothesis {
   resolution_voice_line_id?: string | null
 }
 
+export interface AppliedConsequence {
+  id: string
+  source_choice_id: string
+  target_scene_id: string
+  variant: string
+  scene_text: string
+  npc_context: Record<string, string>
+}
+
 export interface SceneView {
   scene: Scene
   npcs: NpcSummary[]
@@ -157,6 +186,7 @@ export interface SceneView {
   hotspots: Hotspot[]
   choices: Choice[]
   hypotheses?: Hypothesis[]
+  applied_consequences: AppliedConsequence[]
   content_version: number
 }
 
