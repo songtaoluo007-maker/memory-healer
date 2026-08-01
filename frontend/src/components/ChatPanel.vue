@@ -11,9 +11,16 @@ import { useSfxBus } from '../composables/useSfxBus'
 import { useVoicePlayback } from '../composables/useVoicePlayback'
 import type { ChatMessage, DialogueResponse, GameState, NpcSummary } from '../types/game'
 
+export interface SuggestedPrompt {
+  fragmentId: string
+  name: string
+  text: string
+}
+
 const props = defineProps<{
   selectedNpc: NpcSummary | null
   gameState: GameState | null
+  suggestedPrompts?: SuggestedPrompt[]
   voicePlayback?: ReturnType<typeof useVoicePlayback>
   voiceCoordinator?: SceneVoiceIntegration
 }>()
@@ -69,6 +76,11 @@ const sendMessage = async (text?: string) => {
     const result = await sendDialogue(npc.id, msg)
     if (result.trust_change !== 0) {
       playSFX(result.trust_change > 0 ? 'trust_up' : 'trust_down')
+      statusMessage.value = `${npc.name}愿意多说一些 · 信任 ${result.trust_change > 0 ? '+' : ''}${result.trust_change}`
+    }
+    if (result.fragment_revealed && result.fragment_data) {
+      const archived = `线索归档 · ${result.fragment_data.name}`
+      statusMessage.value = statusMessage.value ? `${statusMessage.value} · ${archived}` : archived
     }
     if (result.degraded) {
       statusMessage.value = '记忆回声暂时不稳定，已切换为角色本地对白。'
@@ -144,11 +156,26 @@ defineExpose({ chatHistory, clearHistory, stopVoice })
           >
         </div>
       </div>
-      <p v-if="statusMessage" class="chat-status" role="status">{{ statusMessage }}</p>
+      <p v-if="statusMessage" class="chat-status" role="status" aria-live="polite">
+        {{ statusMessage }}
+      </p>
     </div>
 
     <!-- 输入框 -->
     <div class="input-area" v-if="selectedNpc">
+      <div v-if="suggestedPrompts?.length" class="suggested-prompts" aria-label="可追问的记忆证据">
+        <button
+          v-for="prompt in suggestedPrompts"
+          :key="prompt.fragmentId"
+          class="suggested-prompt"
+          type="button"
+          :disabled="chatLoading"
+          @click="sendMessage(prompt.text)"
+        >
+          <span class="prompt-fragment">{{ prompt.name }}</span>
+          <span>{{ prompt.text }}</span>
+        </button>
+      </div>
       <input
         v-model="playerInput"
         class="chat-input"
@@ -300,9 +327,48 @@ defineExpose({ chatHistory, clearHistory, stopVoice })
 /* 输入区 */
 .input-area {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 12px 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.suggested-prompts {
+  display: grid;
+  width: 100%;
+  gap: 0.42rem;
+}
+
+.suggested-prompt {
+  display: grid;
+  min-height: 44px;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgba(214, 173, 102, 0.38);
+  border-left-width: 3px;
+  color: rgba(241, 229, 206, 0.9);
+  text-align: left;
+  background: linear-gradient(90deg, rgba(214, 173, 102, 0.1), rgba(8, 10, 10, 0.74));
+  cursor: pointer;
+  font: 500 0.78rem/1.45 'Noto Serif SC', serif;
+  letter-spacing: 0.03em;
+}
+
+.suggested-prompt:hover:not(:disabled),
+.suggested-prompt:focus-visible {
+  border-color: rgba(241, 229, 206, 0.82);
+  background: linear-gradient(90deg, rgba(214, 173, 102, 0.18), rgba(8, 10, 10, 0.88));
+  outline: none;
+}
+
+.suggested-prompt:disabled {
+  cursor: wait;
+  opacity: 0.52;
+}
+
+.prompt-fragment {
+  color: rgba(214, 173, 102, 0.78);
+  font: 600 0.54rem/1.35 ui-monospace, monospace;
+  letter-spacing: 0.16em;
 }
 
 .chat-input {

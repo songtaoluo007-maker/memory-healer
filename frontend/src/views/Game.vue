@@ -134,6 +134,22 @@ const decisionUnlocked = computed(() =>
     ? isSceneDecisionUnlocked(gameState.value.current_scene, choices.value, gameState.value)
     : false,
 )
+const suggestedPrompts = computed(() => {
+  if (!selectedNpc.value || !gameState.value) return []
+  return sceneFragments.value
+    .filter(
+      (fragment) =>
+        fragment.unlock_method === 'dialogue' &&
+        fragment.unlock_npc_id === selectedNpc.value?.id &&
+        Boolean(fragment.dialogue_prompt) &&
+        !gameState.value?.collected_fragments.includes(fragment.id),
+    )
+    .map((fragment) => ({
+      fragmentId: fragment.id,
+      name: fragment.name,
+      text: fragment.dialogue_prompt as string,
+    }))
+})
 
 const autoSave = async () => {
   if (!gameState.value) return
@@ -225,6 +241,22 @@ const handleExplore = async (hotspot: Hotspot) => {
   actionPending.value = true
   try {
     const result = await exploreHotspot(hotspot.id)
+    const lockedEvent = result.events.find((event) => event.type === 'fragment.locked')
+    if (lockedEvent) {
+      const fragment = lockedEvent.content_id
+        ? sceneFragments.value.find((candidate) => candidate.id === lockedEvent.content_id)
+        : null
+      const payload = lockedEvent.payload as { hint?: string; npc_id?: string }
+      const hint = payload.hint ?? fragment?.unlock_hint ?? '这段记忆仍被防备遮住。'
+      narrativeText.value = hint
+      typeStart(hint)
+      const npcId = payload.npc_id ?? fragment?.unlock_npc_id ?? hotspot.npc_id
+      if (npcId) {
+        const npc = currentNpcs.value.find((candidate) => candidate.id === npcId)
+        if (npc) selectNpc(npc)
+      }
+      return
+    }
     markExplored(hotspot.id)
     playSFX('explore')
     narrativeText.value = hotspot.label
@@ -356,6 +388,14 @@ const navigateTimeline = (targetScene: string) => {
 }
 
 const onDialogueComplete = (result: DialogueResponse) => {
+  if (
+    result.fragment_revealed &&
+    gameState.value?.collected_fragments.includes(result.fragment_revealed) &&
+    activeHypothesis.value?.evidence_ids.includes(result.fragment_revealed) &&
+    !selectedEvidenceIds.value.includes(result.fragment_revealed)
+  ) {
+    selectedEvidenceIds.value = [...selectedEvidenceIds.value, result.fragment_revealed]
+  }
   if (result.fragment_revealed && result.fragment_data) {
     popupFragment.value = {
       ...result.fragment_data,
@@ -636,6 +676,7 @@ onMounted(async () => {
           ref="chatPanelRef"
           :selected-npc="selectedNpc"
           :game-state="gameState"
+          :suggested-prompts="suggestedPrompts"
           :voice-playback="voice"
           :voice-coordinator="sceneVoice"
           @dialogue-complete="onDialogueComplete"

@@ -392,3 +392,111 @@ describe('dynamic NPC voice', () => {
     },
   )
 })
+
+describe('dialogue evidence tasks', () => {
+  let app: ReturnType<typeof createApp> | null = null
+  let host: HTMLDivElement | null = null
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    useGameState().gameState.value = makeState()
+  })
+
+  afterEach(() => {
+    app?.unmount()
+    host?.remove()
+    app = null
+    host = null
+  })
+
+  const mountChat = (
+    suggestedPrompts: Array<{ fragmentId: string; name: string; text: string }>,
+  ) => {
+    const state = useGameState().gameState
+    app = createApp(
+      defineComponent({
+        setup() {
+          return () =>
+            h(ChatPanel, {
+              selectedNpc,
+              gameState: state.value,
+              suggestedPrompts,
+            })
+        },
+      }),
+    )
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+  }
+
+  it('renders canonical evidence prompts and submits their exact configured text', async () => {
+    const configuredPrompt = '那张南下的车票，是谁替你买的？'
+    const dialogueState = makeState({
+      revision: 1,
+      dialogue_history: [
+        { role: 'player', content: configuredPrompt },
+        { role: 'npc', npc_id: selectedNpc.id, content: '是师父。', emotion: 'warm' },
+      ],
+    })
+    apiMocks.chatWithNpc.mockResolvedValue({
+      data: {
+        state: dialogueState,
+        reply: '是师父。',
+        fragment_revealed: null,
+        fragment_data: null,
+        trust_change: 0,
+        npc_mood: 'warm',
+        inner_thought: '',
+        degraded: false,
+      } satisfies DialogueResponse,
+    })
+
+    mountChat([
+      {
+        fragmentId: 'train_ticket_fragment',
+        name: '南下车票',
+        text: configuredPrompt,
+      },
+    ])
+
+    const prompt = host!.querySelector<HTMLButtonElement>('.suggested-prompt')
+    expect(prompt?.textContent).toContain(configuredPrompt)
+    prompt!.click()
+    await flushUi()
+
+    expect(apiMocks.chatWithNpc).toHaveBeenCalledWith(
+      expect.objectContaining({
+        npc_id: selectedNpc.id,
+        player_input: configuredPrompt,
+      }),
+    )
+  })
+
+  it('announces trust changes as dialogue task feedback', async () => {
+    apiMocks.chatWithNpc.mockResolvedValue({
+      data: {
+        state: makeState({ revision: 1 }),
+        reply: '我愿意再说一点。',
+        fragment_revealed: null,
+        fragment_data: null,
+        trust_change: 10,
+        npc_mood: 'warm',
+        inner_thought: '',
+        degraded: false,
+      } satisfies DialogueResponse,
+    })
+    mountChat([])
+
+    const input = host!.querySelector<HTMLInputElement>('.chat-input')!
+    input.value = '请你再想想。'
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    await nextTick()
+    host!.querySelector<HTMLButtonElement>('.send-btn')!.click()
+    await flushUi()
+
+    const feedback = host!.querySelector<HTMLElement>('[role="status"]')
+    expect(feedback?.textContent).toContain('信任 +10')
+    expect(feedback?.getAttribute('aria-live')).toBe('polite')
+  })
+})
