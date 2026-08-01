@@ -280,11 +280,12 @@ class GameService:
                 },
             )
 
-        self._validate_choice_requirements(state, choice)
-
         previous_choice = state.butterfly_choices.get(choice.scene_id)
         if previous_choice == choice.id:
             return ActionResult(state=state.model_copy(deep=True))
+
+        self._validate_choice_requirements(state, choice)
+
         if previous_choice is not None:
             raise DomainError(
                 "CHOICE_INVALID",

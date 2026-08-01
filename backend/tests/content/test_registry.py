@@ -239,6 +239,26 @@ def test_choice_requirements_must_belong_to_choice_scene(
     expect_validation_code(documents, code)
 
 
+def test_choice_trust_requirement_may_reference_canonical_npc_from_another_scene(
+    shipping_documents: dict[str, object],
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    choices = documents["choices"]
+    assert isinstance(choices, list)
+    choice = next(item for item in choices if item["id"] == "talk_to_stranger")
+    choice["requirements"] = [
+        {
+            "kind": "npc_trust_at_least",
+            "npc_id": "chen_shouyi_young",
+            "minimum": 60,
+        }
+    ]
+
+    registry = ContentRegistry.from_documents(documents)
+
+    assert registry.get_choice("talk_to_stranger").requirements[0].npc_id == "chen_shouyi_young"
+
+
 def test_shipping_1972_choices_explicitly_require_legacy_hypothesis() -> None:
     registry = ContentRegistry.load(DATA_DIR)
 

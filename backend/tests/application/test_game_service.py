@@ -107,6 +107,148 @@ def test_choice_requires_its_specified_hypothesis_when_scene_has_another_one() -
     assert caught.value.code == "HYPOTHESIS_REQUIRED"
 
 
+def test_choice_without_requirements_does_not_use_scene_hypothesis_gate() -> None:
+    documents = load_shipping_documents()
+    choices = documents["choices"]
+    assert isinstance(choices, list)
+    next(choice for choice in choices if choice["id"] == "encourage_art")[
+        "requirements"
+    ] = []
+    custom_service = GameService(
+        ContentRegistry.from_documents(documents),
+        now_provider=lambda: datetime(2026, 7, 26, 12, 0, tzinfo=timezone.utc),
+    )
+
+    result = custom_service.record_choice(
+        custom_service.create_game(),
+        "encourage_art",
+        expected_revision=0,
+    )
+
+    assert result.state.current_scene == "scene_1990"
+
+
+def test_choice_requires_collected_fragment_before_recording() -> None:
+    documents = load_shipping_documents()
+    choices = documents["choices"]
+    assert isinstance(choices, list)
+    next(choice for choice in choices if choice["id"] == "encourage_art")[
+        "requirements"
+    ] = [
+        {
+            "kind": "fragment_collected",
+            "fragment_id": "fragment_grandpa_knife",
+        }
+    ]
+    custom_service = GameService(
+        ContentRegistry.from_documents(documents),
+        now_provider=lambda: datetime(2026, 7, 26, 12, 0, tzinfo=timezone.utc),
+    )
+    state = custom_service.create_game()
+
+    with pytest.raises(DomainError) as caught:
+        custom_service.record_choice(
+            state,
+            "encourage_art",
+            expected_revision=state.revision,
+        )
+
+    assert caught.value.code == "CHOICE_REQUIREMENT_UNMET"
+
+    state = custom_service.explore(
+        state,
+        "hotspot_1972_knife",
+        expected_revision=state.revision,
+    ).state
+    result = custom_service.record_choice(
+        state,
+        "encourage_art",
+        expected_revision=state.revision,
+    )
+
+    assert result.state.current_scene == "scene_1990"
+
+
+def test_choice_requires_npc_trust_before_recording() -> None:
+    documents = load_shipping_documents()
+    choices = documents["choices"]
+    assert isinstance(choices, list)
+    next(choice for choice in choices if choice["id"] == "encourage_art")[
+        "requirements"
+    ] = [
+        {
+            "kind": "npc_trust_at_least",
+            "npc_id": "chen_shouyi_young",
+            "minimum": 60,
+        }
+    ]
+    custom_service = GameService(
+        ContentRegistry.from_documents(documents),
+        now_provider=lambda: datetime(2026, 7, 26, 12, 0, tzinfo=timezone.utc),
+    )
+    state = custom_service.create_game()
+
+    with pytest.raises(DomainError) as caught:
+        custom_service.record_choice(
+            state,
+            "encourage_art",
+            expected_revision=state.revision,
+        )
+
+    assert caught.value.code == "CHOICE_REQUIREMENT_UNMET"
+
+    payload = state.model_dump(mode="python")
+    payload["npc_trust"]["chen_shouyi_young"] = 60
+    eligible_state = GameState.model_validate(payload)
+    result = custom_service.record_choice(
+        eligible_state,
+        "encourage_art",
+        expected_revision=eligible_state.revision,
+    )
+
+    assert result.state.npc_trust["chen_shouyi_young"] == 95
+
+
+def test_recording_same_choice_is_idempotent_after_its_trust_effect() -> None:
+    documents = load_shipping_documents()
+    choices = documents["choices"]
+    assert isinstance(choices, list)
+    choice = next(choice for choice in choices if choice["id"] == "protect_legacy")
+    choice["requirements"] = [
+        {
+            "kind": "npc_trust_at_least",
+            "npc_id": "xiaoyu",
+            "minimum": 50,
+        }
+    ]
+    choice["effects"]["trust_changes"] = {"xiaoyu": -10}
+    custom_service = GameService(
+        ContentRegistry.from_documents(documents),
+        now_provider=lambda: datetime(2026, 7, 26, 12, 0, tzinfo=timezone.utc),
+    )
+    payload = custom_service.create_game().model_dump(mode="python")
+    payload["current_scene"] = "scene_2089"
+    payload["visited_scenes"].append("scene_2089")
+    payload["chapter"] = 5
+    state = GameState.model_validate(payload)
+    first = custom_service.record_choice(
+        state,
+        "protect_legacy",
+        expected_revision=state.revision,
+    )
+
+    assert first.state.npc_trust["xiaoyu"] == 40
+
+    retry = custom_service.record_choice(
+        first.state,
+        "protect_legacy",
+        expected_revision=first.state.revision,
+    )
+
+    assert retry.state == first.state
+    assert retry.events == []
+
+
 def test_scene_view_contains_only_canonical_current_scene_content(
     service: GameService,
 ) -> None:
