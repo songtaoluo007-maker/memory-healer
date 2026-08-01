@@ -130,6 +130,15 @@ const chatPanelRef = ref<{
   stopVoice: () => void
   chatHistory: ChatMessage[]
 } | null>(null)
+const reasoningObscured = computed(
+  () =>
+    Boolean(selectedNpc.value) ||
+    showFragmentPopup.value ||
+    Boolean(ui.activeOverlay) ||
+    actionPending.value ||
+    sceneTransitioning.value,
+)
+const canEnterScanMode = computed(() => Boolean(activeHypothesis.value) && !reasoningObscured.value)
 const hypothesisConfirmed = computed(() => {
   if (!activeHypothesis.value || !gameState.value) return false
   return (
@@ -173,8 +182,22 @@ const autoSave = async () => {
   }
 }
 
+const restoreAuthoritativeReasoning = () => {
+  const state = gameState.value
+  if (!state) return
+  const confirmedId = state.confirmed_hypotheses?.[state.current_scene]
+  if (!confirmedId) return
+  const confirmed = currentSceneHypotheses.value.find((candidate) => candidate.id === confirmedId)
+  if (!confirmed) return
+  selectHypothesis(confirmed.id)
+  selectedEvidenceIds.value = confirmed.evidence_ids.filter((evidenceId) =>
+    state.collected_fragments.includes(evidenceId),
+  )
+}
+
 const presentScene = () => {
   if (!currentScene.value || !gameState.value) return
+  restoreAuthoritativeReasoning()
   narrativeText.value = [currentScene.value.description, activeConsequence.value?.scene_text]
     .filter(Boolean)
     .join('\n\n')
@@ -244,9 +267,7 @@ const focusReasoningAction = () => {
 }
 
 const enterScanMode = () => {
-  if (scanMode.value) return
-  ui.closeOverlay()
-  voiceControlsOpen.value = false
+  if (scanMode.value || !canEnterScanMode.value) return
   scanMode.value = true
   void nextTick(() => scanReturnButton.value?.focus())
 }
@@ -669,7 +690,9 @@ onBeforeUnmount(() => {
       <div
         v-if="activeHypothesis"
         class="reasoning-panel-host"
-        :class="{ obscured: selectedNpc || showFragmentPopup }"
+        :class="{ obscured: reasoningObscured }"
+        :inert="reasoningObscured ? true : undefined"
+        :aria-hidden="reasoningObscured ? 'true' : undefined"
       >
         <MemoryReasoningPanel
           :hypotheses="currentSceneHypotheses"

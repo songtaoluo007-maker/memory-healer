@@ -31,10 +31,30 @@ export function useHotspots(sceneView: ComputedRef<SceneView | null>) {
   })
 
   watch(
-    () => sceneView.value?.scene.id,
-    () => {
-      activeHotspot.value = null
+    sceneView,
+    (nextView, previousView) => {
+      if (!nextView) return
+      if (nextView.scene.id !== previousView?.scene.id) {
+        activeHotspot.value = null
+      }
+
+      const currentHotspotIds = new Set(nextView.hotspots.map((hotspot) => hotspot.id))
+      const collectedFragmentIds = new Set(
+        nextView.fragments
+          .filter((fragment) => fragment.is_collected)
+          .map((fragment) => fragment.id),
+      )
+      const hydratedIds = new Set(
+        [...exploredIds.value].filter((hotspotId) => !currentHotspotIds.has(hotspotId)),
+      )
+      for (const hotspot of nextView.hotspots) {
+        if (hotspot.fragment_id && collectedFragmentIds.has(hotspot.fragment_id)) {
+          hydratedIds.add(hotspot.id)
+        }
+      }
+      exploredIds.value = hydratedIds
     },
+    { flush: 'sync', immediate: true },
   )
 
   return {

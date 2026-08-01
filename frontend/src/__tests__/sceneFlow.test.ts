@@ -90,6 +90,76 @@ describe('canonical scene flow', () => {
     expect(hotspots.value.some((hotspot) => hotspot.id.startsWith('hotspot_1972'))).toBe(false)
   })
 
+  it('hydrates collected hotspot state from each scene view while preserving immediate exploration', () => {
+    const initial = makeSceneView('scene_1990', 'hotspot_1990_train_ticket')
+    initial.scene.fragments = ['train_ticket_fragment', 'station_clock_fragment']
+    initial.fragments = [
+      {
+        id: 'train_ticket_fragment',
+        name: '南下车票',
+        scene: 'scene_1990',
+        description: '一张揉皱的车票。',
+        unlock_method: 'explore',
+        unlock_hint: '',
+        memory_text: '',
+        is_revealed: false,
+        is_collected: false,
+      },
+      {
+        id: 'station_clock_fragment',
+        name: '站台时钟',
+        scene: 'scene_1990',
+        description: '停在发车前的时钟。',
+        unlock_method: 'trust',
+        unlock_hint: '',
+        memory_text: '',
+        is_revealed: false,
+        is_collected: false,
+      },
+    ]
+    initial.hotspots.push({
+      id: 'hotspot_1990_station_clock',
+      scene_id: 'scene_1990',
+      label: '站台时钟',
+      x: 0.72,
+      y: 0.3,
+      radius: 0.05,
+      fragment_id: 'station_clock_fragment',
+      npc_id: null,
+      interaction: 'inspect',
+      presentation_event: 'fragment.locked',
+    })
+    initial.hotspots[0]!.fragment_id = 'train_ticket_fragment'
+
+    const sceneView = ref<SceneView | null>(initial)
+    const { exploredIds, explorationProgress, markExplored } = useHotspots(
+      computed(() => sceneView.value),
+    )
+
+    expect(exploredIds.value.size).toBe(0)
+    expect(explorationProgress.value).toBe(0)
+
+    sceneView.value = {
+      ...initial,
+      fragments: initial.fragments.map((fragment) =>
+        fragment.id === 'train_ticket_fragment'
+          ? { ...fragment, is_revealed: true, is_collected: true }
+          : fragment,
+      ),
+    }
+
+    expect([...exploredIds.value]).toEqual(['hotspot_1990_train_ticket'])
+    expect(explorationProgress.value).toBe(50)
+
+    markExplored('hotspot_1990_station_clock')
+
+    expect([...exploredIds.value].sort()).toEqual([
+      'hotspot_1990_station_clock',
+      'hotspot_1990_train_ticket',
+    ])
+    expect(explorationProgress.value).toBe(100)
+  })
+
   it('builds every graph node from canonical fragment state IDs', () => {
     const fragmentStates: Record<string, FragmentState> = {
       fragment_shadow_puppet: {

@@ -191,6 +191,130 @@ const makeReasoningScene = (): SceneView => {
   return scene
 }
 
+const makeCompleted1990Scene = (): SceneView => {
+  const scene = makeScene()
+  scene.scene.fragments = [
+    'train_ticket_fragment',
+    'farewell_letter_fragment',
+    'puppet_trunk_fragment',
+    'station_clock_fragment',
+  ]
+  scene.fragments = [
+    {
+      ...scene.fragments[1]!,
+      is_revealed: true,
+      is_collected: true,
+    },
+    {
+      id: 'farewell_letter_fragment',
+      name: '给师父的信',
+      scene: 'scene_1990',
+      description: '一封没有寄出的告别信。',
+      unlock_method: 'explore',
+      unlock_hint: '',
+      memory_text: '',
+      is_revealed: true,
+      is_collected: true,
+    },
+    {
+      id: 'puppet_trunk_fragment',
+      name: '皮影木箱',
+      scene: 'scene_1990',
+      description: '箱中藏着一尊穿西装的皮影。',
+      unlock_method: 'dialogue',
+      unlock_hint: '',
+      memory_text: '',
+      unlock_npc_id: 'chen_shouyi_1990',
+      dialogue_prompt: '箱子里为什么有一个穿西装的皮影？',
+      is_revealed: true,
+      is_collected: true,
+    },
+    {
+      ...scene.fragments[0]!,
+      is_revealed: true,
+      is_collected: true,
+    },
+  ]
+  scene.hotspots = scene.fragments.map((fragment, index) => ({
+    id: `hotspot_1990_${fragment.id.replace('_fragment', '')}`,
+    scene_id: 'scene_1990',
+    label: fragment.name,
+    x: [0.22, 0.34, 0.64, 0.78][index]!,
+    y: [0.42, 0.62, 0.58, 0.3][index]!,
+    radius: 0.06,
+    fragment_id: fragment.id,
+    npc_id: null,
+    interaction: 'inspect',
+    presentation_event: 'fragment.collected',
+  }))
+  scene.hypotheses = [
+    {
+      id: 'hypothesis_1990_survival',
+      scene_id: 'scene_1990',
+      question: '陈守义南下是否意味着他准备抛下皮影？',
+      statement: '生存压力迫使他离开。',
+      evidence_ids: ['train_ticket_fragment', 'farewell_letter_fragment'],
+      resolution: '犹豫不能证明放弃。',
+    },
+    {
+      id: 'hypothesis_1990_modern_story',
+      scene_id: 'scene_1990',
+      question: '陈守义为什么带着整箱皮影来到深圳？',
+      statement: '他在为皮影寻找新讲法。',
+      evidence_ids: ['puppet_trunk_fragment', 'station_clock_fragment'],
+      resolution: '他带着皮影走进了新生活。',
+    },
+  ]
+  scene.choices = [
+    {
+      id: 'open_puppet_trunk',
+      scene_id: 'scene_1990',
+      label: '打开木箱，让他看那个人偶',
+      target_scene: 'scene_2024',
+      is_key: true,
+      effects: { trust_changes: {}, reveal_fragments: [], current_mood: null },
+      requirements: [
+        {
+          kind: 'hypothesis_confirmed',
+          hypothesis_id: 'hypothesis_1990_modern_story',
+        },
+      ],
+    },
+  ]
+  return scene
+}
+
+const makeCompleted1990State = (): GameState => {
+  const collected = [
+    'fragment_grandpa_knife',
+    'fragment_shadow_puppet',
+    'train_ticket_fragment',
+    'farewell_letter_fragment',
+    'puppet_trunk_fragment',
+    'station_clock_fragment',
+  ]
+  return makeState({
+    revision: 18,
+    collected_fragments: collected,
+    revealed_fragments: collected,
+    fragment_states: Object.fromEntries(
+      collected.map((id) => [
+        id,
+        {
+          id,
+          name: id,
+          status: 'collected',
+          collected: true,
+          revealed: true,
+          scene: id.startsWith('fragment_') ? 'scene_1972' : 'scene_1990',
+        },
+      ]),
+    ) as GameState['fragment_states'],
+    npc_trust: { chen_shouyi_1990: 35 },
+    confirmed_hypotheses: { scene_1990: 'hypothesis_1990_modern_story' },
+  })
+}
+
 const makeConsequence = (variant: 'legacy_carried' | 'legacy_suppressed'): AppliedConsequence => ({
   id: `consequence_1972_${variant}`,
   source_choice_id: variant === 'legacy_carried' ? 'encourage_art' : 'discourage_art',
@@ -210,6 +334,22 @@ const flushUi = async () => {
   await nextTick()
 }
 
+const installNarrowMatchMedia = () => {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn().mockImplementation((query: string) => ({
+      matches: true,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  )
+}
+
 describe('game page evidence task presentation', () => {
   let app: ReturnType<typeof createApp> | null = null
   let host: HTMLDivElement | null = null
@@ -227,6 +367,7 @@ describe('game page evidence task presentation', () => {
   afterEach(() => {
     app?.unmount()
     host?.remove()
+    vi.unstubAllGlobals()
     app = null
     host = null
   })
@@ -481,6 +622,255 @@ describe('game page evidence task presentation', () => {
     expect(document.activeElement).toBe(host.querySelector('.scan-action'))
   })
 
+  it('makes obscured reasoning inert and refuses hidden scan activation during dialogue', async () => {
+    const scene = makeReasoningScene()
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state: makeState(), scene_view: scene, content_version: 1 },
+    })
+
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    host.querySelector<HTMLButtonElement>('.npc-chip')!.click()
+    await flushUi()
+
+    const reasoningHost = host.querySelector<HTMLElement>('.reasoning-panel-host')!
+    expect(reasoningHost.classList.contains('obscured')).toBe(true)
+    expect(reasoningHost.hasAttribute('inert')).toBe(true)
+    expect(reasoningHost.getAttribute('aria-hidden')).toBe('true')
+
+    reasoningHost.querySelector<HTMLButtonElement>('.scan-action')!.click()
+    await flushUi()
+
+    expect(host.querySelector('.game-cinema')?.classList.contains('scan-active')).toBe(false)
+    expect(host.querySelector('.dialogue-float')?.classList.contains('open')).toBe(true)
+  })
+
+  it('keeps the archive overlay open when its hidden scan action is triggered programmatically', async () => {
+    const scene = makeReasoningScene()
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state: makeState(), scene_view: scene, content_version: 1 },
+    })
+
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    host.querySelector<HTMLButtonElement>('.tool-rail button')!.click()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    const reasoningHost = host.querySelector<HTMLElement>('.reasoning-panel-host')!
+    expect(host.querySelector('.memory-panel')).not.toBeNull()
+    expect(reasoningHost.hasAttribute('inert')).toBe(true)
+    expect(reasoningHost.getAttribute('aria-hidden')).toBe('true')
+
+    reasoningHost.querySelector<HTMLButtonElement>('.scan-action')!.click()
+    await flushUi()
+
+    expect(host.querySelector('.game-cinema')?.classList.contains('scan-active')).toBe(false)
+    expect(host.querySelector('.memory-panel')).not.toBeNull()
+  })
+
+  it('makes reasoning inert and refuses scan activation while a hypothesis request is pending', async () => {
+    const scene = makeReasoningScene()
+    const state = makeState({
+      collected_fragments: ['station_clock_fragment', 'train_ticket_fragment'],
+      revealed_fragments: ['station_clock_fragment', 'train_ticket_fragment'],
+    })
+    let resolveConfirmation:
+      | ((value: { data: { state: GameState; events: never[] } }) => void)
+      | undefined
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state, scene_view: scene, content_version: 1 },
+    })
+    apiMocks.confirmHypothesis.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveConfirmation = resolve
+        }),
+    )
+
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    for (const card of host.querySelectorAll<HTMLButtonElement>('.evidence-card')) card.click()
+    await flushUi()
+    host.querySelector<HTMLButtonElement>('.weave-action')!.click()
+    await flushUi()
+
+    const reasoningHost = host.querySelector<HTMLElement>('.reasoning-panel-host')!
+    expect(reasoningHost.hasAttribute('inert')).toBe(true)
+    expect(reasoningHost.getAttribute('aria-hidden')).toBe('true')
+    reasoningHost.querySelector<HTMLButtonElement>('.scan-action')!.click()
+    await flushUi()
+    expect(host.querySelector('.game-cinema')?.classList.contains('scan-active')).toBe(false)
+
+    resolveConfirmation?.({ data: { state, events: [] } })
+    await flushUi()
+  })
+
+  it('refuses scan activation while a scene transition is rebuilding the view', async () => {
+    const scene = makeReasoningScene()
+    scene.choices = [
+      {
+        id: 'continue_to_2024',
+        scene_id: 'scene_1990',
+        label: '沿着记忆继续',
+        target_scene: 'scene_2024',
+        is_key: false,
+        effects: { trust_changes: {}, reveal_fragments: [], current_mood: null },
+        requirements: [],
+      },
+    ]
+    const transitionedState = makeState({
+      revision: 5,
+      current_scene: 'scene_2024',
+      visited_scenes: ['scene_1990', 'scene_2024'],
+    })
+    const nextScene = makeScene()
+    nextScene.scene = {
+      ...nextScene.scene,
+      id: 'scene_2024',
+      title: '城中村旧屋',
+      time_period: '2024',
+      fragments: [],
+    }
+    nextScene.fragments = []
+    nextScene.hotspots = []
+    nextScene.hypotheses = []
+    nextScene.choices = []
+    let resolveScene: ((value: { data: SceneView }) => void) | undefined
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state: makeState(), scene_view: scene, content_version: 1 },
+    })
+    apiMocks.recordChoice.mockResolvedValue({
+      data: { state: transitionedState, events: [] },
+    })
+    apiMocks.getSceneView.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveScene = resolve
+        }),
+    )
+
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    host.querySelector<HTMLButtonElement>('.nav-btn')!.click()
+    await flushUi()
+
+    expect(apiMocks.getSceneView).toHaveBeenCalledOnce()
+    expect(host.querySelector('.loading-overlay')).not.toBeNull()
+    const reasoningHost = host.querySelector<HTMLElement>('.reasoning-panel-host')!
+    expect(reasoningHost.hasAttribute('inert')).toBe(true)
+    expect(reasoningHost.getAttribute('aria-hidden')).toBe('true')
+    reasoningHost.querySelector<HTMLButtonElement>('.scan-action')!.click()
+    await flushUi()
+    expect(host.querySelector('.game-cinema')?.classList.contains('scan-active')).toBe(false)
+
+    resolveScene?.({ data: nextScene })
+    await flushUi()
+  })
+
+  it('preserves expanded voice controls across a scan round trip', async () => {
+    installNarrowMatchMedia()
+    const scene = makeReasoningScene()
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state: makeState(), scene_view: scene, content_version: 1 },
+    })
+
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    const voiceTrigger = host.querySelector<HTMLButtonElement>('[aria-label="展开语音控制"]')!
+    voiceTrigger.click()
+    await flushUi()
+
+    expect(host.querySelector('.game-cinema')?.classList.contains('voice-controls-open')).toBe(true)
+    expect(voiceTrigger.getAttribute('aria-expanded')).toBe('true')
+    expect(host.querySelector<HTMLDivElement>('[data-voice-controls-panel]')?.hidden).toBe(false)
+
+    host.querySelector<HTMLButtonElement>('.scan-action')!.click()
+    await flushUi()
+    host.querySelector<HTMLButtonElement>('.scan-return')!.click()
+    await flushUi()
+
+    expect(host.querySelector('.game-cinema')?.classList.contains('voice-controls-open')).toBe(true)
+    expect(voiceTrigger.getAttribute('aria-expanded')).toBe('true')
+    expect(host.querySelector<HTMLDivElement>('[data-voice-controls-panel]')?.hidden).toBe(false)
+  })
+
+  it('rebuilds completed reasoning and exploration from an authoritative loaded save', async () => {
+    const state = makeCompleted1990State()
+    const scene = makeCompleted1990Scene()
+    apiMocks.loadGame.mockResolvedValue({
+      data: { game_state: state, save_revision: 7 },
+    })
+    apiMocks.getSceneView.mockResolvedValue({ data: scene })
+
+    app = createApp(Game, { loadSlotId: 0 })
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    expect(apiMocks.loadGame).toHaveBeenCalledWith(0)
+    expect(apiMocks.getSceneView).toHaveBeenCalledWith(
+      expect.objectContaining({ revision: 18, collected_fragments: state.collected_fragments }),
+    )
+    expect(
+      host
+        .querySelector('[data-hypothesis-id="hypothesis_1990_modern_story"]')
+        ?.getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(host.querySelector('.reasoning-header')?.textContent).toContain('推理完成')
+
+    const evidenceCards = [...host.querySelectorAll<HTMLButtonElement>('.evidence-card')]
+    expect(evidenceCards).toHaveLength(2)
+    expect(evidenceCards.every((card) => card.disabled)).toBe(true)
+    expect(evidenceCards.every((card) => card.getAttribute('aria-pressed') === 'true')).toBe(true)
+    expect(host.querySelector('.scene-nav.choice-lock')).toBeNull()
+    expect(host.querySelector('.scene-nav')?.textContent).toContain('打开木箱，让他看那个人偶')
+
+    const hotspots = [...host.querySelectorAll<HTMLButtonElement>('.perception-cue')]
+    expect(hotspots).toHaveLength(4)
+    expect(hotspots.every((hotspot) => hotspot.disabled)).toBe(true)
+    expect(host.querySelector('.exploration-meter')?.textContent).toContain('100%')
+  })
+
   it('keeps the authoritative hotspot path available in scan mode and exits into its fragment', async () => {
     const initialState = makeState({ npc_trust: { chen_shouyi_1990: 35 } })
     const collectedState = makeState({
@@ -537,6 +927,15 @@ describe('game page evidence task presentation', () => {
     )
     expect(host.querySelector('.game-cinema')?.classList.contains('scan-active')).toBe(false)
     expect(host.querySelector('.hotspot-overlay')?.classList.contains('scan-active')).toBe(false)
+    expect(host.querySelector('.popup-overlay')).not.toBeNull()
+
+    const reasoningHost = host.querySelector<HTMLElement>('.reasoning-panel-host')!
+    expect(reasoningHost.hasAttribute('inert')).toBe(true)
+    expect(reasoningHost.getAttribute('aria-hidden')).toBe('true')
+    reasoningHost.querySelector<HTMLButtonElement>('.scan-action')!.click()
+    await flushUi()
+
+    expect(host.querySelector('.game-cinema')?.classList.contains('scan-active')).toBe(false)
     expect(host.querySelector('.popup-overlay')).not.toBeNull()
   })
 
