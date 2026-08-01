@@ -616,10 +616,22 @@ describe('dialogue evidence tasks', () => {
     )
     const selected = ref<NpcSummary | null>(selectedNpc)
     const state = useGameState().gameState
+    const dialogueComplete = vi.fn()
+    const voiceCoordinator = {
+      beginDialogueVoice: vi.fn(),
+      cancelPending: vi.fn(),
+      playDialogueResponse: vi.fn(),
+    }
     app = createApp(
       defineComponent({
         setup() {
-          return () => h(ChatPanel, { selectedNpc: selected.value, gameState: state.value })
+          return () =>
+            h(ChatPanel, {
+              selectedNpc: selected.value,
+              gameState: state.value,
+              voiceCoordinator: voiceCoordinator as never,
+              onDialogueComplete: dialogueComplete,
+            })
         },
       }),
     )
@@ -653,5 +665,10 @@ describe('dialogue evidence tasks', () => {
     await flushUi()
 
     expect(host.querySelector('[role="status"]')).toBeNull()
+    expect(sfxMocks.playSFX).not.toHaveBeenCalled()
+    expect(voiceCoordinator.beginDialogueVoice).not.toHaveBeenCalled()
+    expect(voiceCoordinator.cancelPending).not.toHaveBeenCalled()
+    expect(apiMocks.requestNpcVoice).not.toHaveBeenCalled()
+    expect(dialogueComplete).not.toHaveBeenCalled()
   })
 })

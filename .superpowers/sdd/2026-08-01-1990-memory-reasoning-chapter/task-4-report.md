@@ -44,3 +44,9 @@ Complete. Dialogue unlock prompts now derive from scene fragment metadata, use t
 - Full frontend: `npm test -- --run` — 18 files, 148 passed.
 - ESLint: `npm run lint` — passed with 5 test-only `vue/one-component-per-file` warnings and no errors.
 - Build: `npm run build` — passed.
+
+## Fix round 2
+
+- After `sendDialogue` returns, ChatPanel now immediately discards a response whose captured NPC is no longer selected. The return precedes trust SFX, feedback construction, voice-coordinator work, completion emission, and voice requests; `finally` still clears the pending state.
+- The race regression switches NPCs while the original request is pending, then proves the late response produces no status, trust SFX, voice coordinator call, dialogue-complete emission, or voice request.
+- Verification: targeted 19 passed; full frontend 18 files / 148 passed; ESLint has 0 errors and 5 test-only warnings; production build passed.

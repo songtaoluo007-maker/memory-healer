@@ -90,6 +90,7 @@ const sendMessage = async (text?: string) => {
 
   try {
     const result = await sendDialogue(npc.id, msg)
+    if (props.selectedNpc?.id !== npc.id) return
     const newlyCollected = Boolean(
       result.fragment_revealed &&
         !collectedBefore.has(result.fragment_revealed) &&
