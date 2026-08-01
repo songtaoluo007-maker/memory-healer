@@ -30,3 +30,17 @@ Complete. Dialogue unlock prompts now derive from scene fragment metadata, use t
 ## Concerns
 
 - The page-level test mocks the Pixi cinematic canvas so it can exercise the real Game-to-Hotspot interaction path in jsdom; production rendering is covered by the production build.
+
+## Fix round 1
+
+- Locked feedback now stays in ChatPanel's sole accessible status channel after opening its configured NPC. It includes the server method, canonical hint, current trust, and authoritative threshold; it clears on a normal dialogue completion, explicit close, or NPC change.
+- Dialogue feedback is a source-NPC-bound message list. Positive and negative trust use distinct wording, and degraded mode appends instead of replacing trust/archive feedback. Late results from an NPC that is no longer selected are not displayed.
+- ChatPanel captures collected IDs before sending and emits `newlyCollected` only for the authoritative uncollected-to-collected transition. Game only archives, opens the fragment popup, voices, and auto-selects reasoning evidence when that flag is true.
+- Strengthened page integration coverage confirms payload-NPC dialogue locks remain interactive, trust locks report `当前 / 需要`, an actual 35-trust request is sent before normal collection, prompts filter by selected NPC and collection state, newly collected dialogue evidence is selected in the active hypothesis, and a repeated standard question produces no second popup.
+
+### Fix round verification
+
+- Targeted: `npm test -- --run src/__tests__/dialogueFlow.test.ts src/__tests__/gamePagePresentation.test.ts` — 19 passed.
+- Full frontend: `npm test -- --run` — 18 files, 148 passed.
+- ESLint: `npm run lint` — passed with 5 test-only `vue/one-component-per-file` warnings and no errors.
+- Build: `npm run build` — passed.

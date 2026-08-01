@@ -113,6 +113,7 @@ const scanMode = ref(false)
 const voiceControlsOpen = ref(false)
 const mounted = ref(false)
 const endingPending = ref(false)
+const dialogueTaskFeedback = ref<{ npcId: string; message: string } | null>(null)
 const chatPanelRef = ref<{
   clearHistory: () => void
   stopVoice: () => void
@@ -185,7 +186,8 @@ const loadCurrentScene = async () => {
   }
 }
 
-const selectNpc = (npc: NpcSummary, playIntro = true) => {
+const selectNpc = (npc: NpcSummary, playIntro = true, taskFeedback: string | null = null) => {
+  dialogueTaskFeedback.value = taskFeedback ? { npcId: npc.id, message: taskFeedback } : null
   if (selectedNpc.value?.id === npc.id && playIntro) return
   if (chatPanelRef.value) {
     chatPanelRef.value.stopVoice()
@@ -205,6 +207,7 @@ const closeDialogue = () => {
     sceneVoice.cancelPending()
   }
   selectedNpc.value = null
+  dialogueTaskFeedback.value = null
   ui.setStageMode('observe')
 }
 
@@ -246,14 +249,33 @@ const handleExplore = async (hotspot: Hotspot) => {
       const fragment = lockedEvent.content_id
         ? sceneFragments.value.find((candidate) => candidate.id === lockedEvent.content_id)
         : null
-      const payload = lockedEvent.payload as { hint?: string; npc_id?: string }
+      const payload = lockedEvent.payload as {
+        hint?: string
+        method?: string
+        minimum_trust?: number
+        npc_id?: string
+      }
       const hint = payload.hint ?? fragment?.unlock_hint ?? '这段记忆仍被防备遮住。'
       narrativeText.value = hint
       typeStart(hint)
       const npcId = payload.npc_id ?? fragment?.unlock_npc_id ?? hotspot.npc_id
+      const minimumTrust = payload.minimum_trust ?? fragment?.minimum_trust
+      const currentTrust = npcId ? gameState.value?.npc_trust[npcId] : undefined
+      const method = payload.method === 'trust' ? '信任门槛' : payload.method ?? '解锁条件'
+      const feedback = [
+        hint,
+        method,
+        typeof currentTrust === 'number' && typeof minimumTrust === 'number'
+          ? `当前 ${currentTrust} / 需要 ${minimumTrust}`
+          : typeof minimumTrust === 'number'
+            ? `需要 ${minimumTrust}`
+            : '',
+      ]
+        .filter(Boolean)
+        .join(' · ')
       if (npcId) {
         const npc = currentNpcs.value.find((candidate) => candidate.id === npcId)
-        if (npc) selectNpc(npc)
+        if (npc) selectNpc(npc, true, feedback)
       }
       return
     }
@@ -387,8 +409,15 @@ const navigateTimeline = (targetScene: string) => {
   typeStart(narrativeText.value)
 }
 
-const onDialogueComplete = (result: DialogueResponse) => {
+const onDialogueComplete = (
+  result: DialogueResponse,
+  newlyCollected: boolean,
+  sourceNpcId: string,
+) => {
+  if (selectedNpc.value?.id !== sourceNpcId) return
+  dialogueTaskFeedback.value = null
   if (
+    newlyCollected &&
     result.fragment_revealed &&
     gameState.value?.collected_fragments.includes(result.fragment_revealed) &&
     activeHypothesis.value?.evidence_ids.includes(result.fragment_revealed) &&
@@ -396,7 +425,7 @@ const onDialogueComplete = (result: DialogueResponse) => {
   ) {
     selectedEvidenceIds.value = [...selectedEvidenceIds.value, result.fragment_revealed]
   }
-  if (result.fragment_revealed && result.fragment_data) {
+  if (newlyCollected && result.fragment_revealed && result.fragment_data) {
     popupFragment.value = {
       ...result.fragment_data,
       collected: gameState.value?.collected_fragments.includes(result.fragment_revealed) ?? false,
@@ -677,6 +706,7 @@ onMounted(async () => {
           :selected-npc="selectedNpc"
           :game-state="gameState"
           :suggested-prompts="suggestedPrompts"
+          :task-feedback="dialogueTaskFeedback"
           :voice-playback="voice"
           :voice-coordinator="sceneVoice"
           @dialogue-complete="onDialogueComplete"

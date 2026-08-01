@@ -1,7 +1,7 @@
 import { createApp, defineComponent, h, nextTick, ref } from 'vue'
 import { createPinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GameState, SceneView } from '../types/game'
+import type { Fragment, GameState, SceneView } from '../types/game'
 
 const apiMocks = vi.hoisted(() => ({
   chatWithNpc: vi.fn(),
@@ -124,7 +124,7 @@ const makeScene = (): SceneView => ({
       unlock_hint: '信任达到“初识”后再查看',
       memory_text: '',
       unlock_npc_id: 'chen_shouyi_1990',
-      minimum_trust: 30,
+      minimum_trust: 35,
       is_revealed: false,
       is_collected: false,
     },
@@ -201,7 +201,7 @@ describe('game page evidence task presentation', () => {
               method: 'trust',
               hint: '信任达到“初识”后再查看',
               npc_id: 'chen_shouyi_1990',
-              minimum_trust: 30,
+              minimum_trust: 35,
             },
           },
         ],
@@ -223,9 +223,58 @@ describe('game page evidence task presentation', () => {
     expect(useGameState().gameState.value?.revision).toBe(4)
     expect(host.querySelector<HTMLButtonElement>('.perception-cue')?.disabled).toBe(false)
     expect(host.textContent).toContain('陈守义')
+    const status = host.querySelector<HTMLElement>('[role="status"]')?.textContent
+    expect(status).toContain('信任达到“初识”后再查看')
+    expect(status).toContain('当前 20 / 需要 35')
+  })
+
+  it('opens the payload NPC task for a locked dialogue hotspot without marking it explored', async () => {
+    const state = makeState()
+    const scene = makeScene()
+    scene.npcs.push({
+      id: 'stranger_1990',
+      name: '陌生人',
+      title: '候车旅客',
+      avatar: '',
+      initial_trust: 40,
+    })
+    apiMocks.getNewGame.mockResolvedValue({ data: { state, scene_view: scene, content_version: 1 } })
+    apiMocks.exploreHotspot.mockResolvedValue({
+      data: {
+        state,
+        events: [
+          {
+            type: 'fragment.locked',
+            content_id: 'train_ticket_fragment',
+            payload: {
+              method: 'dialogue',
+              hint: '先问问候车的陌生人。',
+              npc_id: 'stranger_1990',
+              prompt: '你见过这张车票吗？',
+            },
+          },
+        ],
+      },
+    })
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    host.querySelector<HTMLButtonElement>('.perception-cue')!.click()
+    await flushUi()
+
+    expect(host.querySelector<HTMLButtonElement>('.perception-cue')?.disabled).toBe(false)
+    expect(host.querySelector('.dialogue-header')?.textContent).toContain('陌生人')
+    expect(host.querySelector('[role="status"]')?.textContent).toContain('先问问候车的陌生人')
   })
 
   it('collects the same hotspot normally after the trust requirement is met', async () => {
+    const initialState = makeState({ npc_trust: { chen_shouyi_1990: 35 } })
     const state = makeState({
       revision: 5,
       collected_fragments: ['station_clock_fragment'],
@@ -239,7 +288,11 @@ describe('game page evidence task presentation', () => {
           revealed: true,
         },
       },
-      npc_trust: { chen_shouyi_1990: 30 },
+      npc_trust: { chen_shouyi_1990: 35 },
+    })
+    const scene = makeScene()
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state: initialState, scene_view: scene, content_version: 1 },
     })
     apiMocks.exploreHotspot.mockResolvedValue({
       data: {
@@ -265,8 +318,155 @@ describe('game page evidence task presentation', () => {
     host.querySelector<HTMLButtonElement>('.perception-cue')!.click()
     await flushUi()
 
+    expect(apiMocks.exploreHotspot).toHaveBeenCalledWith(
+      'station-clock-hotspot',
+      expect.objectContaining({ revision: 4, npc_trust: { chen_shouyi_1990: 35 } }),
+      4,
+    )
     expect(useGameState().gameState.value?.revision).toBe(5)
     expect(useGameState().gameState.value?.collected_fragments).toContain('station_clock_fragment')
     expect(host.querySelector<HTMLButtonElement>('.perception-cue')?.disabled).toBe(true)
+  })
+
+  it('derives prompts only from uncollected dialogue fragments for the selected NPC', async () => {
+    const state = makeState({ collected_fragments: ['already_collected'] })
+    const scene = makeScene()
+    scene.npcs.push({
+      id: 'stranger_1990',
+      name: '陌生人',
+      title: '候车旅客',
+      avatar: '',
+      initial_trust: 40,
+    })
+    scene.fragments.push(
+      {
+        id: 'already_collected',
+        name: '已归档车票',
+        scene: 'scene_1990',
+        description: '',
+        unlock_method: 'dialogue',
+        unlock_hint: '',
+        memory_text: '',
+        unlock_npc_id: 'chen_shouyi_1990',
+        dialogue_prompt: '这条已经归档，不该继续出现。',
+        is_revealed: true,
+        is_collected: true,
+      },
+      {
+        id: 'stranger_prompt',
+        name: '陌生人的纸条',
+        scene: 'scene_1990',
+        description: '',
+        unlock_method: 'dialogue',
+        unlock_hint: '',
+        memory_text: '',
+        unlock_npc_id: 'stranger_1990',
+        dialogue_prompt: '这是陌生人的问题。',
+        is_revealed: false,
+        is_collected: false,
+      },
+    )
+    apiMocks.getNewGame.mockResolvedValue({ data: { state, scene_view: scene, content_version: 1 } })
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    host.querySelectorAll<HTMLButtonElement>('.npc-chip')[0].click()
+    await flushUi()
+
+    const prompts = Array.from(host.querySelectorAll<HTMLButtonElement>('.suggested-prompt')).map(
+      (prompt) => prompt.textContent,
+    )
+    expect(prompts).toHaveLength(1)
+    expect(prompts[0]).toContain('那张南下的车票，是谁替你买的？')
+    expect(prompts.join('')).not.toContain('已经归档')
+    expect(prompts.join('')).not.toContain('陌生人的问题')
+  })
+
+  it('immediately selects newly collected dialogue evidence for the active hypothesis', async () => {
+    const state = makeState()
+    const scene = makeScene()
+    scene.hypotheses = [
+      {
+        id: 'ticket-hypothesis',
+        scene_id: 'scene_1990',
+        question: '车票说明了什么？',
+        statement: '它说明师父支持他南下。',
+        evidence_ids: ['train_ticket_fragment'],
+        resolution: '他带着师父的支持离开。',
+      },
+    ]
+    const fragment: Fragment = {
+      id: 'train_ticket_fragment',
+      name: '南下车票',
+      scene: 'scene_1990',
+      description: '一张揉皱的车票。',
+      unlock_method: 'dialogue',
+      unlock_hint: '问问陈守义。',
+      memory_text: '',
+      collected: true,
+    }
+    apiMocks.getNewGame.mockResolvedValue({ data: { state, scene_view: scene, content_version: 1 } })
+    apiMocks.chatWithNpc.mockResolvedValue({
+      data: {
+        state: makeState({ revision: 5, collected_fragments: [fragment.id] }),
+        reply: '车票是师父替我买的。',
+        fragment_revealed: fragment.id,
+        fragment_data: fragment,
+        trust_change: 0,
+        npc_mood: 'warm',
+        inner_thought: '',
+        degraded: false,
+      },
+    })
+    apiMocks.requestNpcVoice.mockResolvedValue({
+      data: {
+        url: null,
+        provider: 'silent',
+        cached: false,
+        media_type: null,
+        duration_ms: null,
+        line_id: null,
+        cues: [],
+        degraded: true,
+      },
+    })
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    host.querySelector<HTMLButtonElement>('.npc-chip')!.click()
+    await flushUi()
+    host.querySelector<HTMLButtonElement>('.suggested-prompt')!.click()
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    const selectedEvidence = host.querySelector<HTMLButtonElement>(
+      '.evidence-card[aria-pressed="true"]',
+    )
+    expect(selectedEvidence?.textContent).toContain('南下车票')
+    expect(host.querySelector('.popup-overlay')).not.toBeNull()
+
+    host.querySelector<HTMLButtonElement>('.btn-close')!.click()
+    await flushUi()
+    const input = host.querySelector<HTMLInputElement>('.chat-input')!
+    input.value = '车票是谁买的？'
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    await nextTick()
+    host.querySelector<HTMLButtonElement>('.send-btn')!.click()
+    await flushUi()
+
+    expect(host.querySelector('.popup-overlay')).toBeNull()
   })
 })

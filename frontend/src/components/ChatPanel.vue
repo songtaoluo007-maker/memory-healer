@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import NpcAvatar from './NpcAvatar.vue'
 import { requestNpcVoice } from '../api'
 import { useGameState } from '../composables/useGameState'
@@ -17,23 +17,29 @@ export interface SuggestedPrompt {
   text: string
 }
 
+export interface DialogueTaskFeedback {
+  npcId: string
+  message: string
+}
+
 const props = defineProps<{
   selectedNpc: NpcSummary | null
   gameState: GameState | null
   suggestedPrompts?: SuggestedPrompt[]
+  taskFeedback?: DialogueTaskFeedback | null
   voicePlayback?: ReturnType<typeof useVoicePlayback>
   voiceCoordinator?: SceneVoiceIntegration
 }>()
 
 const emit = defineEmits<{
-  dialogueComplete: [result: DialogueResponse]
+  dialogueComplete: [result: DialogueResponse, newlyCollected: boolean, npcId: string]
 }>()
 
 const chatContainer = ref<HTMLElement | null>(null)
 const playerInput = ref('')
 const chatLoading = ref(false)
 const visibleFromIndex = ref(0)
-const statusMessage = ref('')
+const statusFeedback = ref<{ npcId: string; messages: string[] } | null>(null)
 
 const { playSFX } = useSfxBus()
 const voice = props.voicePlayback ?? useVoicePlayback()
@@ -53,6 +59,15 @@ const chatHistory = computed<ChatMessage[]>(() =>
     emotion: message.emotion ?? undefined,
   })),
 )
+const statusMessage = computed(() => {
+  const npcId = props.selectedNpc?.id
+  if (!npcId) return ''
+  const messages = [
+    props.taskFeedback?.npcId === npcId ? props.taskFeedback.message : '',
+    statusFeedback.value?.npcId === npcId ? statusFeedback.value.messages.join(' · ') : '',
+  ].filter(Boolean)
+  return messages.join(' · ')
+})
 
 function scrollToBottom() {
   nextTick(() => {
@@ -67,26 +82,39 @@ const sendMessage = async (text?: string) => {
   if (!msg || !props.selectedNpc || !props.gameState || chatLoading.value) return
 
   const npc = props.selectedNpc
+  const collectedBefore = new Set(props.gameState.collected_fragments)
   playerInput.value = ''
   chatLoading.value = true
-  statusMessage.value = ''
+  statusFeedback.value = null
   scrollToBottom()
 
   try {
     const result = await sendDialogue(npc.id, msg)
+    const newlyCollected = Boolean(
+      result.fragment_revealed &&
+        !collectedBefore.has(result.fragment_revealed) &&
+        result.state.collected_fragments.includes(result.fragment_revealed),
+    )
+    const feedback: string[] = []
     if (result.trust_change !== 0) {
       playSFX(result.trust_change > 0 ? 'trust_up' : 'trust_down')
-      statusMessage.value = `${npc.name}愿意多说一些 · 信任 ${result.trust_change > 0 ? '+' : ''}${result.trust_change}`
+      feedback.push(
+        result.trust_change > 0
+          ? `${npc.name}愿意多说一些 · 信任 +${result.trust_change}`
+          : `${npc.name}收紧了话头 · 信任 ${result.trust_change}`,
+      )
     }
-    if (result.fragment_revealed && result.fragment_data) {
-      const archived = `线索归档 · ${result.fragment_data.name}`
-      statusMessage.value = statusMessage.value ? `${statusMessage.value} · ${archived}` : archived
+    if (newlyCollected && result.fragment_data) {
+      feedback.push(`线索归档 · ${result.fragment_data.name}`)
     }
     if (result.degraded) {
-      statusMessage.value = '记忆回声暂时不稳定，已切换为角色本地对白。'
+      feedback.push('记忆回声暂时不稳定，已切换为角色本地对白。')
+    }
+    if (props.selectedNpc?.id === npc.id && feedback.length) {
+      statusFeedback.value = { npcId: npc.id, messages: feedback }
     }
     const dialogueGeneration = voiceCoordinator.beginDialogueVoice()
-    emit('dialogueComplete', result)
+    emit('dialogueComplete', result, newlyCollected, npc.id)
     scrollToBottom()
     void requestNpcVoice(result.reply, npc.id, result.npc_mood, 0.5)
       .then((response) => {
@@ -97,7 +125,12 @@ const sendMessage = async (text?: string) => {
       })
       .catch(() => false)
   } catch (caught: unknown) {
-    statusMessage.value = (caught as Error).message || '发送失败，请稍后重试。'
+    if (props.selectedNpc?.id === npc.id) {
+      statusFeedback.value = {
+        npcId: npc.id,
+        messages: [(caught as Error).message || '发送失败，请稍后重试。'],
+      }
+    }
   } finally {
     chatLoading.value = false
   }
@@ -109,9 +142,16 @@ function stopVoice() {
 
 function clearHistory() {
   visibleFromIndex.value = props.gameState?.dialogue_history.length ?? 0
-  statusMessage.value = ''
+  statusFeedback.value = null
   stopVoice()
 }
+
+watch(
+  () => props.selectedNpc?.id,
+  () => {
+    statusFeedback.value = null
+  },
+)
 
 onUnmounted(stopVoice)
 

@@ -1,8 +1,9 @@
-import { createApp, defineComponent, h, nextTick } from 'vue'
+import { createApp, defineComponent, h, nextTick, ref } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
   ActionResult,
   DialogueResponse,
+  Fragment,
   GameState,
   NpcSummary,
   PresentationEvent,
@@ -498,5 +499,159 @@ describe('dialogue evidence tasks', () => {
     const feedback = host!.querySelector<HTMLElement>('[role="status"]')
     expect(feedback?.textContent).toContain('信任 +10')
     expect(feedback?.getAttribute('aria-live')).toBe('polite')
+  })
+
+  it('keeps degraded, trust, and newly archived evidence feedback together', async () => {
+    const fragment: Fragment = {
+      id: 'train_ticket_fragment',
+      name: '南下车票',
+      scene: 'scene_1990',
+      description: '一张揉皱的车票。',
+      unlock_method: 'dialogue',
+      unlock_hint: '问问陈守义。',
+      memory_text: '',
+      collected: true,
+    }
+    apiMocks.chatWithNpc.mockResolvedValue({
+      data: {
+        state: makeState({ revision: 1, collected_fragments: [fragment.id] }),
+        reply: '车票是师父替我买的。',
+        fragment_revealed: fragment.id,
+        fragment_data: fragment,
+        trust_change: 10,
+        npc_mood: 'warm',
+        inner_thought: '',
+        degraded: true,
+      } satisfies DialogueResponse,
+    })
+    mountChat([])
+
+    const input = host!.querySelector<HTMLInputElement>('.chat-input')!
+    input.value = '车票是谁买的？'
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    await nextTick()
+    host!.querySelector<HTMLButtonElement>('.send-btn')!.click()
+    await flushUi()
+
+    const feedback = host!.querySelector<HTMLElement>('[role="status"]')?.textContent
+    expect(feedback).toContain('信任 +10')
+    expect(feedback).toContain('线索归档 · 南下车票')
+    expect(feedback).toContain('记忆回声暂时不稳定')
+  })
+
+  it('does not announce a repeated dialogue fragment as newly archived', async () => {
+    const fragment: Fragment = {
+      id: 'train_ticket_fragment',
+      name: '南下车票',
+      scene: 'scene_1990',
+      description: '一张揉皱的车票。',
+      unlock_method: 'dialogue',
+      unlock_hint: '问问陈守义。',
+      memory_text: '',
+      collected: true,
+    }
+    const collected = makeState({ revision: 1, collected_fragments: [fragment.id] })
+    apiMocks.chatWithNpc.mockResolvedValue({
+      data: {
+        state: collected,
+        reply: '车票是师父替我买的。',
+        fragment_revealed: fragment.id,
+        fragment_data: fragment,
+        trust_change: 0,
+        npc_mood: 'warm',
+        inner_thought: '',
+        degraded: false,
+      } satisfies DialogueResponse,
+    })
+    mountChat([])
+
+    const send = async () => {
+      const input = host!.querySelector<HTMLInputElement>('.chat-input')!
+      input.value = '车票是谁买的？'
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      await nextTick()
+      host!.querySelector<HTMLButtonElement>('.send-btn')!.click()
+      await flushUi()
+    }
+
+    await send()
+    expect(host!.querySelector('[role="status"]')?.textContent).toContain('线索归档 · 南下车票')
+    await send()
+    expect(host!.querySelector('[role="status"]')).toBeNull()
+  })
+
+  it('uses guarded wording for a negative trust change', async () => {
+    apiMocks.chatWithNpc.mockResolvedValue({
+      data: {
+        state: makeState({ revision: 1 }),
+        reply: '这件事我不想说。',
+        fragment_revealed: null,
+        fragment_data: null,
+        trust_change: -10,
+        npc_mood: 'guarded',
+        inner_thought: '',
+        degraded: false,
+      } satisfies DialogueResponse,
+    })
+    mountChat([])
+
+    const input = host!.querySelector<HTMLInputElement>('.chat-input')!
+    input.value = '你是不是想卖掉皮影？'
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    await nextTick()
+    host!.querySelector<HTMLButtonElement>('.send-btn')!.click()
+    await flushUi()
+
+    const feedback = host!.querySelector('[role="status"]')?.textContent
+    expect(feedback).toContain('收紧了话头 · 信任 -10')
+    expect(feedback).not.toContain('愿意多说一些')
+  })
+
+  it('does not show a late response from a previous NPC after switching dialogue targets', async () => {
+    let resolveDialogue!: (value: { data: DialogueResponse }) => void
+    apiMocks.chatWithNpc.mockReturnValue(
+      new Promise((resolve) => {
+        resolveDialogue = resolve
+      }),
+    )
+    const selected = ref<NpcSummary | null>(selectedNpc)
+    const state = useGameState().gameState
+    app = createApp(
+      defineComponent({
+        setup() {
+          return () => h(ChatPanel, { selectedNpc: selected.value, gameState: state.value })
+        },
+      }),
+    )
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+
+    const input = host.querySelector<HTMLInputElement>('.chat-input')!
+    input.value = '你还记得车票吗？'
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    await nextTick()
+    host.querySelector<HTMLButtonElement>('.send-btn')!.click()
+    selected.value = {
+      ...selectedNpc,
+      id: 'stranger_1990',
+      name: '陌生人',
+    }
+    await flushUi()
+    resolveDialogue({
+      data: {
+        state: makeState({ revision: 1 }),
+        reply: '别再问了。',
+        fragment_revealed: null,
+        fragment_data: null,
+        trust_change: -10,
+        npc_mood: 'guarded',
+        inner_thought: '',
+        degraded: false,
+      } satisfies DialogueResponse,
+    })
+    await flushUi()
+
+    expect(host.querySelector('[role="status"]')).toBeNull()
   })
 })
