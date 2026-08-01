@@ -122,9 +122,14 @@ class DialogueService:
 
         payload = state.model_dump(mode="python")
         previous_trust = payload["npc_trust"][npc.id]
-        trust_delta = suggestion.trust_change
-        if first_canonical_collection:
-            trust_delta += canonical_fragment.dialogue_trust_reward
+        if canonical_fragment is not None:
+            trust_delta = (
+                canonical_fragment.dialogue_trust_reward
+                if first_canonical_collection
+                else 0
+            )
+        else:
+            trust_delta = suggestion.trust_change
         updated_trust = max(0, min(100, previous_trust + trust_delta))
         applied_trust_change = updated_trust - previous_trust
         payload["npc_trust"][npc.id] = updated_trust

@@ -274,6 +274,51 @@ def test_exact_1990_question_collects_dialogue_clue_and_reward_when_ai_degrades(
     assert repeated.state.collected_fragments.count("puppet_trunk_fragment") == 1
 
 
+def test_exact_1990_question_ignores_model_trust_and_unlocks_clock(
+    registry: ContentRegistry,
+    initial_state,
+) -> None:
+    state = state_in_scene(initial_state, "scene_1990")
+    first = DialogueService(
+        registry,
+        StubDialogueClient(
+            suggestion(trust_change=-10, fragment_revealed=None)
+        ),
+    ).chat(
+        state,
+        npc_id="chen_shouyi_1990",
+        player_input="箱子里为什么有一个穿西装的皮影？",
+        expected_revision=state.revision,
+    )
+
+    assert first.state.npc_trust["chen_shouyi_1990"] == 35
+    assert first.trust_change == 10
+
+    clock = GameService(registry).explore(
+        first.state,
+        "hotspot_1990_station_clock",
+        expected_revision=first.state.revision,
+    )
+
+    assert "station_clock_fragment" in clock.state.collected_fragments
+
+    repeated = DialogueService(
+        registry,
+        StubDialogueClient(
+            suggestion(trust_change=10, fragment_revealed=None)
+        ),
+    ).chat(
+        clock.state,
+        npc_id="chen_shouyi_1990",
+        player_input="箱子里为什么有一个穿西装的皮影？",
+        expected_revision=clock.state.revision,
+    )
+
+    assert repeated.state.npc_trust["chen_shouyi_1990"] == 35
+    assert repeated.trust_change == 0
+    assert repeated.state.collected_fragments.count("puppet_trunk_fragment") == 1
+
+
 @pytest.mark.parametrize(
     "fragment_id",
     ["train_ticket_fragment", "station_clock_fragment"],

@@ -298,6 +298,12 @@ class ContentRegistry:
                         "HOTSPOT_FRAGMENT_SCENE_MISMATCH",
                         f"热区 {hotspot.id} 引用了其他场景碎片",
                     )
+                if fragment.id in hotspot_fragments:
+                    self._raise(
+                        "FRAGMENT_HOTSPOT_DUPLICATE",
+                        f"碎片 {fragment.id} 不能绑定多个热区",
+                        fragment_id=fragment.id,
+                    )
                 hotspot_fragments.add(fragment.id)
             if hotspot.npc_id is not None:
                 npc = self.npcs.get(hotspot.npc_id)

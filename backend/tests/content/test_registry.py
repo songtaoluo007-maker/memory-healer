@@ -233,6 +233,27 @@ def test_npc_fragment_list_must_agree_with_fragment_unlock_owner(
     expect_validation_code(documents, "NPC_FRAGMENT_UNLOCK_MISMATCH")
 
 
+@pytest.mark.parametrize("insert_offset", [0, 1])
+def test_fragment_cannot_have_duplicate_hotspots_regardless_of_document_order(
+    shipping_documents: dict[str, object],
+    insert_offset: int,
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    hotspots = documents["hotspots"]
+    assert isinstance(hotspots, list)
+    canonical_index = next(
+        index
+        for index, hotspot in enumerate(hotspots)
+        if hotspot["id"] == "hotspot_1990_puppet_trunk"
+    )
+    duplicate = copy.deepcopy(hotspots[canonical_index])
+    duplicate["id"] = "hotspot_1990_puppet_trunk_duplicate"
+    duplicate["npc_id"] = "stranger_1990"
+    hotspots.insert(canonical_index + insert_offset, duplicate)
+
+    expect_validation_code(documents, "FRAGMENT_HOTSPOT_DUPLICATE")
+
+
 @pytest.mark.parametrize(
     ("field", "value", "code"),
     [
