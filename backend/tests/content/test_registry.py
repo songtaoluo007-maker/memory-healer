@@ -136,6 +136,124 @@ def test_registry_loads_first_act_hypothesis() -> None:
     )
 
 
+def test_choice_requirements_support_each_canonical_kind(
+    shipping_documents: dict[str, object],
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    choices = documents["choices"]
+    assert isinstance(choices, list)
+    choices[0]["requirements"] = [
+        {
+            "kind": "hypothesis_confirmed",
+            "hypothesis_id": "hypothesis_1972_legacy",
+        },
+        {
+            "kind": "fragment_collected",
+            "fragment_id": "fragment_grandpa_knife",
+        },
+        {
+            "kind": "npc_trust_at_least",
+            "npc_id": "chen_shouyi_young",
+            "minimum": 60,
+        },
+    ]
+
+    registry = ContentRegistry.from_documents(documents)
+
+    assert [requirement.model_dump() for requirement in registry.get_choice("encourage_art").requirements] == choices[0]["requirements"]
+
+
+@pytest.mark.parametrize(
+    ("requirement", "code"),
+    [
+        (
+            {
+                "kind": "hypothesis_confirmed",
+                "hypothesis_id": "hypothesis_missing",
+            },
+            "CHOICE_REQUIREMENT_HYPOTHESIS_NOT_FOUND",
+        ),
+        (
+            {
+                "kind": "fragment_collected",
+                "fragment_id": "fragment_missing",
+            },
+            "CHOICE_REQUIREMENT_FRAGMENT_NOT_FOUND",
+        ),
+        (
+            {
+                "kind": "npc_trust_at_least",
+                "npc_id": "npc_missing",
+                "minimum": 60,
+            },
+            "CHOICE_REQUIREMENT_NPC_NOT_FOUND",
+        ),
+    ],
+)
+def test_choice_requirement_references_must_exist(
+    shipping_documents: dict[str, object],
+    requirement: dict[str, object],
+    code: str,
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    choices = documents["choices"]
+    assert isinstance(choices, list)
+    choices[0]["requirements"] = [requirement]
+
+    expect_validation_code(documents, code)
+
+
+@pytest.mark.parametrize(
+    ("choice_id", "requirement", "code"),
+    [
+        (
+            "talk_to_stranger",
+            {
+                "kind": "hypothesis_confirmed",
+                "hypothesis_id": "hypothesis_1972_legacy",
+            },
+            "CHOICE_REQUIREMENT_HYPOTHESIS_SCENE_MISMATCH",
+        ),
+        (
+            "encourage_art",
+            {
+                "kind": "fragment_collected",
+                "fragment_id": "train_ticket_fragment",
+            },
+            "CHOICE_REQUIREMENT_FRAGMENT_SCENE_MISMATCH",
+        ),
+    ],
+)
+def test_choice_requirements_must_belong_to_choice_scene(
+    shipping_documents: dict[str, object],
+    choice_id: str,
+    requirement: dict[str, object],
+    code: str,
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    choices = documents["choices"]
+    assert isinstance(choices, list)
+    choice = next(item for item in choices if item["id"] == choice_id)
+    choice["requirements"] = [requirement]
+
+    expect_validation_code(documents, code)
+
+
+def test_shipping_1972_choices_explicitly_require_legacy_hypothesis() -> None:
+    registry = ContentRegistry.load(DATA_DIR)
+
+    for choice_id in ("encourage_art", "discourage_art"):
+        assert [
+            requirement.model_dump()
+            for requirement in registry.get_choice(choice_id).requirements
+        ] == [
+            {
+                "kind": "hypothesis_confirmed",
+                "hypothesis_id": "hypothesis_1972_legacy",
+            }
+        ]
+
+
 def test_registry_loads_voice_profiles_and_first_act_lines() -> None:
     registry = ContentRegistry.load(DATA_DIR)
 

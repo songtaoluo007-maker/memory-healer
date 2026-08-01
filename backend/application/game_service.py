@@ -10,8 +10,11 @@ from pydantic import BaseModel, ConfigDict, Field
 from backend.content.models import (
     ChoiceContent,
     EndingContent,
+    FragmentCollectedRequirementContent,
     HotspotContent,
+    HypothesisConfirmedRequirementContent,
     HypothesisContent,
+    NpcTrustAtLeastRequirementContent,
     SceneContent,
 )
 from backend.content.registry import ContentRegistry
@@ -277,22 +280,7 @@ class GameService:
                 },
             )
 
-        scene_hypotheses = [
-            hypothesis
-            for hypothesis in self.registry.hypotheses.values()
-            if hypothesis.scene_id == state.current_scene
-        ]
-        if scene_hypotheses and state.current_scene not in state.confirmed_hypotheses:
-            raise DomainError(
-                "HYPOTHESIS_REQUIRED",
-                "请先用已经取得的证据完成本幕推理",
-                details={
-                    "scene_id": state.current_scene,
-                    "hypothesis_ids": [
-                        hypothesis.id for hypothesis in scene_hypotheses
-                    ],
-                },
-            )
+        self._validate_choice_requirements(state, choice)
 
         previous_choice = state.butterfly_choices.get(choice.scene_id)
         if previous_choice == choice.id:
@@ -360,6 +348,47 @@ class GameService:
         next_state = GameState.model_validate(payload)
         next_state.validate_content_references(self.registry)
         return ActionResult(state=next_state, events=events)
+
+    @staticmethod
+    def _requirement_unmet(
+        choice: ChoiceContent,
+        requirement: FragmentCollectedRequirementContent
+        | NpcTrustAtLeastRequirementContent,
+    ) -> DomainError:
+        return DomainError(
+            "CHOICE_REQUIREMENT_UNMET",
+            "尚未满足该选择的前置条件",
+            details={
+                "choice_id": choice.id,
+                "requirement": requirement.model_dump(),
+            },
+        )
+
+    def _validate_choice_requirements(
+        self,
+        state: GameState,
+        choice: ChoiceContent,
+    ) -> None:
+        for requirement in choice.requirements:
+            if isinstance(requirement, HypothesisConfirmedRequirementContent):
+                if (
+                    state.confirmed_hypotheses.get(choice.scene_id)
+                    != requirement.hypothesis_id
+                ):
+                    raise DomainError(
+                        "HYPOTHESIS_REQUIRED",
+                        "请先用已经取得的证据完成本幕推理",
+                        details={
+                            "scene_id": choice.scene_id,
+                            "hypothesis_id": requirement.hypothesis_id,
+                        },
+                    )
+            elif isinstance(requirement, FragmentCollectedRequirementContent):
+                if requirement.fragment_id not in state.collected_fragments:
+                    raise self._requirement_unmet(choice, requirement)
+            elif isinstance(requirement, NpcTrustAtLeastRequirementContent):
+                if state.npc_trust[requirement.npc_id] < requirement.minimum:
+                    raise self._requirement_unmet(choice, requirement)
 
     def evaluate_ending(self, state: GameState) -> EndingContent:
         state.validate_content_references(self.registry)

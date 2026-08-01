@@ -14,10 +14,13 @@ from backend.domain.errors import DomainError
 from .models import (
     ChoiceContent,
     EndingContent,
+    FragmentCollectedRequirementContent,
     FragmentContent,
     HotspotContent,
+    HypothesisConfirmedRequirementContent,
     HypothesisContent,
     NpcContent,
+    NpcTrustAtLeastRequirementContent,
     SceneContent,
     VoiceAssetContent,
     VoiceLineContent,
@@ -330,6 +333,37 @@ class ContentRegistry:
                         "CHOICE_FRAGMENT_NOT_FOUND",
                         f"选择 {choice.id} 引用了不存在的碎片 {fragment_id}",
                     )
+            for requirement in choice.requirements:
+                if isinstance(requirement, HypothesisConfirmedRequirementContent):
+                    hypothesis = self.hypotheses.get(requirement.hypothesis_id)
+                    if hypothesis is None:
+                        self._raise(
+                            "CHOICE_REQUIREMENT_HYPOTHESIS_NOT_FOUND",
+                            f"选择 {choice.id} 的推理条件不存在",
+                        )
+                    if hypothesis.scene_id != choice.scene_id:
+                        self._raise(
+                            "CHOICE_REQUIREMENT_HYPOTHESIS_SCENE_MISMATCH",
+                            f"选择 {choice.id} 的推理条件不属于本场景",
+                        )
+                elif isinstance(requirement, FragmentCollectedRequirementContent):
+                    fragment = self.fragments.get(requirement.fragment_id)
+                    if fragment is None:
+                        self._raise(
+                            "CHOICE_REQUIREMENT_FRAGMENT_NOT_FOUND",
+                            f"选择 {choice.id} 的碎片条件不存在",
+                        )
+                    if fragment.scene != choice.scene_id:
+                        self._raise(
+                            "CHOICE_REQUIREMENT_FRAGMENT_SCENE_MISMATCH",
+                            f"选择 {choice.id} 的碎片条件不属于本场景",
+                        )
+                elif isinstance(requirement, NpcTrustAtLeastRequirementContent):
+                    if requirement.npc_id not in self.npcs:
+                        self._raise(
+                            "CHOICE_REQUIREMENT_NPC_NOT_FOUND",
+                            f"选择 {choice.id} 的信任条件 NPC 不存在",
+                        )
         for hypothesis in self.hypotheses.values():
             if hypothesis.scene_id not in self.scenes:
                 self._raise(

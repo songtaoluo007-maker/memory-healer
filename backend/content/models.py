@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -141,6 +141,30 @@ class ChoiceEffects(ContentModel):
     current_mood: str | None = None
 
 
+class HypothesisConfirmedRequirementContent(ContentModel):
+    kind: Literal["hypothesis_confirmed"]
+    hypothesis_id: str
+
+
+class FragmentCollectedRequirementContent(ContentModel):
+    kind: Literal["fragment_collected"]
+    fragment_id: str
+
+
+class NpcTrustAtLeastRequirementContent(ContentModel):
+    kind: Literal["npc_trust_at_least"]
+    npc_id: str
+    minimum: int
+
+
+ChoiceRequirementContent = Annotated[
+    HypothesisConfirmedRequirementContent
+    | FragmentCollectedRequirementContent
+    | NpcTrustAtLeastRequirementContent,
+    Field(discriminator="kind"),
+]
+
+
 class ChoiceContent(ContentModel):
     id: str
     scene_id: str
@@ -148,6 +172,7 @@ class ChoiceContent(ContentModel):
     target_scene: str | None = None
     is_key: bool = True
     effects: ChoiceEffects = Field(default_factory=ChoiceEffects)
+    requirements: tuple[ChoiceRequirementContent, ...] = ()
 
 
 class HypothesisContent(ContentModel):

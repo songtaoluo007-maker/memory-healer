@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import copy
 from datetime import datetime, timezone
+import json
 from pathlib import Path
 
 import pytest
@@ -35,6 +37,74 @@ def collect_first_act_evidence(service: GameService, state: GameState) -> GameSt
             expected_revision=state.revision,
         ).state
     return state
+
+
+def load_shipping_documents() -> dict[str, object]:
+    filenames = (
+        "scenes",
+        "npcs",
+        "fragments",
+        "hotspots",
+        "choices",
+        "hypotheses",
+        "endings",
+        "voice_profiles",
+        "voice_lines",
+        "voice_assets",
+    )
+    return {
+        name: json.loads((DATA_DIR / f"{name}.json").read_text(encoding="utf-8"))
+        for name in filenames
+    }
+
+
+def test_choice_requires_its_specified_hypothesis_when_scene_has_another_one() -> None:
+    documents = copy.deepcopy(load_shipping_documents())
+    choices = documents["choices"]
+    hypotheses = documents["hypotheses"]
+    assert isinstance(choices, list)
+    assert isinstance(hypotheses, list)
+    next(choice for choice in choices if choice["id"] == "encourage_art")[
+        "requirements"
+    ] = [
+        {
+            "kind": "hypothesis_confirmed",
+            "hypothesis_id": "hypothesis_1972_legacy",
+        }
+    ]
+    hypotheses.append(
+        {
+            "id": "hypothesis_1972_non_required",
+            "scene_id": "scene_1972",
+            "question": "陈守义是否已经决定南下？",
+            "statement": "他仍在犹豫。",
+            "evidence_ids": [
+                "fragment_grandpa_knife",
+                "fragment_shadow_puppet",
+            ],
+            "resolution": "这不是本次选择所需的推理。",
+        }
+    )
+    custom_service = GameService(
+        ContentRegistry.from_documents(documents),
+        now_provider=lambda: datetime(2026, 7, 26, 12, 0, tzinfo=timezone.utc),
+    )
+    state = collect_first_act_evidence(custom_service, custom_service.create_game())
+    state = custom_service.confirm_hypothesis(
+        state,
+        "hypothesis_1972_non_required",
+        ["fragment_grandpa_knife", "fragment_shadow_puppet"],
+        expected_revision=state.revision,
+    ).state
+
+    with pytest.raises(DomainError) as caught:
+        custom_service.record_choice(
+            state,
+            "encourage_art",
+            expected_revision=state.revision,
+        )
+
+    assert caught.value.code == "HYPOTHESIS_REQUIRED"
 
 
 def test_scene_view_contains_only_canonical_current_scene_content(

@@ -5,6 +5,12 @@
     "label": "告诉陈守义：这门手艺值得传下去",
     "target_scene": "scene_1990",
     "is_key": true,
+    "requirements": [
+      {
+        "kind": "hypothesis_confirmed",
+        "hypothesis_id": "hypothesis_1972_legacy"
+      }
+    ],
     "effects": {
       "trust_changes": { "chen_shouyi_young": 35 },
       "reveal_fragments": ["fragment_three_kings"],
@@ -17,6 +23,12 @@
     "label": "劝他放下皮影，另谋生活",
     "target_scene": "scene_1990",
     "is_key": true,
+    "requirements": [
+      {
+        "kind": "hypothesis_confirmed",
+        "hypothesis_id": "hypothesis_1972_legacy"
+      }
+    ],
     "effects": {
       "trust_changes": { "chen_shouyi_young": -10 },
       "reveal_fragments": [],
