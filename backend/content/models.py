@@ -158,7 +158,7 @@ class FragmentCollectedRequirementContent(ContentModel):
 class NpcTrustAtLeastRequirementContent(ContentModel):
     kind: Literal["npc_trust_at_least"]
     npc_id: str
-    minimum: int
+    minimum: int = Field(ge=0, le=100)
 
 
 ChoiceRequirementContent = Annotated[

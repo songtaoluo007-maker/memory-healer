@@ -453,6 +453,26 @@ def test_choice_trust_requirement_may_reference_canonical_npc_from_another_scene
     assert registry.get_choice("talk_to_stranger").requirements[0].npc_id == "chen_shouyi_young"
 
 
+@pytest.mark.parametrize("minimum", [-1, 101])
+def test_choice_trust_requirement_rejects_out_of_range_thresholds(
+    shipping_documents: dict[str, object],
+    minimum: int,
+) -> None:
+    documents = copy.deepcopy(shipping_documents)
+    choices = documents["choices"]
+    assert isinstance(choices, list)
+    choice = next(item for item in choices if item["id"] == "talk_to_stranger")
+    choice["requirements"] = [
+        {
+            "kind": "npc_trust_at_least",
+            "npc_id": "chen_shouyi_young",
+            "minimum": minimum,
+        }
+    ]
+
+    expect_validation_code(documents, "CONTENT_SCHEMA_INVALID")
+
+
 def test_shipping_1972_choices_explicitly_require_legacy_hypothesis() -> None:
     registry = ContentRegistry.load(DATA_DIR)
 
