@@ -45,7 +45,9 @@ const formatTime = (seconds: number) => {
 const getSceneName = (sceneId: string) => {
   const names: Record<string, string> = {
     scene_1972: '1972 · 西安老巷',
+    scene_1990: '1990 · 深圳火车站',
     scene_2024: '2024 · 深圳城中村',
+    scene_2050: '2050 · 颁奖典礼',
     scene_2089: '2089 · 拾忆实验室',
   }
   return names[sceneId] || sceneId
