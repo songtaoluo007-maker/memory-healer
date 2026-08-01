@@ -46,6 +46,19 @@ export function toggleEvidenceSelection(
   return [...selectedIds, evidenceId]
 }
 
+export function toggleReasoningEvidenceSelection(
+  selectedIds: readonly string[],
+  evidenceId: string,
+  activeHypothesis: Hypothesis | null,
+  collectedIds: readonly string[],
+  confirmed: boolean,
+): string[] {
+  if (confirmed || !activeHypothesis || !collectedIds.includes(evidenceId)) {
+    return [...selectedIds]
+  }
+  return toggleEvidenceSelection(selectedIds, evidenceId, activeHypothesis.evidence_ids)
+}
+
 export function buildReasoningSnapshot(
   hypothesis: Hypothesis,
   fragments: readonly SceneFragment[],
@@ -177,6 +190,20 @@ export function useMemoryReasoningSelection(sceneView: Readonly<Ref<SceneView | 
     rejectedFeedback.value = null
   }
 
+  const toggleEvidence = (
+    evidenceId: string,
+    collectedIds: readonly string[],
+    confirmed: boolean,
+  ) => {
+    selectedEvidenceIds.value = toggleReasoningEvidenceSelection(
+      selectedEvidenceIds.value,
+      evidenceId,
+      activeHypothesis.value,
+      collectedIds,
+      confirmed,
+    )
+  }
+
   return {
     currentSceneHypotheses,
     activeHypothesis,
@@ -184,5 +211,6 @@ export function useMemoryReasoningSelection(sceneView: Readonly<Ref<SceneView | 
     selectedEvidenceIds,
     rejectedFeedback,
     selectHypothesis,
+    toggleEvidence,
   }
 }

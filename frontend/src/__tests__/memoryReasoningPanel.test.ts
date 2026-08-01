@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { createApp, defineComponent, h, nextTick, ref } from 'vue'
 import MemoryReasoningPanel from '../components/MemoryReasoningPanel.vue'
-import type { Hypothesis, SceneFragment } from '../types/game'
+import { useMemoryReasoningSelection } from '../domain/memoryReasoning'
+import type { Hypothesis, SceneFragment, SceneView } from '../types/game'
 
 const hypotheses: Hypothesis[] = [
   {
@@ -35,7 +36,7 @@ const fragment = (id: string, name: string): SceneFragment => ({
   dialogue_prompt: null,
   dialogue_trust_reward: 0,
   is_revealed: true,
-  is_collected: true,
+  is_collected: false,
 })
 
 const fragments = [
@@ -44,6 +45,34 @@ const fragments = [
   fragment('puppet_trunk_fragment', '皮影道具箱'),
   fragment('station_clock_fragment', '站台的时钟'),
 ]
+
+const makeSceneView = (candidates: Hypothesis[]): SceneView => {
+  const sceneId = candidates[0]?.scene_id ?? 'scene_1990'
+  return {
+    scene: {
+      id: sceneId,
+      title: sceneId,
+      description: `${sceneId} description`,
+      mood: 'guarded',
+      time_period: sceneId.replace('scene_', ''),
+      location: '记忆场',
+      npcs: [],
+      fragments: fragments.map((item) => item.id),
+      exits: {},
+      triggers: {},
+      transition_in: '',
+      transition_out: '',
+      fallback_asset: `/assets/scenes/${sceneId}.webp`,
+    },
+    npcs: [],
+    fragments,
+    hotspots: [],
+    choices: [],
+    hypotheses: candidates,
+    applied_consequences: [],
+    content_version: 1,
+  }
+}
 
 let app: ReturnType<typeof createApp> | null = null
 let host: HTMLDivElement | null = null
@@ -61,41 +90,36 @@ const mountPanel = (
     selectedId?: string
     selectedEvidence?: string[]
     rejectedFeedback?: string | null
+    collectedIds?: string[]
   } = {},
 ) => {
   const candidates = options.candidates ?? hypotheses
-  const selectedHypothesisId = ref(options.selectedId ?? candidates[0]?.id ?? '')
-  const selectedIds = ref(options.selectedEvidence ?? [])
-  const rejectedFeedback = ref(options.rejectedFeedback ?? null)
+  const collectedIds = options.collectedIds ?? fragments.map((item) => item.id)
+  const sceneView = ref<SceneView | null>(makeSceneView(candidates))
+  let selection!: ReturnType<typeof useMemoryReasoningSelection>
 
   app = createApp(
     defineComponent({
       setup() {
-        const selectHypothesis = (hypothesisId: string) => {
-          const candidate = candidates.find((item) => item.id === hypothesisId)
-          if (!candidate) return
-          selectedHypothesisId.value = candidate.id
-          selectedIds.value = selectedIds.value.filter((id) => candidate.evidence_ids.includes(id))
-          rejectedFeedback.value = null
-        }
+        selection = useMemoryReasoningSelection(sceneView)
+        if (options.selectedId) selection.selectHypothesis(options.selectedId)
+        selection.selectedEvidenceIds.value = [...(options.selectedEvidence ?? [])]
+        selection.rejectedFeedback.value = options.rejectedFeedback ?? null
 
         return () =>
           h(MemoryReasoningPanel, {
             hypotheses: candidates,
-            selectedHypothesisId: selectedHypothesisId.value,
+            selectedHypothesisId: selection.selectedHypothesisId.value,
             fragments,
-            collectedIds: fragments.map((item) => item.id),
-            selectedIds: selectedIds.value,
+            collectedIds,
+            selectedIds: selection.selectedEvidenceIds.value,
             confirmed: false,
             pending: false,
             scanMode: false,
-            rejectedFeedback: rejectedFeedback.value,
-            onSelectHypothesis: selectHypothesis,
-            onToggleEvidence: (evidenceId: string) => {
-              selectedIds.value = selectedIds.value.includes(evidenceId)
-                ? selectedIds.value.filter((id) => id !== evidenceId)
-                : [...selectedIds.value, evidenceId]
-            },
+            rejectedFeedback: selection.rejectedFeedback.value,
+            onSelectHypothesis: selection.selectHypothesis,
+            onToggleEvidence: (evidenceId: string) =>
+              selection.toggleEvidence(evidenceId, collectedIds, false),
           })
       },
     }),
@@ -104,7 +128,11 @@ const mountPanel = (
   document.body.append(host)
   app.mount(host)
 
-  return { host, selectedHypothesisId, selectedIds }
+  return {
+    host,
+    selectedHypothesisId: selection.selectedHypothesisId,
+    selectedIds: selection.selectedEvidenceIds,
+  }
 }
 
 describe('MemoryReasoningPanel', () => {
@@ -122,6 +150,33 @@ describe('MemoryReasoningPanel', () => {
     )
   })
 
+  it('exposes candidates as focusable pressed buttons instead of incomplete tabs', async () => {
+    const mounted = mountPanel()
+    const group = mounted.host.querySelector('[role="group"][aria-label="选择记忆解释"]')
+    const candidateButtons = [
+      ...mounted.host.querySelectorAll<HTMLButtonElement>('[data-hypothesis-id]'),
+    ]
+
+    expect(group).not.toBeNull()
+    expect(candidateButtons.map((button) => button.getAttribute('role'))).toEqual([null, null])
+    expect(candidateButtons.map((button) => button.getAttribute('aria-pressed'))).toEqual([
+      'true',
+      'false',
+    ])
+
+    candidateButtons[0]?.focus()
+    expect(document.activeElement).toBe(candidateButtons[0])
+    expect(candidateButtons[0]?.tabIndex).toBe(0)
+    expect(candidateButtons[1]?.tabIndex).toBe(0)
+
+    candidateButtons[1]?.click()
+    await nextTick()
+    expect(candidateButtons.map((button) => button.getAttribute('aria-pressed'))).toEqual([
+      'false',
+      'true',
+    ])
+  })
+
   it('switches interpretation and drops evidence incompatible with the next candidate', async () => {
     const mounted = mountPanel({ selectedEvidence: ['train_ticket_fragment'] })
     const modernStoryButton = mounted.host.querySelector<HTMLButtonElement>(
@@ -135,6 +190,29 @@ describe('MemoryReasoningPanel', () => {
     expect(mounted.selectedIds.value).toEqual([])
     expect(mounted.host.textContent).toContain('皮影道具箱')
     expect(mounted.host.textContent).not.toContain('南下的车票')
+  })
+
+  it('selects authoritative collected evidence after switching candidates despite a stale scene view', async () => {
+    const mounted = mountPanel({
+      collectedIds: ['puppet_trunk_fragment', 'station_clock_fragment'],
+    })
+    const modernStoryButton = mounted.host.querySelector<HTMLButtonElement>(
+      '[data-hypothesis-id="hypothesis_1990_modern_story"]',
+    )
+
+    modernStoryButton?.click()
+    await nextTick()
+    const trunkButton = mounted.host.querySelector<HTMLButtonElement>(
+      '.evidence-card[aria-pressed="false"]',
+    )
+    expect(fragments.find((item) => item.id === 'puppet_trunk_fragment')?.is_collected).toBe(false)
+    expect(trunkButton?.disabled).toBe(false)
+
+    trunkButton?.click()
+    await nextTick()
+
+    expect(mounted.selectedIds.value).toEqual(['puppet_trunk_fragment'])
+    expect(trunkButton?.getAttribute('aria-pressed')).toBe('true')
   })
 
   it('shows authoritative rejected feedback without presenting the decision as unlocked', () => {
@@ -161,7 +239,7 @@ describe('MemoryReasoningPanel', () => {
     }
     const mounted = mountPanel({ candidates: [legacy], selectedId: legacy.id })
 
-    expect(mounted.host.querySelector('[role="tablist"]')).toBeNull()
+    expect(mounted.host.querySelector('[role="group"]')).toBeNull()
     expect(mounted.host.textContent).toContain(legacy.question)
     expect(mounted.host.querySelectorAll('.evidence-card')).toHaveLength(2)
   })

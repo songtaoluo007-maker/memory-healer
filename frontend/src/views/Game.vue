@@ -23,7 +23,6 @@ import {
   isChoiceUnlocked,
   isSceneDecisionUnlocked,
   resolveHypothesisSubmission,
-  toggleEvidenceSelection,
   useMemoryReasoningSelection,
 } from '../domain/memoryReasoning'
 import type {
@@ -83,6 +82,7 @@ const {
   selectedEvidenceIds,
   rejectedFeedback,
   selectHypothesis,
+  toggleEvidence,
 } = useMemoryReasoningSelection(sceneView)
 const {
   displayText: typewriterText,
@@ -270,14 +270,8 @@ const handleExplore = async (hotspot: Hotspot) => {
 }
 
 const toggleReasoningEvidence = (evidenceId: string) => {
-  if (!activeHypothesis.value || hypothesisConfirmed.value) return
-  const fragment = sceneFragments.value.find((candidate) => candidate.id === evidenceId)
-  if (!fragment?.is_collected) return
-  selectedEvidenceIds.value = toggleEvidenceSelection(
-    selectedEvidenceIds.value,
-    evidenceId,
-    activeHypothesis.value.evidence_ids,
-  )
+  if (!gameState.value) return
+  toggleEvidence(evidenceId, gameState.value.collected_fragments, hypothesisConfirmed.value)
 }
 
 const handleConfirmHypothesis = async () => {

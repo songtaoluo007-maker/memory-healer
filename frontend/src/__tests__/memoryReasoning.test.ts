@@ -4,6 +4,7 @@ import {
   isSceneDecisionUnlocked,
   resolveHypothesisSubmission,
   toggleEvidenceSelection,
+  toggleReasoningEvidenceSelection,
 } from '../domain/memoryReasoning'
 import type { Choice, GameState, Hypothesis, PresentationEvent, SceneFragment } from '../types/game'
 
@@ -162,6 +163,30 @@ describe('memory reasoning', () => {
         hypothesis.evidence_ids,
       ),
     ).toEqual(['fragment_grandpa_knife'])
+  })
+
+  it('toggles evidence from authoritative collected IDs instead of a stale scene snapshot', () => {
+    const modernStory: Hypothesis = {
+      id: 'hypothesis_1990_modern_story',
+      scene_id: 'scene_1990',
+      question: '陈守义为什么带着整箱皮影来到深圳？',
+      statement: '他在为皮影寻找新讲法。',
+      evidence_ids: ['puppet_trunk_fragment', 'station_clock_fragment'],
+      resolution: '他带着皮影走进了新生活。',
+    }
+
+    expect(
+      toggleReasoningEvidenceSelection(
+        [],
+        'puppet_trunk_fragment',
+        modernStory,
+        ['puppet_trunk_fragment'],
+        false,
+      ),
+    ).toEqual(['puppet_trunk_fragment'])
+    expect(
+      toggleReasoningEvidenceSelection([], 'station_clock_fragment', modernStory, [], false),
+    ).toEqual([])
   })
 
   it('unlocks choices only when their discriminated requirements are satisfied', () => {

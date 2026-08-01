@@ -54,10 +54,10 @@ const presentationFor = (fragmentId: string) => getFragmentPresentation(fragment
     :class="{ resolved: confirmed }"
     aria-labelledby="memory-question-title"
   >
-    <nav
+    <div
       v-if="hypotheses.length > 1"
       class="hypothesis-candidates"
-      role="tablist"
+      role="group"
       aria-label="选择记忆解释"
     >
       <button
@@ -66,16 +66,15 @@ const presentationFor = (fragmentId: string) => getFragmentPresentation(fragment
         class="hypothesis-candidate"
         :class="{ active: candidate.id === activeHypothesis.id }"
         type="button"
-        role="tab"
         :data-hypothesis-id="candidate.id"
-        :aria-selected="candidate.id === activeHypothesis.id"
+        :aria-pressed="candidate.id === activeHypothesis.id"
         :disabled="pending || confirmed"
         @click="emit('selectHypothesis', candidate.id)"
       >
         <small>INTERPRETATION 0{{ index + 1 }}</small>
         <span>{{ candidate.question }}</span>
       </button>
-    </nav>
+    </div>
 
     <header class="reasoning-header" aria-live="polite">
       <div>
