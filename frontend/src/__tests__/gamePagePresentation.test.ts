@@ -1,7 +1,7 @@
 import { createApp, defineComponent, h, nextTick, ref } from 'vue'
 import { createPinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Fragment, GameState, SceneView } from '../types/game'
+import type { AppliedConsequence, Fragment, GameState, SceneView } from '../types/game'
 
 const apiMocks = vi.hoisted(() => ({
   chatWithNpc: vi.fn(),
@@ -41,8 +41,22 @@ vi.mock('../composables/useVoicePlayback', () => ({
 vi.mock('../components/CinematicStage.vue', () => ({
   __esModule: true,
   default: defineComponent({
-    setup(_, { slots }) {
-      return () => h('div', slots.default?.())
+    props: {
+      activeNpcId: { type: String, default: null },
+      consequence: { type: Object, default: null },
+      sceneId: { type: String, required: true },
+    },
+    setup(props, { slots }) {
+      return () =>
+        h(
+          'div',
+          {
+            class: 'cinematic-stage-mock',
+            'data-consequence-variant': (props.consequence as AppliedConsequence | null)?.variant,
+            'data-scene-id': props.sceneId,
+          },
+          slots.default?.(),
+        )
     },
   }),
 }))
@@ -162,6 +176,18 @@ const makeScene = (): SceneView => ({
   content_version: 1,
 })
 
+const makeConsequence = (variant: 'legacy_carried' | 'legacy_suppressed'): AppliedConsequence => ({
+  id: `consequence_1972_${variant}`,
+  source_choice_id: variant === 'legacy_carried' ? 'encourage_art' : 'discourage_art',
+  target_scene_id: 'scene_1990',
+  variant,
+  scene_text:
+    variant === 'legacy_carried'
+      ? '旧木箱在脚边敞开着，现代皮影清楚可见。'
+      : '旧木箱半合着，现代皮影被压在传统人偶下面。',
+  npc_context: {},
+})
+
 const flushUi = async () => {
   await Promise.resolve()
   await nextTick()
@@ -178,7 +204,9 @@ describe('game page evidence task presentation', () => {
     useGameState().gameState.value = null
     const state = makeState()
     const scene = makeScene()
-    apiMocks.getNewGame.mockResolvedValue({ data: { state, scene_view: scene, content_version: 1 } })
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state, scene_view: scene, content_version: 1 },
+    })
   })
 
   afterEach(() => {
@@ -186,6 +214,101 @@ describe('game page evidence task presentation', () => {
     host?.remove()
     app = null
     host = null
+  })
+
+  it('presents the carried 1972 consequence in the 1990 stage and opening narration', async () => {
+    const scene = makeScene()
+    scene.applied_consequences = [makeConsequence('legacy_carried')]
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state: makeState(), scene_view: scene, content_version: 1 },
+    })
+
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    expect(
+      host.querySelector('.cinematic-stage-mock')?.getAttribute('data-consequence-variant'),
+    ).toBe('legacy_carried')
+    const echo = host.querySelector<HTMLElement>('.causal-echo')
+    expect(echo?.getAttribute('aria-label')).toBe('因果回声')
+    expect(echo?.textContent).toContain('旧木箱在脚边敞开着，现代皮影清楚可见。')
+
+    host.querySelector<HTMLElement>('.narrative-text')?.click()
+    await flushUi()
+    expect(host.querySelector('.narrative-text')?.textContent).toContain('雨水敲着站台。')
+    expect(host.querySelector('.narrative-text')?.textContent).toContain(
+      '旧木箱在脚边敞开着，现代皮影清楚可见。',
+    )
+  })
+
+  it('presents the suppressed consequence without leaking carried-branch copy', async () => {
+    const scene = makeScene()
+    scene.applied_consequences = [makeConsequence('legacy_suppressed')]
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state: makeState(), scene_view: scene, content_version: 1 },
+    })
+
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    expect(
+      host.querySelector('.cinematic-stage-mock')?.getAttribute('data-consequence-variant'),
+    ).toBe('legacy_suppressed')
+    expect(host.querySelector('.causal-echo')?.textContent).toContain(
+      '旧木箱半合着，现代皮影被压在传统人偶下面。',
+    )
+    expect(host.textContent).not.toContain('现代皮影清楚可见')
+
+    host.querySelector<HTMLElement>('.narrative-text')?.click()
+    await flushUi()
+    expect(host.querySelector('.narrative-text')?.textContent).toContain(
+      '旧木箱半合着，现代皮影被压在传统人偶下面。',
+    )
+  })
+
+  it('ignores a consequence that does not target the active scene', async () => {
+    const scene = makeScene()
+    scene.applied_consequences = [
+      {
+        ...makeConsequence('legacy_carried'),
+        target_scene_id: 'scene_2050',
+        scene_text: '不应进入当前场景的未来回声。',
+      },
+    ]
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state: makeState(), scene_view: scene, content_version: 1 },
+    })
+
+    app = createApp(Game)
+    app.use(createPinia())
+    host = document.createElement('div')
+    document.body.append(host)
+    app.mount(host)
+    await flushUi()
+    await vi.dynamicImportSettled()
+    await flushUi()
+
+    expect(
+      host.querySelector('.cinematic-stage-mock')?.getAttribute('data-consequence-variant'),
+    ).toBeNull()
+    expect(host.querySelector('.causal-echo')).toBeNull()
+    expect(host.textContent).not.toContain('不应进入当前场景的未来回声')
+
+    host.querySelector<HTMLElement>('.narrative-text')?.click()
+    await flushUi()
+    expect(host.querySelector('.narrative-text')?.textContent).toContain('雨水敲着站台。')
   })
 
   it('keeps a trust-locked hotspot available while showing its canonical hint and NPC task', async () => {
@@ -238,7 +361,9 @@ describe('game page evidence task presentation', () => {
       avatar: '',
       initial_trust: 40,
     })
-    apiMocks.getNewGame.mockResolvedValue({ data: { state, scene_view: scene, content_version: 1 } })
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state, scene_view: scene, content_version: 1 },
+    })
     apiMocks.exploreHotspot.mockResolvedValue({
       data: {
         state,
@@ -366,7 +491,9 @@ describe('game page evidence task presentation', () => {
         is_collected: false,
       },
     )
-    apiMocks.getNewGame.mockResolvedValue({ data: { state, scene_view: scene, content_version: 1 } })
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state, scene_view: scene, content_version: 1 },
+    })
     app = createApp(Game)
     app.use(createPinia())
     host = document.createElement('div')
@@ -411,7 +538,9 @@ describe('game page evidence task presentation', () => {
       memory_text: '',
       collected: true,
     }
-    apiMocks.getNewGame.mockResolvedValue({ data: { state, scene_view: scene, content_version: 1 } })
+    apiMocks.getNewGame.mockResolvedValue({
+      data: { state, scene_view: scene, content_version: 1 },
+    })
     apiMocks.chatWithNpc.mockResolvedValue({
       data: {
         state: makeState({ revision: 5, collected_fragments: [fragment.id] }),

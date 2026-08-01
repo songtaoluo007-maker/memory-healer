@@ -136,6 +136,38 @@ describe('canonical scene flow', () => {
     ])
   })
 
+  it('retains canonical consequences while selecting only the active scene target', () => {
+    const scene = useScene()
+    const view = makeSceneView('scene_1990', 'hotspot_1990_train_ticket')
+    view.applied_consequences = [
+      {
+        id: 'consequence_1972_legacy_carried',
+        source_choice_id: 'encourage_art',
+        target_scene_id: 'scene_1990',
+        variant: 'legacy_carried',
+        scene_text: '木箱敞开着，现代皮影清楚可见。',
+        npc_context: { chen_shouyi_1990: '他愿意谈一谈新的故事。' },
+      },
+      {
+        id: 'consequence_future_echo',
+        source_choice_id: 'future_choice',
+        target_scene_id: 'scene_2050',
+        variant: 'future_echo',
+        scene_text: '这条后果不属于当前场景。',
+        npc_context: {},
+      },
+    ]
+
+    scene.replaceSceneView(view)
+    view.applied_consequences[0].scene_text = '调用方随后篡改的文本'
+
+    expect(scene.sceneView.value?.applied_consequences).toHaveLength(2)
+    expect(scene.sceneView.value?.applied_consequences[0].scene_text).toBe(
+      '木箱敞开着，现代皮影清楚可见。',
+    )
+    expect(scene.activeConsequence.value?.id).toBe('consequence_1972_legacy_carried')
+  })
+
   it('clears stale candidate, evidence, and rejection state when the scene view changes', () => {
     const scene = useScene()
     scene.replaceSceneView(makeSceneView('scene_1972', 'hotspot_1972_shadow_stage'))

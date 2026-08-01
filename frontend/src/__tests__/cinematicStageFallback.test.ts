@@ -20,16 +20,21 @@ vi.mock('pixi.js', () => ({
 }))
 
 import CinematicStage from '../components/CinematicStage.vue'
+import type { AppliedConsequence } from '../types/game'
 
 let app: ReturnType<typeof createApp> | null = null
 
-const mountStage = (sceneId: string, activeNpcId?: string) => {
+const mountStage = (
+  sceneId: string,
+  activeNpcId?: string,
+  consequence?: AppliedConsequence | null,
+) => {
   const host = document.createElement('div')
   app = createApp({
     render: () =>
       h(
         CinematicStage,
-        { sceneId, activeNpcId },
+        { sceneId, activeNpcId, consequence },
         { default: () => h('div', { class: 'legacy-art' }, 'legacy illustration') },
       ),
   })
@@ -44,6 +49,15 @@ afterEach(() => {
 })
 
 describe('CinematicStage fallback', () => {
+  const consequence = (variant: string, targetSceneId = 'scene_1990'): AppliedConsequence => ({
+    id: `consequence_${variant}`,
+    source_choice_id: 'encourage_art',
+    target_scene_id: targetSceneId,
+    variant,
+    scene_text: '权威因果文本',
+    npc_context: {},
+  })
+
   it('uses the legacy illustration when cinematic artwork fails to load', async () => {
     assetLoad.mockRejectedValueOnce(new Error('asset unavailable'))
     const host = mountStage('scene_1990')
@@ -82,6 +96,43 @@ describe('CinematicStage fallback', () => {
     expect(
       host.querySelector('.character-portrait')?.getAttribute('data-character-treatment'),
     ).toBe('solid')
+  })
+
+  it('renders an open warm trunk, visible puppet, and paper note for legacy carried', async () => {
+    assetLoad.mockImplementationOnce(() => new Promise(() => undefined))
+    const host = mountStage('scene_1990', undefined, consequence('legacy_carried'))
+    await nextTick()
+
+    const prop = host.querySelector('.stage-consequence')
+    expect(prop?.getAttribute('data-consequence-variant')).toBe('legacy_carried')
+    expect(prop?.querySelector('.trunk-lid')).not.toBeNull()
+    expect(prop?.querySelector('.modern-puppet')).not.toBeNull()
+    expect(prop?.querySelector('.paper-note')?.textContent).toContain('手艺不该被埋没')
+  })
+
+  it('renders a half-closed latched trunk with an occluded puppet for legacy suppressed', async () => {
+    assetLoad.mockImplementationOnce(() => new Promise(() => undefined))
+    const host = mountStage('scene_1990', undefined, consequence('legacy_suppressed'))
+    await nextTick()
+
+    const prop = host.querySelector('.stage-consequence')
+    expect(prop?.getAttribute('data-consequence-variant')).toBe('legacy_suppressed')
+    expect(prop?.querySelector('.trunk-lid')).not.toBeNull()
+    expect(prop?.querySelector('.trunk-latch')).not.toBeNull()
+    expect(prop?.querySelector('.modern-puppet')).not.toBeNull()
+    expect(prop?.querySelector('.paper-note')).toBeNull()
+  })
+
+  it.each([
+    ['unknown variant', consequence('future_variant')],
+    ['different target scene', consequence('legacy_carried', 'scene_2050')],
+    ['no consequence', null],
+  ])('leaves the base stage unchanged for %s', async (_label, appliedConsequence) => {
+    assetLoad.mockImplementationOnce(() => new Promise(() => undefined))
+    const host = mountStage('scene_1990', undefined, appliedConsequence)
+    await nextTick()
+
+    expect(host.querySelector('.stage-consequence')).toBeNull()
   })
 
   it('hides a failed character image without removing the stage', async () => {

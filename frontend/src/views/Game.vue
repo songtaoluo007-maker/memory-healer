@@ -70,6 +70,7 @@ const {
   currentNpcs,
   sceneFragments,
   choices,
+  activeConsequence,
   narrativeText,
   sceneTransitioning,
   replaceSceneView,
@@ -164,7 +165,9 @@ const autoSave = async () => {
 
 const presentScene = () => {
   if (!currentScene.value || !gameState.value) return
-  narrativeText.value = currentScene.value.description
+  narrativeText.value = [currentScene.value.description, activeConsequence.value?.scene_text]
+    .filter(Boolean)
+    .join('\n\n')
   typeStart(narrativeText.value)
   playBGM(gameState.value.current_scene)
   void sceneVoice.playSceneEntry(currentScene.value)
@@ -261,7 +264,7 @@ const handleExplore = async (hotspot: Hotspot) => {
       const npcId = payload.npc_id ?? fragment?.unlock_npc_id ?? hotspot.npc_id
       const minimumTrust = payload.minimum_trust ?? fragment?.minimum_trust
       const currentTrust = npcId ? gameState.value?.npc_trust[npcId] : undefined
-      const method = payload.method === 'trust' ? '信任门槛' : payload.method ?? '解锁条件'
+      const method = payload.method === 'trust' ? '信任门槛' : (payload.method ?? '解锁条件')
       const feedback = [
         hint,
         method,
@@ -506,12 +509,26 @@ onMounted(async () => {
     </Transition>
 
     <div class="bg-layer">
-      <CinematicStage :scene-id="gameState.current_scene" :active-npc-id="selectedNpc?.id ?? null">
+      <CinematicStage
+        :scene-id="gameState.current_scene"
+        :active-npc-id="selectedNpc?.id ?? null"
+        :consequence="activeConsequence"
+      >
         <template #default>
           <SceneIllustration :scene-id="gameState.current_scene" />
         </template>
       </CinematicStage>
     </div>
+
+    <aside
+      v-if="activeConsequence"
+      class="causal-echo"
+      :data-consequence-variant="activeConsequence.variant"
+      aria-label="因果回声"
+    >
+      <span class="causal-echo-kicker">CAUSAL ECHO / 因果回声</span>
+      <p>{{ activeConsequence.scene_text }}</p>
+    </aside>
 
     <div class="interaction-plane" :class="{ obscured: selectedNpc }">
       <HotspotOverlay

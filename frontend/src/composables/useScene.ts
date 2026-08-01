@@ -61,10 +61,7 @@ export function createSceneVoiceIntegration(
     return requestGeneration
   }
 
-  const playDialogueResponse = (
-    dialogueGeneration: number,
-    response: VoiceResponse,
-  ) => {
+  const playDialogueResponse = (dialogueGeneration: number, response: VoiceResponse) => {
     if (dialogueGeneration !== requestGeneration) return Promise.resolve(false)
     return voice.playResponse(response, 'dialogue')
   }
@@ -76,8 +73,7 @@ export function createSceneVoiceIntegration(
     subtitleCue: computed(() => (voice.currentLineId.value ? voice.activeCue.value : null)),
     playSceneEntry: (scene: Scene) =>
       playFixedVoice(scene.transition_in_voice_line_id, 'narration'),
-    playNpcIntro: (npc: NpcSummary) =>
-      playFixedVoice(npc.initial_voice_line_id, 'dialogue'),
+    playNpcIntro: (npc: NpcSummary) => playFixedVoice(npc.initial_voice_line_id, 'dialogue'),
     playFragmentMemory,
     playInteractionVoice: (fragment: VoiceFragmentReference | null, npc: NpcSummary | null) =>
       fragment?.memory_voice_line_id
@@ -134,6 +130,13 @@ export function useScene() {
   const sceneFragments = computed(() => sceneView.value?.fragments ?? [])
   const choices = computed(() => sceneView.value?.choices ?? [])
   const hypotheses = computed(() => sceneView.value?.hypotheses ?? [])
+  const appliedConsequences = computed(() => sceneView.value?.applied_consequences ?? [])
+  const activeConsequence = computed(
+    () =>
+      appliedConsequences.value.find(
+        (consequence) => consequence.target_scene_id === currentScene.value?.id,
+      ) ?? null,
+  )
 
   const replaceSceneView = (nextView: SceneView) => {
     sceneView.value = structuredClone(nextView)
@@ -158,6 +161,8 @@ export function useScene() {
     sceneFragments,
     choices,
     hypotheses,
+    appliedConsequences,
+    activeConsequence,
     narrativeText,
     sceneTransitioning,
     replaceSceneView,

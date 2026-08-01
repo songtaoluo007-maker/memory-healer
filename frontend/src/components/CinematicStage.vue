@@ -2,10 +2,12 @@
 import { Application, Assets, Container, Graphics, Sprite, type Ticker } from 'pixi.js'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { getScenePresentation, resolveCharacterMode } from '../stage/presentation'
+import type { AppliedConsequence } from '../types/game'
 
 const props = defineProps<{
   sceneId: string
   activeNpcId?: string | null
+  consequence?: AppliedConsequence | null
 }>()
 
 const host = ref<HTMLDivElement | null>(null)
@@ -19,6 +21,17 @@ const activePortrait = computed(() => {
 const characterTreatment = computed(() =>
   resolveCharacterMode(props.sceneId, props.activeNpcId ?? ''),
 )
+const renderedConsequence = computed(() => {
+  const consequence = props.consequence
+  if (
+    props.sceneId !== 'scene_1990' ||
+    consequence?.target_scene_id !== props.sceneId ||
+    !['legacy_carried', 'legacy_suppressed'].includes(consequence.variant)
+  ) {
+    return null
+  }
+  return consequence
+})
 let app: Application | null = null
 let resizeObserver: ResizeObserver | null = null
 let generation = 0
@@ -189,6 +202,31 @@ onBeforeUnmount(destroyStage)
     <div class="stage-grade" aria-hidden="true" />
     <div class="stage-vignette" aria-hidden="true" />
     <div class="stage-grain" aria-hidden="true" />
+    <div
+      v-if="renderedConsequence"
+      class="stage-consequence"
+      :data-consequence-variant="renderedConsequence.variant"
+      aria-hidden="true"
+    >
+      <span class="trunk-practical-light" />
+      <div class="trunk-prop">
+        <span class="trunk-cavity">
+          <span class="modern-puppet">
+            <i class="puppet-head" />
+            <i class="puppet-torso" />
+            <i class="puppet-arm puppet-arm-left" />
+            <i class="puppet-arm puppet-arm-right" />
+          </span>
+        </span>
+        <span class="trunk-front"><i /></span>
+        <span class="trunk-lid"><i /></span>
+        <span v-if="renderedConsequence.variant === 'legacy_suppressed'" class="trunk-latch" />
+        <span v-if="renderedConsequence.variant === 'legacy_suppressed'" class="trunk-occlusion" />
+        <span v-if="renderedConsequence.variant === 'legacy_carried'" class="paper-note">
+          手艺不该被埋没
+        </span>
+      </div>
+    </div>
     <Transition v-if="!portraitFailed" name="portrait-reveal">
       <img
         v-if="activePortrait && !portraitFailed"
@@ -325,8 +363,233 @@ onBeforeUnmount(destroyStage)
   animation: grain 320ms steps(2) infinite;
 }
 
+.stage-consequence {
+  position: absolute;
+  z-index: 2;
+  top: 60%;
+  left: 76%;
+  width: clamp(10rem, 19vw, 18rem);
+  height: clamp(7rem, 19vh, 11rem);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: consequence-settle 720ms var(--ease-cinema) both;
+}
+
+.trunk-practical-light {
+  position: absolute;
+  inset: -38% -22% -14% -24%;
+  clip-path: polygon(18% 0, 100% 8%, 82% 100%, 0 76%);
+  background: linear-gradient(118deg, transparent 5%, rgba(221, 164, 79, 0.3) 52%, transparent 94%);
+  filter: blur(0.85rem);
+}
+
+.trunk-prop {
+  position: absolute;
+  inset: 8% 3% 2%;
+  filter: drop-shadow(0.8rem 1.1rem 0.85rem rgba(0, 0, 0, 0.68));
+  transform: perspective(28rem) rotateY(-6deg) rotateZ(-1deg);
+}
+
+.trunk-cavity,
+.trunk-front,
+.trunk-lid,
+.trunk-occlusion {
+  position: absolute;
+  right: 2%;
+  left: 2%;
+  border: 1px solid rgba(59, 34, 17, 0.9);
+}
+
+.trunk-cavity {
+  z-index: 1;
+  top: 28%;
+  bottom: 17%;
+  overflow: hidden;
+  background: linear-gradient(100deg, rgba(73, 39, 18, 0.78), transparent 38%), #100c08;
+  box-shadow: inset 0 0 1.25rem rgba(0, 0, 0, 0.94);
+}
+
+.trunk-front {
+  z-index: 4;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 40%;
+  overflow: hidden;
+  background:
+    linear-gradient(92deg, rgba(35, 17, 8, 0.78), transparent 32%, rgba(237, 177, 93, 0.08)),
+    linear-gradient(180deg, #5b341b, #2b180d);
+  border-color: rgba(32, 16, 7, 0.96);
+  box-shadow:
+    inset 0 1px rgba(222, 158, 83, 0.25),
+    inset 0 -0.7rem 1.1rem rgba(0, 0, 0, 0.42);
+}
+
+.trunk-front > i,
+.trunk-lid > i {
+  position: absolute;
+  inset: 0;
+  opacity: 0.42;
+  background: repeating-linear-gradient(
+    3deg,
+    transparent 0 0.55rem,
+    rgba(239, 185, 110, 0.12) 0.6rem 0.66rem,
+    transparent 0.7rem 1.15rem
+  );
+}
+
+.trunk-lid {
+  z-index: 3;
+  top: 15%;
+  height: 24%;
+  overflow: hidden;
+  background:
+    linear-gradient(100deg, rgba(25, 13, 7, 0.66), transparent 45%),
+    linear-gradient(180deg, #724323, #351e10);
+  box-shadow:
+    inset 0 1px rgba(234, 183, 108, 0.22),
+    0 0.55rem 0.65rem rgba(0, 0, 0, 0.5);
+  transform-origin: left bottom;
+}
+
+.modern-puppet {
+  position: absolute;
+  z-index: 2;
+  top: 2%;
+  left: 52%;
+  width: 28%;
+  height: 92%;
+  color: #18140f;
+  filter: drop-shadow(0 0 0.25rem rgba(231, 181, 105, 0.32));
+  transform: rotate(4deg);
+}
+
+.modern-puppet > i {
+  position: absolute;
+  display: block;
+  background: currentColor;
+}
+
+.puppet-head {
+  top: 0;
+  left: 34%;
+  width: 31%;
+  height: 18%;
+  clip-path: polygon(18% 0, 80% 4%, 100% 38%, 72% 100%, 20% 91%, 0 42%);
+}
+
+.puppet-torso {
+  top: 16%;
+  left: 25%;
+  width: 50%;
+  height: 65%;
+  clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%);
+}
+
+.puppet-torso::after {
+  position: absolute;
+  top: 8%;
+  left: 42%;
+  width: 16%;
+  height: 82%;
+  content: '';
+  background: rgba(222, 182, 116, 0.52);
+  clip-path: polygon(50% 0, 100% 18%, 65% 100%, 30% 100%, 0 18%);
+}
+
+.puppet-arm {
+  top: 24%;
+  width: 14%;
+  height: 55%;
+  transform-origin: top;
+}
+
+.puppet-arm-left {
+  left: 12%;
+  transform: rotate(17deg);
+}
+
+.puppet-arm-right {
+  right: 12%;
+  transform: rotate(-19deg);
+}
+
+.trunk-latch {
+  position: absolute;
+  z-index: 8;
+  bottom: 23%;
+  left: 47%;
+  width: 9%;
+  height: 24%;
+  border: 1px solid rgba(32, 27, 20, 0.94);
+  background: linear-gradient(90deg, #574b36, #a28d63 46%, #423726);
+  box-shadow: 0.18rem 0.28rem 0.3rem rgba(0, 0, 0, 0.62);
+}
+
+.trunk-occlusion {
+  z-index: 5;
+  top: 30%;
+  bottom: 29%;
+  border: 0;
+  background: linear-gradient(180deg, rgba(19, 19, 17, 0.88), rgba(10, 10, 9, 0.55));
+  clip-path: polygon(0 8%, 100% 0, 100% 72%, 0 100%);
+}
+
+.paper-note {
+  position: absolute;
+  z-index: 7;
+  top: 41%;
+  left: 8%;
+  width: 44%;
+  padding: 0.38rem 0.5rem 0.34rem;
+  color: rgba(55, 35, 20, 0.92);
+  background:
+    repeating-linear-gradient(2deg, transparent 0 0.72rem, rgba(84, 55, 28, 0.1) 0.76rem), #d9c49d;
+  box-shadow: 0.25rem 0.4rem 0.4rem rgba(0, 0, 0, 0.48);
+  font-family: 'Noto Serif SC', serif;
+  font-size: clamp(0.45rem, 0.62vw, 0.63rem);
+  letter-spacing: 0.08em;
+  line-height: 1.55;
+  transform: rotate(-5deg);
+}
+
+[data-consequence-variant='legacy_carried'] .trunk-lid {
+  transform: translateY(-42%) rotate(-13deg) skewX(-2deg);
+}
+
+[data-consequence-variant='legacy_carried'] .modern-puppet {
+  opacity: 0.98;
+}
+
+[data-consequence-variant='legacy_suppressed'] .trunk-practical-light {
+  opacity: 0.5;
+  background: linear-gradient(
+    118deg,
+    transparent 5%,
+    rgba(118, 133, 126, 0.21) 52%,
+    transparent 94%
+  );
+}
+
+[data-consequence-variant='legacy_suppressed'] .trunk-prop {
+  filter: drop-shadow(0.8rem 1.1rem 0.85rem rgba(0, 0, 0, 0.82)) saturate(0.64);
+}
+
+[data-consequence-variant='legacy_suppressed'] .trunk-lid {
+  z-index: 6;
+  top: 25%;
+  height: 31%;
+  transform: rotate(-2deg);
+}
+
+[data-consequence-variant='legacy_suppressed'] .modern-puppet {
+  opacity: 0.24;
+  transform: translateY(15%) rotate(8deg);
+}
+
 .character-portrait {
   position: absolute;
+  z-index: 3;
   right: clamp(-2.5rem, -1vw, -0.5rem);
   bottom: -1%;
   width: min(31vw, 27rem);
@@ -349,6 +612,17 @@ onBeforeUnmount(destroyStage)
   }
 }
 
+@keyframes consequence-settle {
+  from {
+    opacity: 0;
+    transform: translate(-47%, -46%) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
 .portrait-reveal-enter-active,
 .portrait-reveal-leave-active {
   transition:
@@ -363,6 +637,13 @@ onBeforeUnmount(destroyStage)
 }
 
 @media (max-aspect-ratio: 4/5) {
+  .stage-consequence {
+    top: 66%;
+    left: 67%;
+    width: clamp(9rem, 43vw, 15rem);
+    height: clamp(6.5rem, 17vh, 9.5rem);
+  }
+
   .character-portrait {
     right: -3.5rem;
     bottom: 20vh;
@@ -379,6 +660,10 @@ onBeforeUnmount(destroyStage)
   .portrait-reveal-enter-active,
   .portrait-reveal-leave-active {
     transition: none;
+  }
+
+  .stage-consequence {
+    animation: none;
   }
 }
 </style>
