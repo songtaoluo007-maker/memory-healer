@@ -9,7 +9,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from backend.content import ContentRegistry, ContentValidationError
+from backend.content import ContentRegistry, ContentValidationError  # noqa: E402
 
 
 def main() -> int:
@@ -29,7 +29,10 @@ def main() -> int:
         f"{len(registry.fragments)} fragments, "
         f"{len(registry.hotspots)} hotspots, "
         f"{len(registry.choices)} choices, "
-        f"{len(registry.endings)} endings."
+        f"{len(registry.endings)} endings, "
+        f"{len(registry.voice_profiles)} voice profiles, "
+        f"{len(registry.voice_lines)} voice lines, "
+        f"{len(registry.voice_assets)} approved voice assets."
     )
     return 0
 

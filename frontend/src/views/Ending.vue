@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import endingBackdrop from '../assets/cinematic/scene-1972-xian-alley.png'
-import chenPortrait from '../assets/cinematic/chen-shouyi-1972.png'
+import chenPortrait from '../assets/cinematic/chen-shouyi-1972-solid.webp'
+import { useAudioMixer } from '../audio/mixer'
+import VoiceControls from '../components/VoiceControls.vue'
 import { useGameState } from '../composables/useGameState'
-import type { EndingType } from '../types/game'
+import { useVoiceRouteLifecycle } from '../composables/useScene'
+import { useVoicePlayback } from '../composables/useVoicePlayback'
+import type { EndingType, VoiceResponse } from '../types/game'
 
 const props = defineProps<{
   endingType: EndingType
+  endingVoiceResponse?: VoiceResponse | null
+  voicePlayback?: ReturnType<typeof useVoicePlayback>
 }>()
 
 const emit = defineEmits<{
@@ -14,11 +20,25 @@ const emit = defineEmits<{
 }>()
 
 const { collectedCount, totalFragments } = useGameState()
+const { isMuted, toggleMute, voiceVolume, setVoiceVolume } = useAudioMixer()
+const voice = props.voicePlayback ?? useVoicePlayback()
+useVoiceRouteLifecycle(voice)
+const voiceIsSpeaking = computed(() => voice.isSpeaking?.value ?? false)
+const voiceIsPaused = computed(() => voice.isPaused?.value ?? false)
+const hasReplay = computed(() => Boolean(voice.lastRequest?.value))
+const voiceControlsOpen = ref(false)
 const phase = ref(0)
 const shareStatus = ref('')
 const timers: number[] = []
 
 onMounted(() => {
+  if (
+    props.endingVoiceResponse?.provider === 'fixed' &&
+    props.endingVoiceResponse.line_id &&
+    props.endingVoiceResponse.url
+  ) {
+    void voice.playResponse(props.endingVoiceResponse, 'ending')
+  }
   timers.push(
     window.setTimeout(() => (phase.value = 1), 400),
     window.setTimeout(() => (phase.value = 2), 1700),
@@ -27,6 +47,16 @@ onMounted(() => {
 })
 
 onUnmounted(() => timers.forEach(window.clearTimeout))
+
+const pauseVoice = () => voice.pause?.()
+const resumeVoice = () => voice.resume?.()
+const replayVoice = () => voice.replay?.()
+const skipVoice = () => voice.skip?.()
+const returnHome = () => {
+  voice.stop()
+  if (voice.lastRequest) voice.lastRequest.value = null
+  emit('restart')
+}
 
 const endingData = computed(() => {
   const endings = {
@@ -120,7 +150,14 @@ const shareEnding = async () => {
 </script>
 
 <template>
-  <main class="ending" :class="`ending-${endingType}`" aria-labelledby="ending-title">
+  <main
+    class="ending"
+    :class="{
+      [`ending-${endingType}`]: true,
+      'voice-controls-open': voiceControlsOpen,
+    }"
+    aria-labelledby="ending-title"
+  >
     <img class="ending-backdrop" :src="endingBackdrop" alt="" aria-hidden="true" />
     <div class="ending-grade" aria-hidden="true" />
     <img
@@ -136,7 +173,28 @@ const shareEnding = async () => {
       <strong>{{ endingData.serial }}</strong>
     </header>
 
-    <section class="ending-heading" :class="{ visible: phase >= 1 }">
+    <div class="ending-voice-controls">
+      <VoiceControls
+        :is-speaking="voiceIsSpeaking"
+        :is-paused="voiceIsPaused"
+        :voice-volume="voiceVolume"
+        :has-replay="hasReplay"
+        :is-muted="isMuted"
+        @pause="pauseVoice"
+        @resume="resumeVoice"
+        @replay="replayVoice"
+        @skip="skipVoice"
+        @toggle-mute="toggleMute"
+        @update:voice-volume="setVoiceVolume"
+        @expanded-change="voiceControlsOpen = $event"
+      />
+    </div>
+
+    <section
+      class="ending-heading"
+      :class="{ visible: phase >= 1 }"
+      :aria-hidden="voiceControlsOpen ? 'true' : undefined"
+    >
       <span class="ending-serial">{{ endingData.serial }}</span>
       <div class="ending-mark" aria-hidden="true">{{ endingData.mark }}</div>
       <h1 id="ending-title">{{ endingData.title }}</h1>
@@ -163,7 +221,7 @@ const shareEnding = async () => {
         <i>%</i>
       </div>
       <div class="ending-actions">
-        <button type="button" @click="emit('restart')">
+        <button type="button" @click="returnHome">
           <span>返回首页</span><span aria-hidden="true">→</span>
         </button>
         <button type="button" @click="shareEnding">
@@ -254,6 +312,17 @@ const shareEnding = async () => {
 .ending-topline strong {
   color: var(--gold-300);
   font-weight: 500;
+}
+
+.ending-voice-controls {
+  position: absolute;
+  z-index: 12;
+  top: max(3.5rem, calc(env(safe-area-inset-top) + 3rem));
+  right: var(--safe-inline);
+}
+
+.ending-voice-controls :deep(.voice-controls-panel) {
+  box-shadow: 0 1rem 2.8rem rgba(0, 0, 0, 0.46);
 }
 
 .ending-heading {
@@ -459,7 +528,19 @@ const shareEnding = async () => {
   background: rgba(214, 173, 102, 0.22);
 }
 
+@media (max-width: 900px), (max-aspect-ratio: 1/1) {
+  .ending.voice-controls-open .ending-heading {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
 @media (max-width: 800px), (max-aspect-ratio: 4/5) {
+  .ending {
+    --ending-story-top: max(18rem, calc(env(safe-area-inset-top) + 15rem));
+  }
+
   .ending-grade {
     background: rgba(3, 4, 3, 0.78);
   }
@@ -467,6 +548,11 @@ const shareEnding = async () => {
   .ending-topline {
     right: 1rem;
     left: 1rem;
+  }
+
+  .ending-voice-controls {
+    top: max(3.5rem, calc(env(safe-area-inset-top) + 3rem));
+    right: 1rem;
   }
 
   .ending-heading {
@@ -495,11 +581,11 @@ const shareEnding = async () => {
   }
 
   .ending-story {
-    top: 18rem;
+    top: var(--ending-story-top);
     right: 1rem;
     left: 1rem;
     width: auto;
-    height: calc(100vh - 31rem);
+    height: calc(100vh - var(--ending-story-top) - 13rem);
     min-height: 9rem;
   }
 

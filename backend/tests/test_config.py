@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from sqlalchemy import create_engine, inspect
 
 from backend import database
-from backend.config import Settings
+from backend.config import ROOT_DIR, Settings
 from backend.main import app
 
 
@@ -58,3 +58,154 @@ def test_application_startup_never_creates_unmigrated_tables(tmp_path, monkeypat
     database.init_db()
 
     assert inspect(empty_engine).get_table_names() == []
+
+
+def test_voice_settings_have_safe_disabled_defaults() -> None:
+    settings = make_settings()
+
+    assert (
+        settings.VOICE_PUBLIC_DIR
+        == ROOT_DIR / "backend" / "data" / "voice_public"
+    )
+    assert settings.VOICE_PRIMARY_ENABLED is False
+    assert settings.VOICE_GENERATION_MAX_CONCURRENCY == 1
+    assert settings.VOICE_CACHE_MAX_FILES == 500
+    assert settings.VOICE_CACHE_MAX_BYTES == 2_147_483_648
+    assert settings.VOICE_PRIMARY_BASE_URL == ""
+    assert settings.VOICE_PRIMARY_TOKEN == ""
+    assert settings.VOICE_PRIMARY_CONNECT_TIMEOUT_SECONDS == 0.5
+    assert settings.VOICE_PRIMARY_TOTAL_TIMEOUT_SECONDS == 2.5
+    assert settings.VOICE_PRIMARY_FAILURE_THRESHOLD == 3
+    assert settings.VOICE_PRIMARY_COOLDOWN_SECONDS == 30
+    assert not hasattr(settings, "VOICE_SEED_DIR")
+    assert not hasattr(settings, "COSYVOICE_MODEL_REVISION")
+    assert not hasattr(settings, "COSYVOICE_MODEL_COMMIT")
+
+
+def test_disabled_voice_boot_creates_only_separate_cache_and_fixed_directories(
+    tmp_path,
+) -> None:
+    public_dir = tmp_path / "public"
+    settings = make_settings(
+        VOICE_PUBLIC_DIR=public_dir,
+        VOICE_PRIMARY_ENABLED=False,
+        VOICE_PRIMARY_BASE_URL="",
+        VOICE_PRIMARY_TOKEN="",
+    )
+
+    assert settings.VOICE_PRIMARY_ENABLED is False
+    assert (public_dir / "cache").is_dir()
+    assert (public_dir / "fixed").is_dir()
+
+
+def test_voice_public_tree_cannot_overlap_the_tts_cache(tmp_path) -> None:
+    tts_cache = tmp_path / "shared-cache"
+
+    with pytest.raises(ValidationError, match="TTS_CACHE_DIR"):
+        make_settings(
+            TTS_CACHE_DIR=tts_cache,
+            VOICE_PUBLIC_DIR=tts_cache / "voice",
+        )
+
+
+def test_remote_primary_credentials_are_required_only_when_enabled(tmp_path) -> None:
+    disabled = make_settings(
+        VOICE_PUBLIC_DIR=tmp_path / "disabled-public",
+        VOICE_PRIMARY_ENABLED=False,
+        VOICE_PRIMARY_BASE_URL="",
+        VOICE_PRIMARY_TOKEN="",
+    )
+
+    assert disabled.VOICE_PRIMARY_ENABLED is False
+
+    with pytest.raises(ValidationError, match="VOICE_PRIMARY_TOKEN"):
+        make_settings(
+            VOICE_PUBLIC_DIR=tmp_path / "missing-token-public",
+            VOICE_PRIMARY_ENABLED=True,
+            VOICE_PRIMARY_BASE_URL="https://voice-provider.example",
+            VOICE_PRIMARY_TOKEN="",
+        )
+
+    enabled = make_settings(
+        VOICE_PUBLIC_DIR=tmp_path / "enabled-public",
+        VOICE_PRIMARY_ENABLED=True,
+        VOICE_PRIMARY_BASE_URL="https://voice-provider.example",
+        VOICE_PRIMARY_TOKEN="test-remote-token",
+    )
+
+    assert enabled.VOICE_PRIMARY_BASE_URL == "https://voice-provider.example"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://voice-provider.example",
+        "https://localhost.",
+        "https://LOCALHOST",
+        "https://api.localhost.",
+        "https://127.0.0.1.",
+        "https://[::1]",
+        "https://[::ffff:127.0.0.1]",
+        "https://127.1",
+        "https://2130706433",
+        "https://0177.0.0.1",
+        "https://0x7f000001",
+        "https://127.0.1",
+        "https://0x7f.1",
+        "https://0177.1",
+        "https://0x7f.0.0.1",
+    ],
+)
+def test_remote_primary_rejects_non_remote_or_loopback_urls(
+    tmp_path,
+    url: str,
+) -> None:
+    with pytest.raises(ValidationError, match="remote HTTPS"):
+        make_settings(
+            VOICE_PUBLIC_DIR=tmp_path / "public",
+            VOICE_PRIMARY_ENABLED=True,
+            VOICE_PRIMARY_BASE_URL=url,
+            VOICE_PRIMARY_TOKEN="test-remote-token",
+        )
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://voice-provider.example",
+        "https://VOICE-PROVIDER.EXAMPLE.",
+        "https://语音.example",
+        "https://127.1.voice-provider.example",
+        "https://0x7f000001.example",
+    ],
+)
+def test_remote_primary_allows_normalized_remote_https_urls(
+    tmp_path,
+    url: str,
+) -> None:
+    settings = make_settings(
+        VOICE_PUBLIC_DIR=tmp_path / "public",
+        VOICE_PRIMARY_ENABLED=True,
+        VOICE_PRIMARY_BASE_URL=url,
+        VOICE_PRIMARY_TOKEN="test-remote-token",
+    )
+
+    assert settings.VOICE_PRIMARY_BASE_URL == url
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("VOICE_GENERATION_MAX_CONCURRENCY", 0),
+        ("VOICE_GENERATION_MAX_CONCURRENCY", 5),
+        ("VOICE_CACHE_MAX_FILES", 0),
+        ("VOICE_CACHE_MAX_BYTES", 1_048_575),
+        ("VOICE_PRIMARY_CONNECT_TIMEOUT_SECONDS", 0.09),
+        ("VOICE_PRIMARY_TOTAL_TIMEOUT_SECONDS", 31),
+        ("VOICE_PRIMARY_FAILURE_THRESHOLD", 21),
+        ("VOICE_PRIMARY_COOLDOWN_SECONDS", 0),
+    ],
+)
+def test_voice_settings_reject_unsafe_bounds(field: str, value: object) -> None:
+    with pytest.raises(ValidationError):
+        make_settings(**{field: value})

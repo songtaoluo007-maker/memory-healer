@@ -22,11 +22,16 @@ from backend.api.scene import router as scene_router
 from backend.api.save import router as save_router
 from backend.api.auth import router as auth_router
 from backend.api.tts import router as tts_router
+from backend.api.voice import router as voice_router
 from backend.api.ending import router as ending_router
 from backend.api.butterfly import router as butterfly_router
 from backend.api.game import router as game_router
 from backend.config import settings
 from backend.domain.errors import DomainError
+from backend.application.voice_metrics import (
+    close_default_voice_metrics,
+    start_default_voice_metrics,
+)
 
 
 # ── 日志配置 ──
@@ -43,11 +48,15 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    start_default_voice_metrics()
     logger.info("正在检查应用依赖（数据库结构由 Alembic 管理）...")
     init_db()
     logger.info("拾忆 · 后端启动完成 (log_level={})", settings.LOG_LEVEL)
-    yield
-    logger.info("拾忆 · 后端已关闭")
+    try:
+        yield
+    finally:
+        close_default_voice_metrics()
+        logger.info("拾忆 · 后端已关闭")
 
 
 app = FastAPI(
@@ -112,6 +121,8 @@ async def handle_domain_error(_request: Request, exc: DomainError):
         "FRAGMENT_NOT_FOUND": 404,
         "AI_UNAVAILABLE": 503,
         "TTS_UNAVAILABLE": 503,
+        "VOICE_PROFILE_INVALID": 404,
+        "VOICE_LINE_INVALID": 404,
         "RATE_LIMITED": 429,
     }
     return JSONResponse(
@@ -157,10 +168,12 @@ app.include_router(scene_router)
 app.include_router(save_router)
 app.include_router(auth_router)
 app.include_router(tts_router)
+app.include_router(voice_router)
 app.include_router(ending_router)
 app.include_router(butterfly_router)
 app.include_router(game_router)
 app.mount("/tts", StaticFiles(directory=settings.TTS_CACHE_DIR), name="tts-cache")
+app.mount("/voice", StaticFiles(directory=settings.VOICE_PUBLIC_DIR), name="voice")
 
 
 @app.get("/api/health", tags=["health"])

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getScenePresentation } from '../stage/presentation'
+import { getScenePresentation, resolveCharacterMode } from '../stage/presentation'
 
 describe('cinematic scene presentation registry', () => {
   it('registers a complete 1972 Xi’an art direction package', () => {
@@ -61,16 +61,20 @@ describe('cinematic scene presentation registry', () => {
     }
   })
 
-  it('registers the 2089 memory lab and Xiaoyu projection', () => {
+  it('presents 2089 Xiaoyu as an aged physical character', () => {
     const scene = getScenePresentation('scene_2089')
 
     expect(scene).not.toBeNull()
     if (scene) {
       expect(scene.background).toContain('scene-2089-memory-lab')
       expect(scene.portraits).toHaveProperty('xiaoyu')
-      expect(scene.portraits.xiaoyu).toContain('xiaoyu-2089-projection')
+      expect(scene.portraits.xiaoyu).toContain('xiaoyu-2089-aged-solid')
       expect(scene.palette).toBe('memory')
     }
+  })
+
+  it('resolves 2089 Xiaoyu to the solid character mode', () => {
+    expect(resolveCharacterMode('scene_2089', 'xiaoyu')).toBe('solid')
   })
 
   it('covers all five story eras and rejects unknown scenes', () => {
@@ -90,5 +94,21 @@ describe('cinematic scene presentation registry', () => {
       getScenePresentation('scene_2050')?.palette,
       getScenePresentation('scene_2089')?.palette,
     ]).toEqual(['amber', 'rail', 'rain', 'ceremony', 'memory'])
+  })
+
+  it('registers seven distinct solid character plates', () => {
+    const solidPortraits = [
+      getScenePresentation('scene_1972')?.portraits.chen_shouyi_young,
+      getScenePresentation('scene_1990')?.portraits.chen_shouyi_1990,
+      getScenePresentation('scene_1990')?.portraits.stranger_1990,
+      getScenePresentation('scene_2024')?.portraits.chen_shouyi_old,
+      getScenePresentation('scene_2050')?.portraits.xiaoyu_2050,
+      getScenePresentation('scene_2050')?.portraits.journalist_2050,
+      getScenePresentation('scene_2089')?.portraits.xiaoyu,
+    ]
+
+    expect(solidPortraits).toHaveLength(7)
+    expect(solidPortraits.every((portrait) => portrait?.includes('-solid'))).toBe(true)
+    expect(new Set(solidPortraits).size).toBe(7)
   })
 })

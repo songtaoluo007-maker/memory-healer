@@ -1,7 +1,9 @@
 import { computed, ref } from 'vue'
 import { describe, expect, it } from 'vitest'
 import { buildFragmentGraph } from '../domain/fragmentGraph'
+import { useMemoryReasoningSelection } from '../domain/memoryReasoning'
 import { useHotspots } from '../composables/useHotspots'
+import { useScene } from '../composables/useScene'
 import type { FragmentState, SceneView } from '../types/game'
 
 const makeSceneView = (sceneId: string, hotspotId: string): SceneView => ({
@@ -37,6 +39,39 @@ const makeSceneView = (sceneId: string, hotspotId: string): SceneView => ({
     },
   ],
   choices: [],
+  hypotheses:
+    sceneId === 'scene_1972'
+      ? [
+          {
+            id: 'hypothesis_1972_legacy',
+            scene_id: 'scene_1972',
+            question: '陈守义为什么仍想把皮影传下去？',
+            statement: '刻刀与戏幕共同指向传承。',
+            evidence_ids: ['fragment_grandpa_knife', 'fragment_shadow_puppet'],
+            resolution: '两条记忆互相印证。',
+          },
+        ]
+      : sceneId === 'scene_1990'
+        ? [
+            {
+              id: 'hypothesis_1990_survival',
+              scene_id: 'scene_1990',
+              question: '陈守义南下是否意味着他准备抛下皮影？',
+              statement: '生存压力迫使他离开。',
+              evidence_ids: ['train_ticket_fragment', 'farewell_letter_fragment'],
+              resolution: '犹豫不能证明放弃。',
+            },
+            {
+              id: 'hypothesis_1990_modern_story',
+              scene_id: 'scene_1990',
+              question: '陈守义为什么带着整箱皮影来到深圳？',
+              statement: '他在为皮影寻找新讲法。',
+              evidence_ids: ['puppet_trunk_fragment', 'station_clock_fragment'],
+              resolution: '他带着皮影走进了新生活。',
+            },
+          ]
+        : [],
+  applied_consequences: [],
   content_version: 1,
 })
 
@@ -53,6 +88,76 @@ describe('canonical scene flow', () => {
 
     expect(hotspots.value.map((hotspot) => hotspot.id)).toEqual(['hotspot_1990_train_ticket'])
     expect(hotspots.value.some((hotspot) => hotspot.id.startsWith('hotspot_1972'))).toBe(false)
+  })
+
+  it('hydrates collected hotspot state from each scene view while preserving immediate exploration', () => {
+    const initial = makeSceneView('scene_1990', 'hotspot_1990_train_ticket')
+    initial.scene.fragments = ['train_ticket_fragment', 'station_clock_fragment']
+    initial.fragments = [
+      {
+        id: 'train_ticket_fragment',
+        name: '南下车票',
+        scene: 'scene_1990',
+        description: '一张揉皱的车票。',
+        unlock_method: 'explore',
+        unlock_hint: '',
+        memory_text: '',
+        is_revealed: false,
+        is_collected: false,
+      },
+      {
+        id: 'station_clock_fragment',
+        name: '站台时钟',
+        scene: 'scene_1990',
+        description: '停在发车前的时钟。',
+        unlock_method: 'trust',
+        unlock_hint: '',
+        memory_text: '',
+        is_revealed: false,
+        is_collected: false,
+      },
+    ]
+    initial.hotspots.push({
+      id: 'hotspot_1990_station_clock',
+      scene_id: 'scene_1990',
+      label: '站台时钟',
+      x: 0.72,
+      y: 0.3,
+      radius: 0.05,
+      fragment_id: 'station_clock_fragment',
+      npc_id: null,
+      interaction: 'inspect',
+      presentation_event: 'fragment.locked',
+    })
+    initial.hotspots[0]!.fragment_id = 'train_ticket_fragment'
+
+    const sceneView = ref<SceneView | null>(initial)
+    const { exploredIds, explorationProgress, markExplored } = useHotspots(
+      computed(() => sceneView.value),
+    )
+
+    expect(exploredIds.value.size).toBe(0)
+    expect(explorationProgress.value).toBe(0)
+
+    sceneView.value = {
+      ...initial,
+      fragments: initial.fragments.map((fragment) =>
+        fragment.id === 'train_ticket_fragment'
+          ? { ...fragment, is_revealed: true, is_collected: true }
+          : fragment,
+      ),
+    }
+
+    expect([...exploredIds.value]).toEqual(['hotspot_1990_train_ticket'])
+    expect(explorationProgress.value).toBe(50)
+
+    markExplored('hotspot_1990_station_clock')
+
+    expect([...exploredIds.value].sort()).toEqual([
+      'hotspot_1990_station_clock',
+      'hotspot_1990_train_ticket',
+    ])
+    expect(explorationProgress.value).toBe(100)
   })
 
   it('builds every graph node from canonical fragment state IDs', () => {
@@ -86,5 +191,84 @@ describe('canonical scene flow', () => {
         (link) => fragmentStates[link.from] !== undefined && fragmentStates[link.to] !== undefined,
       ),
     ).toBe(true)
+  })
+
+  it('exposes only the current scene hypotheses without retaining the prior act', () => {
+    const { hypotheses, replaceSceneView } = useScene()
+
+    replaceSceneView(makeSceneView('scene_1972', 'hotspot_1972_shadow_stage'))
+    expect(hypotheses.value.map((hypothesis) => hypothesis.id)).toEqual(['hypothesis_1972_legacy'])
+
+    replaceSceneView(makeSceneView('scene_1990', 'hotspot_1990_train_ticket'))
+    expect(hypotheses.value.map((hypothesis) => hypothesis.id)).toEqual([
+      'hypothesis_1990_survival',
+      'hypothesis_1990_modern_story',
+    ])
+  })
+
+  it('retains canonical consequences while selecting only the active scene target', () => {
+    const scene = useScene()
+    const view = makeSceneView('scene_1990', 'hotspot_1990_train_ticket')
+    view.applied_consequences = [
+      {
+        id: 'consequence_1972_legacy_carried',
+        source_choice_id: 'encourage_art',
+        target_scene_id: 'scene_1990',
+        variant: 'legacy_carried',
+        scene_text: '木箱敞开着，现代皮影清楚可见。',
+        npc_context: { chen_shouyi_1990: '他愿意谈一谈新的故事。' },
+      },
+      {
+        id: 'consequence_future_echo',
+        source_choice_id: 'future_choice',
+        target_scene_id: 'scene_2050',
+        variant: 'future_echo',
+        scene_text: '这条后果不属于当前场景。',
+        npc_context: {},
+      },
+    ]
+
+    scene.replaceSceneView(view)
+    view.applied_consequences[0].scene_text = '调用方随后篡改的文本'
+
+    expect(scene.sceneView.value?.applied_consequences).toHaveLength(2)
+    expect(scene.sceneView.value?.applied_consequences[0].scene_text).toBe(
+      '木箱敞开着，现代皮影清楚可见。',
+    )
+    expect(scene.activeConsequence.value?.id).toBe('consequence_1972_legacy_carried')
+  })
+
+  it('does not activate an unsupported consequence variant for the current scene', () => {
+    const scene = useScene()
+    const view = makeSceneView('scene_1990', 'hotspot_1990_train_ticket')
+    view.applied_consequences = [
+      {
+        id: 'consequence_future_variant',
+        source_choice_id: 'future_choice',
+        target_scene_id: 'scene_1990',
+        variant: 'future_variant',
+        scene_text: '当前客户端尚未支持这条视觉后果。',
+        npc_context: {},
+      },
+    ]
+
+    scene.replaceSceneView(view)
+
+    expect(scene.sceneView.value?.applied_consequences).toHaveLength(1)
+    expect(scene.activeConsequence.value).toBeNull()
+  })
+
+  it('clears stale candidate, evidence, and rejection state when the scene view changes', () => {
+    const scene = useScene()
+    scene.replaceSceneView(makeSceneView('scene_1972', 'hotspot_1972_shadow_stage'))
+    const selection = useMemoryReasoningSelection(scene.sceneView)
+    selection.selectedEvidenceIds.value = ['fragment_grandpa_knife']
+    selection.rejectedFeedback.value = '旧幕反馈'
+
+    scene.replaceSceneView(makeSceneView('scene_1990', 'hotspot_1990_train_ticket'))
+
+    expect(selection.selectedHypothesisId.value).toBe('hypothesis_1990_survival')
+    expect(selection.selectedEvidenceIds.value).toEqual([])
+    expect(selection.rejectedFeedback.value).toBeNull()
   })
 })

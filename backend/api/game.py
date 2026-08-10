@@ -32,6 +32,12 @@ class ChoiceRequest(StateRequest):
     expected_revision: int = Field(ge=0)
 
 
+class HypothesisRequest(StateRequest):
+    hypothesis_id: str = Field(min_length=1, max_length=100)
+    evidence_ids: list[str] = Field(min_length=2, max_length=8)
+    expected_revision: int = Field(ge=0)
+
+
 @router.get("/new")
 def new_game():
     state = game_service.create_game()
@@ -52,6 +58,16 @@ def explore(req: ExploreRequest):
     return game_service.explore(
         req.game_state,
         req.hotspot_id,
+        expected_revision=req.expected_revision,
+    )
+
+
+@router.post("/hypothesis")
+def confirm_hypothesis(req: HypothesisRequest):
+    return game_service.confirm_hypothesis(
+        req.game_state,
+        req.hypothesis_id,
+        req.evidence_ids,
         expected_revision=req.expected_revision,
     )
 

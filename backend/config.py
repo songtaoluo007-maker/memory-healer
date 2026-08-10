@@ -1,7 +1,11 @@
 """游戏配置"""
 
+import ipaddress
+import re
+import socket
 from pathlib import Path
 from typing import List
+from urllib.parse import urlsplit
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -44,6 +48,17 @@ class Settings(BaseSettings):
         ge=1024,
         le=10 * 1024 * 1024 * 1024,
     )
+    VOICE_PUBLIC_DIR: Path = ROOT_DIR / "backend" / "data" / "voice_public"
+    VOICE_PRIMARY_ENABLED: bool = False
+    VOICE_GENERATION_MAX_CONCURRENCY: int = Field(default=1, ge=1, le=4)
+    VOICE_CACHE_MAX_FILES: int = Field(default=500, ge=1, le=10000)
+    VOICE_CACHE_MAX_BYTES: int = Field(default=2_147_483_648, ge=1_048_576)
+    VOICE_PRIMARY_BASE_URL: str = ""
+    VOICE_PRIMARY_TOKEN: str = ""
+    VOICE_PRIMARY_CONNECT_TIMEOUT_SECONDS: float = Field(default=0.5, ge=0.1, le=10)
+    VOICE_PRIMARY_TOTAL_TIMEOUT_SECONDS: float = Field(default=2.5, ge=0.5, le=30)
+    VOICE_PRIMARY_FAILURE_THRESHOLD: int = Field(default=3, ge=1, le=20)
+    VOICE_PRIMARY_COOLDOWN_SECONDS: float = Field(default=30, ge=1, le=600)
 
     @property
     def cors_origins_list(self) -> List[str]:
@@ -67,6 +82,79 @@ class Settings(BaseSettings):
             )
         if self.is_production and not self.cors_origins_list:
             raise ValueError("CORS_ORIGINS must be explicit in production")
+        return self
+
+    @model_validator(mode="after")
+    def validate_voice_platform(self) -> "Settings":
+        tts_cache = self.TTS_CACHE_DIR.resolve()
+        voice_public = self.VOICE_PUBLIC_DIR.resolve()
+        try:
+            voice_public.relative_to(tts_cache)
+        except ValueError:
+            try:
+                tts_cache.relative_to(voice_public)
+            except ValueError:
+                pass
+            else:
+                raise ValueError(
+                    "TTS_CACHE_DIR must be separate from VOICE_PUBLIC_DIR"
+                )
+        else:
+            raise ValueError("TTS_CACHE_DIR must be separate from VOICE_PUBLIC_DIR")
+
+        if not self.VOICE_PRIMARY_ENABLED:
+            return self
+        if not self.VOICE_PRIMARY_TOKEN.strip():
+            raise ValueError(
+                "VOICE_PRIMARY_TOKEN is required when VOICE_PRIMARY_ENABLED=true"
+            )
+        parsed = urlsplit(self.VOICE_PRIMARY_BASE_URL)
+        hostname = parsed.hostname or ""
+        try:
+            normalized_host = (
+                hostname.rstrip(".").casefold().encode("idna").decode("ascii")
+            )
+        except UnicodeError:
+            normalized_host = ""
+        is_loopback = (
+            normalized_host == "localhost"
+            or normalized_host.endswith(".localhost")
+        )
+        try:
+            address = ipaddress.ip_address(normalized_host)
+            is_loopback = is_loopback or address.is_loopback
+            if isinstance(address, ipaddress.IPv6Address):
+                mapped = address.ipv4_mapped
+                is_loopback = is_loopback or (
+                    mapped is not None and mapped.is_loopback
+                )
+        except ValueError:
+            pass
+        legacy_ipv4_literal = re.fullmatch(
+            r"(?:0[xX][0-9a-fA-F]+|[0-9]+)"
+            r"(?:\.(?:0[xX][0-9a-fA-F]+|[0-9]+))*",
+            normalized_host,
+        )
+        if legacy_ipv4_literal:
+            try:
+                legacy_address = ipaddress.IPv4Address(
+                    socket.inet_aton(normalized_host)
+                )
+            except OSError:
+                pass
+            else:
+                is_loopback = is_loopback or legacy_address.is_loopback
+        if parsed.scheme.casefold() != "https" or not normalized_host or is_loopback:
+            raise ValueError(
+                "VOICE_PRIMARY_BASE_URL must be a remote HTTPS URL when "
+                "VOICE_PRIMARY_ENABLED=true"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def create_voice_directories(self) -> "Settings":
+        (self.VOICE_PUBLIC_DIR / "cache").mkdir(parents=True, exist_ok=True)
+        (self.VOICE_PUBLIC_DIR / "fixed").mkdir(parents=True, exist_ok=True)
         return self
 
 

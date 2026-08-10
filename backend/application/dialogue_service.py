@@ -92,18 +92,61 @@ class DialogueService:
         fragment_id = suggestion.fragment_revealed
         if fragment_id not in npc.fragments_to_reveal:
             fragment_id = None
+        elif fragment_id is not None:
+            suggested_fragment = self.registry.get_fragment(fragment_id)
+            if suggested_fragment.unlock_method == "explore":
+                fragment_id = None
+            elif (
+                suggested_fragment.unlock_method == "trust"
+                and state.npc_trust[npc.id] < suggested_fragment.minimum_trust
+            ):
+                fragment_id = None
+
+        canonical_fragment = next(
+            (
+                fragment
+                for fragment in self.registry.fragments.values()
+                if fragment.scene == state.current_scene
+                and fragment.unlock_method == "dialogue"
+                and fragment.unlock_npc_id == npc.id
+                and fragment.dialogue_prompt == normalized_input
+            ),
+            None,
+        )
+        first_canonical_collection = (
+            canonical_fragment is not None
+            and canonical_fragment.id not in state.collected_fragments
+        )
+        if canonical_fragment is not None:
+            fragment_id = canonical_fragment.id
 
         payload = state.model_dump(mode="python")
         previous_trust = payload["npc_trust"][npc.id]
-        updated_trust = max(0, min(100, previous_trust + suggestion.trust_change))
+        if canonical_fragment is not None:
+            trust_delta = (
+                canonical_fragment.dialogue_trust_reward
+                if first_canonical_collection
+                else 0
+            )
+        else:
+            trust_delta = suggestion.trust_change
+        updated_trust = max(0, min(100, previous_trust + trust_delta))
         applied_trust_change = updated_trust - previous_trust
         payload["npc_trust"][npc.id] = updated_trust
         payload["npc_emotions"][npc.id] = suggestion.npc_mood
 
-        if fragment_id is not None and fragment_id not in payload["revealed_fragments"]:
-            payload["revealed_fragments"].append(fragment_id)
+        if fragment_id is not None:
             fragment_state = payload["fragment_states"][fragment_id]
-            if not fragment_state["collected"]:
+            if first_canonical_collection:
+                if fragment_id not in payload["revealed_fragments"]:
+                    payload["revealed_fragments"].append(fragment_id)
+                if fragment_id not in payload["collected_fragments"]:
+                    payload["collected_fragments"].append(fragment_id)
+                fragment_state["status"] = "collected"
+                fragment_state["revealed"] = True
+                fragment_state["collected"] = True
+            elif fragment_id not in payload["revealed_fragments"]:
+                payload["revealed_fragments"].append(fragment_id)
                 fragment_state["status"] = "revealed"
                 fragment_state["revealed"] = True
 
@@ -155,6 +198,13 @@ class DialogueService:
             for message in state.dialogue_history[-12:]
         )
         allowed_fragments = ", ".join(npc.fragments_to_reveal) or "无"
+        consequence_context = [
+            consequence.npc_context[npc.id]
+            for consequence in self.registry.consequences.values()
+            if consequence.target_scene_id == state.current_scene
+            and consequence.source_choice_id in state.butterfly_choices.values()
+            and npc.id in consequence.npc_context
+        ]
         system_prompt = f"""
 {npc.system_prompt}
 
@@ -172,6 +222,9 @@ fragment_revealed 只能是以下 ID 或 null：{allowed_fragments}。
 {history or "这是第一次对话"}
 
 玩家说：{player_input}
+
+跨场景形成的当前事实：
+{chr(10).join(consequence_context) if consequence_context else "无"}
 """.strip()
         return DialogueContext(
             system_prompt=system_prompt,

@@ -14,10 +14,13 @@ venv/
 .env
 .env.local
 .env.*.local
+.local/
+.codex-run/
 
 # Data
 data/game.db
 data/tts_cache/
+backend/data/voice_public/cache/
 
 # IDE
 .vscode/

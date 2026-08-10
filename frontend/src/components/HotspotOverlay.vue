@@ -1,34 +1,34 @@
 <script setup lang="ts">
-/**
- * 热区叠加层 — 在场景插画上显示可探索的交互点
- * 皮影戏风格：热区用脉冲光圈+小灯笼图标提示
- */
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from '../composables/useI18n'
 import type { Hotspot } from '../types/game'
 
 const { t } = useI18n()
 
-const props = defineProps<{
-  hotspots: Hotspot[]
-  exploredIds: Set<string>
-  sceneId: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    hotspots: Hotspot[]
+    exploredIds: Set<string>
+    sceneId: string
+    scanMode?: boolean
+  }>(),
+  {
+    scanMode: false,
+  },
+)
 
 const emit = defineEmits<{
   explore: [hotspot: Hotspot]
 }>()
 
 const hoveredId = ref<string | null>(null)
-const VIEWBOX_WIDTH = 800
-const VIEWBOX_HEIGHT = 500
 
-// 根据场景年代决定光圈颜色
-const eraColor = computed(() => {
-  if (props.sceneId.includes('1972')) return { main: '#f59e0b', glow: 'rgba(245,158,11,0.3)' }
-  if (props.sceneId.includes('2024')) return { main: '#60a5fa', glow: 'rgba(96,165,250,0.3)' }
-  return { main: '#a78bfa', glow: 'rgba(167,139,250,0.3)' }
-})
+const interactionLabel = (interaction: Hotspot['interaction']) =>
+  ({
+    inspect: '观察异样',
+    collect: '拾取线索',
+    talk: '询问此物',
+  })[interaction]
 
 const handleClick = (hotspot: Hotspot) => {
   if (!props.exploredIds.has(hotspot.id)) {
@@ -36,172 +36,243 @@ const handleClick = (hotspot: Hotspot) => {
   }
 }
 
-const hotspotX = (hotspot: Hotspot) => hotspot.x * VIEWBOX_WIDTH
-const hotspotY = (hotspot: Hotspot) => hotspot.y * VIEWBOX_HEIGHT
-const hotspotRadius = (hotspot: Hotspot) => hotspot.radius * Math.min(VIEWBOX_WIDTH, VIEWBOX_HEIGHT)
+const horizontalClass = (hotspot: Hotspot) => {
+  if (hotspot.x >= 0.68) return 'align-right'
+  if (hotspot.x <= 0.28) return 'align-left'
+  return 'align-center'
+}
 </script>
 
 <template>
-  <svg
+  <div
     class="hotspot-overlay"
-    viewBox="0 0 800 500"
-    preserveAspectRatio="xMidYMid meet"
-    role="img"
+    :class="{ 'scan-active': scanMode }"
+    role="group"
     :aria-label="t('a11y.hotspot')"
+    :data-scene-id="sceneId"
   >
-    <defs>
-      <!-- 脉冲动画 -->
-      <radialGradient :id="'pulse-' + sceneId" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" :stop-color="eraColor.main" stop-opacity="0.6">
-          <animate
-            attributeName="stop-opacity"
-            values="0.6;0.2;0.6"
-            dur="2s"
-            repeatCount="indefinite"
-          />
-        </stop>
-        <stop offset="100%" :stop-color="eraColor.main" stop-opacity="0" />
-      </radialGradient>
-
-      <!-- 发光滤镜 -->
-      <filter :id="'glow-' + sceneId" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-        <feMerge>
-          <feMergeNode in="blur" />
-          <feMergeNode in="SourceGraphic" />
-        </feMerge>
-      </filter>
-    </defs>
-
-    <!-- 每个热区 -->
-    <g
+    <button
       v-for="hotspot in hotspots"
       :key="hotspot.id"
-      class="hotspot-group"
-      :class="{
-        explored: exploredIds.has(hotspot.id),
-        hovered: hoveredId === hotspot.id,
-      }"
+      class="perception-cue"
+      :class="[
+        horizontalClass(hotspot),
+        {
+          explored: exploredIds.has(hotspot.id),
+          active: hoveredId === hotspot.id,
+          scanning: scanMode,
+        },
+      ]"
+      :style="{ left: `${hotspot.x * 100}%`, top: `${hotspot.y * 100}%` }"
+      type="button"
+      :disabled="exploredIds.has(hotspot.id)"
+      :aria-label="`${interactionLabel(hotspot.interaction)}：${hotspot.label}`"
       @click="handleClick(hotspot)"
-      @keydown.enter="handleClick(hotspot)"
-      @keydown.space.prevent="handleClick(hotspot)"
       @mouseenter="hoveredId = hotspot.id"
       @mouseleave="hoveredId = null"
-      role="button"
-      tabindex="0"
-      :aria-label="hotspot.label"
+      @focus="hoveredId = hotspot.id"
+      @blur="hoveredId = null"
     >
-      <!-- 脉冲光圈（未探索才显示） -->
-      <circle
-        v-if="!exploredIds.has(hotspot.id)"
-        :cx="hotspotX(hotspot)"
-        :cy="hotspotY(hotspot)"
-        :r="hotspotRadius(hotspot) * 1.8"
-        :fill="`url(#pulse-${sceneId})`"
-        class="pulse-ring"
-      />
-
-      <!-- 主热区圆圈 -->
-      <circle
-        :cx="hotspotX(hotspot)"
-        :cy="hotspotY(hotspot)"
-        :r="hotspotRadius(hotspot)"
-        :fill="exploredIds.has(hotspot.id) ? 'rgba(100,100,100,0.2)' : eraColor.glow"
-        :stroke="exploredIds.has(hotspot.id) ? 'rgba(100,100,100,0.3)' : eraColor.main"
-        stroke-width="2"
-        :filter="exploredIds.has(hotspot.id) ? 'none' : `url(#glow-${sceneId})`"
-        class="hotspot-circle"
-      />
-
-      <!-- 热区图标 -->
-      <text
-        :x="hotspotX(hotspot)"
-        :y="hotspotY(hotspot) + 5"
-        text-anchor="middle"
-        :font-size="hotspotRadius(hotspot) * 0.7"
-        :fill="exploredIds.has(hotspot.id) ? 'rgba(150,150,150,0.5)' : '#fff'"
-        class="hotspot-icon"
-      >
-        {{ exploredIds.has(hotspot.id) ? '✓' : '✦' }}
-      </text>
-
-      <!-- 悬浮提示 -->
-      <g v-if="hoveredId === hotspot.id && !exploredIds.has(hotspot.id)">
-        <rect
-          :x="hotspotX(hotspot) - 100"
-          :y="hotspotY(hotspot) - hotspotRadius(hotspot) - 35"
-          width="200"
-          height="28"
-          rx="6"
-          fill="rgba(0,0,0,0.8)"
-          :stroke="eraColor.main"
-          stroke-width="1"
-        />
-        <text
-          :x="hotspotX(hotspot)"
-          :y="hotspotY(hotspot) - hotspotRadius(hotspot) - 17"
-          text-anchor="middle"
-          font-size="12"
-          fill="#e0e0ff"
-          font-family="'Noto Serif SC', serif"
-        >
-          {{ hotspot.label.length > 18 ? hotspot.label.substring(0, 18) + '...' : hotspot.label }}
-        </text>
-      </g>
-    </g>
-  </svg>
+      <span class="cue-frame" aria-hidden="true"><i /></span>
+      <span class="cue-copy">
+        <small>{{ interactionLabel(hotspot.interaction) }}</small>
+        <strong>{{ hotspot.label }}</strong>
+      </span>
+    </button>
+  </div>
 </template>
 
 <style scoped>
 .hotspot-overlay {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
   z-index: 10;
-}
-
-.hotspot-group {
-  pointer-events: all;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.hotspot-group:not(.explored):hover {
-  transform: scale(1.1);
-}
-
-.hotspot-group.explored {
-  cursor: default;
-  opacity: 0.5;
-}
-
-.hotspot-circle {
-  transition: all 0.3s;
-}
-
-.hotspot-group:not(.explored):hover .hotspot-circle {
-  stroke-width: 3;
-}
-
-.pulse-ring {
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.6;
-    transform-origin: center;
-  }
-  50% {
-    opacity: 0.2;
-  }
-}
-
-.hotspot-icon {
+  inset: 0;
   pointer-events: none;
-  user-select: none;
+}
+
+.perception-cue {
+  position: absolute;
+  display: grid;
+  width: 4.5rem;
+  height: 4.5rem;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: #f1e5ce;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.cue-frame {
+  position: relative;
+  display: block;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-top: 1px solid rgba(214, 173, 102, 0.76);
+  border-left: 1px solid rgba(214, 173, 102, 0.76);
+  opacity: 0.58;
+  filter: drop-shadow(0 0 0.45rem rgba(214, 173, 102, 0.24));
+  transition:
+    width 240ms ease,
+    height 240ms ease,
+    opacity 180ms ease,
+    border-color 180ms ease,
+    transform 320ms cubic-bezier(0.2, 0.72, 0.15, 1);
+}
+
+.cue-frame::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-right: 1px solid rgba(214, 173, 102, 0.48);
+  border-bottom: 1px solid rgba(214, 173, 102, 0.48);
+  content: '';
+}
+
+.cue-frame i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.25rem;
+  height: 1px;
+  background: rgba(241, 229, 206, 0.78);
+  transform: translate(-50%, -50%);
+  transition: width 180ms ease;
+}
+
+.cue-copy {
+  position: absolute;
+  top: calc(50% + 1.35rem);
+  display: grid;
+  min-width: max-content;
+  padding: 0.42rem 0.58rem 0.48rem;
+  border-top: 1px solid rgba(214, 173, 102, 0.5);
+  color: rgba(241, 229, 206, 0.92);
+  text-align: left;
+  background: rgba(5, 6, 6, 0.76);
+  box-shadow: 0 0.8rem 2rem rgba(0, 0, 0, 0.34);
+  opacity: 0;
+  transform: translateY(0.35rem);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+  transition:
+    opacity 180ms ease,
+    transform 260ms cubic-bezier(0.2, 0.72, 0.15, 1);
+}
+
+.align-left .cue-copy {
+  left: 50%;
+}
+
+.align-center .cue-copy {
+  left: 50%;
+  transform: translate(-50%, 0.35rem);
+}
+
+.align-right .cue-copy {
+  right: 50%;
+}
+
+.cue-copy small {
+  color: rgba(214, 173, 102, 0.72);
+  font:
+    600 0.46rem/1.2 ui-monospace,
+    monospace;
+  letter-spacing: 0.18em;
+}
+
+.cue-copy strong {
+  margin-top: 0.24rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+
+.perception-cue:hover .cue-frame,
+.perception-cue:focus-visible .cue-frame,
+.perception-cue.active .cue-frame,
+.perception-cue.scanning .cue-frame {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-color: rgba(241, 229, 206, 0.94);
+  opacity: 1;
+  transform: scale(1.02);
+}
+
+.perception-cue:hover .cue-frame i,
+.perception-cue:focus-visible .cue-frame i,
+.perception-cue.active .cue-frame i,
+.perception-cue.scanning .cue-frame i {
+  width: 0.7rem;
+}
+
+.perception-cue:hover .cue-copy,
+.perception-cue:focus-visible .cue-copy,
+.perception-cue.active .cue-copy,
+.perception-cue.scanning .cue-copy {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.perception-cue.align-center:hover .cue-copy,
+.perception-cue.align-center:focus-visible .cue-copy,
+.perception-cue.align-center.active .cue-copy,
+.perception-cue.align-center.scanning .cue-copy {
+  transform: translate(-50%, 0);
+}
+
+.perception-cue:focus-visible {
+  outline: 1px solid rgba(241, 229, 206, 0.72);
+  outline-offset: 0.1rem;
+}
+
+.perception-cue.explored {
+  cursor: default;
+}
+
+.perception-cue.explored .cue-frame {
+  width: 1rem;
+  height: 0.6rem;
+  border-top-color: transparent;
+  border-left-color: rgba(215, 196, 162, 0.24);
+  opacity: 0.45;
+  filter: none;
+}
+
+.perception-cue.explored .cue-frame::after {
+  width: 0.55rem;
+  height: 0;
+  border-right: 0;
+  border-bottom-color: rgba(215, 196, 162, 0.28);
+}
+
+.perception-cue.explored .cue-frame i,
+.perception-cue.explored .cue-copy {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  .perception-cue {
+    width: 3.75rem;
+    height: 3.75rem;
+  }
+
+  .cue-copy {
+    max-width: 9rem;
+    min-width: 7rem;
+    white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cue-frame,
+  .cue-frame i,
+  .cue-copy {
+    transition: none;
+  }
 }
 </style>

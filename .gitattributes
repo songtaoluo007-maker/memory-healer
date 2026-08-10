@@ -1,0 +1,2 @@
+backend/data/voice_public/fixed/*.opus filter=lfs diff=lfs merge=lfs -text
+backend/data/voice_public/fixed/*.mp3 filter=lfs diff=lfs merge=lfs -text

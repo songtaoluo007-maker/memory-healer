@@ -1,0 +1,38 @@
+[
+  {
+    "id": "hypothesis_1972_legacy",
+    "scene_id": "scene_1972",
+    "question": "陈守义为什么仍想把皮影传下去？",
+    "statement": "爷爷留下的刻刀与仍在发光的戏幕证明：他守住的不是旧物，而是一种仍能被讲述的生活。",
+    "evidence_ids": [
+      "fragment_grandpa_knife",
+      "fragment_shadow_puppet"
+    ],
+    "resolution": "两条记忆互相印证。你可以带着这份理解作出选择。",
+    "resolution_voice_line_id": "hypothesis_1972_legacy.resolution"
+  },
+  {
+    "id": "hypothesis_1990_survival",
+    "scene_id": "scene_1990",
+    "question": "陈守义南下是否意味着他准备抛下皮影？",
+    "statement": "南下车票与未寄出的告别信说明，生存压力和愧疚迫使他离开，也许他已经决定放弃这门手艺。",
+    "evidence_ids": [
+      "train_ticket_fragment",
+      "farewell_letter_fragment"
+    ],
+    "resolution": "生存压力和信里的愧疚并不能证明他要抛下手艺；去问问那个穿西装的皮影和他在3:47作出的决定。",
+    "outcome": "rejected"
+  },
+  {
+    "id": "hypothesis_1990_modern_story",
+    "scene_id": "scene_1990",
+    "question": "陈守义为什么带着整箱皮影来到深圳？",
+    "statement": "穿西装的现代皮影与3:47提箱出站的决定互相印证：他不仅要活下去，也在主动寻找手艺的新讲法。",
+    "evidence_ids": [
+      "puppet_trunk_fragment",
+      "station_clock_fragment"
+    ],
+    "resolution": "他来到南方既是为了生存，也是为了试一试皮影戏能不能讲当代故事。",
+    "outcome": "confirmed"
+  }
+]

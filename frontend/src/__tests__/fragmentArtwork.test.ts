@@ -1,5 +1,5 @@
 /* eslint-disable vue/one-component-per-file */
-import { createApp, nextTick } from 'vue'
+import { createApp, h, nextTick, ref } from 'vue'
 import { afterEach, describe, expect, it } from 'vitest'
 import FragmentArtwork from '../components/FragmentArtwork.vue'
 import type { FragmentPresentation } from '../stage/fragmentPresentation'
@@ -40,5 +40,28 @@ describe('FragmentArtwork', () => {
 
     expect(host.querySelector('figure')).toBeNull()
     expect(host.querySelector('img')).toBeNull()
+  })
+
+  it('renders the next fragment after a previous image failed', async () => {
+    const host = document.createElement('div')
+    const current = ref(presentation)
+    app = createApp({
+      render: () => h(FragmentArtwork, { presentation: current.value }),
+    })
+    app.mount(host)
+
+    host.querySelector('img')?.dispatchEvent(new Event('error'))
+    await nextTick()
+    expect(host.querySelector('img')).toBeNull()
+
+    current.value = {
+      id: 'next_fragment',
+      image: '/next-fragment.webp',
+      alt: '下一张记忆碎片',
+      focus: '50% 50%',
+    }
+    await nextTick()
+
+    expect(host.querySelector('img')?.getAttribute('src')).toBe('/next-fragment.webp')
   })
 })

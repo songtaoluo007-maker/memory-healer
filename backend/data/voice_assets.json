@@ -1,0 +1,212 @@
+[
+  {
+    "id": "scene_1972.transition_in",
+    "filename": "fixed/scene-1972-transition-in.opus",
+    "media_type": "audio/ogg; codecs=opus",
+    "duration_ms": 5806,
+    "sha256": "68351f954fb74910bca171327f2802aaecce6ef0089ea80817deb7acbad3a4d5",
+    "text_sha256": "5cb30fca07017f66e03997f0e12eac170d22d6101351802780b6d819f32c6a54",
+    "integrated_lufs": -17.7,
+    "true_peak_dbfs": -2.66,
+    "generator": "edge_tts",
+    "generator_revision": "7.2.8",
+    "model_id": "zh-CN-XiaoxiaoNeural",
+    "generator_provenance": "edge_managed_cloud",
+    "line_version": 1,
+    "profile_version": 1,
+    "postprocess_version": 1,
+    "cues": [
+      {
+        "start_ms": 0,
+        "end_ms": 2002,
+        "text": "记忆修复程序启动……"
+      },
+      {
+        "start_ms": 2002,
+        "end_ms": 5806,
+        "text": "你睁开眼，回到了1972年的西安老巷。"
+      }
+    ],
+    "approved": true
+  },
+  {
+    "id": "scene_1972.transition_out",
+    "filename": "fixed/scene-1972-transition-out.opus",
+    "media_type": "audio/ogg; codecs=opus",
+    "duration_ms": 6206,
+    "sha256": "8aa417691b0b541d302dff03a06c8b737c6681f65bd13de36166320bf071d296",
+    "text_sha256": "d215419b0b24822eae3966e5730d71963fbd5030994b6957e63c009398b8971a",
+    "integrated_lufs": -18.37,
+    "true_peak_dbfs": -2.45,
+    "generator": "edge_tts",
+    "generator_revision": "7.2.8",
+    "model_id": "zh-CN-XiaoxiaoNeural",
+    "generator_provenance": "edge_managed_cloud",
+    "line_version": 1,
+    "profile_version": 1,
+    "postprocess_version": 1,
+    "cues": [
+      {
+        "start_ms": 0,
+        "end_ms": 4367,
+        "text": "老巷的光影渐渐模糊，陈守义的身影远去。"
+      },
+      {
+        "start_ms": 4367,
+        "end_ms": 6206,
+        "text": "时光开始流转……"
+      }
+    ],
+    "approved": true
+  },
+  {
+    "id": "npc.chen_shouyi_young.intro",
+    "filename": "fixed/npc-chen-shouyi-young-intro.opus",
+    "media_type": "audio/ogg; codecs=opus",
+    "duration_ms": 7006,
+    "sha256": "662f20b1a08d80946f43c9facfe223ba39275a3a0a9cd6f25455238eac08d0b1",
+    "text_sha256": "eaac02f70a7f98a1d080ab8ac5ca6a174cf7d984535554fd6ec365b9f39cc93b",
+    "integrated_lufs": -17.69,
+    "true_peak_dbfs": -1.11,
+    "generator": "edge_tts",
+    "generator_revision": "7.2.8",
+    "model_id": "zh-CN-YunxiNeural",
+    "generator_provenance": "edge_managed_cloud",
+    "line_version": 1,
+    "profile_version": 1,
+    "postprocess_version": 1,
+    "cues": [
+      {
+        "start_ms": 0,
+        "end_ms": 4598,
+        "text": "额守着这方幕布，就像守着爷爷留下的一盏灯。"
+      },
+      {
+        "start_ms": 4598,
+        "end_ms": 7006,
+        "text": "你愿意听额讲讲皮影吗？"
+      }
+    ],
+    "approved": true
+  },
+  {
+    "id": "fragment_shadow_puppet.memory",
+    "filename": "fixed/fragment-shadow-puppet-memory.opus",
+    "media_type": "audio/ogg; codecs=opus",
+    "duration_ms": 9606,
+    "sha256": "c3d366b169e5682c49dc64f0d815808420cf1acd514574e4a680dc87985bb30c",
+    "text_sha256": "988a5884097944af7d43d5e9e53b6d268fcdcaaeaee22499bc6167fdf9a9c591",
+    "integrated_lufs": -18.79,
+    "true_peak_dbfs": -2.56,
+    "generator": "edge_tts",
+    "generator_revision": "7.2.8",
+    "model_id": "zh-CN-XiaoxiaoNeural",
+    "generator_provenance": "edge_managed_cloud",
+    "line_version": 1,
+    "profile_version": 1,
+    "postprocess_version": 1,
+    "cues": [
+      {
+        "start_ms": 0,
+        "end_ms": 3202,
+        "text": "陈守义最拿手的是三英战吕布。"
+      },
+      {
+        "start_ms": 3202,
+        "end_ms": 9606,
+        "text": "他说爷爷教他的时候，他才5岁，够不到戏台，要站在板凳上。"
+      }
+    ],
+    "approved": true
+  },
+  {
+    "id": "fragment_grandpa_knife.memory",
+    "filename": "fixed/fragment-grandpa-knife-memory.opus",
+    "media_type": "audio/ogg; codecs=opus",
+    "duration_ms": 8706,
+    "sha256": "6d75327c7b66099ec76bfa3c112dec7d7b03954c8f8ae80290e1aea0acddb509",
+    "text_sha256": "bf7f5ca567d99817c79e59cd98352f7513b6b3716633b442c8e2ccc90c9d3816",
+    "integrated_lufs": -18.55,
+    "true_peak_dbfs": -2.65,
+    "generator": "edge_tts",
+    "generator_revision": "7.2.8",
+    "model_id": "zh-CN-XiaoxiaoNeural",
+    "generator_provenance": "edge_managed_cloud",
+    "line_version": 1,
+    "profile_version": 1,
+    "postprocess_version": 1,
+    "cues": [
+      {
+        "start_ms": 0,
+        "end_ms": 3294,
+        "text": "这把刻刀是爷爷传给陈守义的。"
+      },
+      {
+        "start_ms": 3294,
+        "end_ms": 8706,
+        "text": "爷爷说，皮影匠人的刻刀就像剑客的剑，从不离身。"
+      }
+    ],
+    "approved": true
+  },
+  {
+    "id": "fragment_three_kings.memory",
+    "filename": "fixed/fragment-three-kings-memory.opus",
+    "media_type": "audio/ogg; codecs=opus",
+    "duration_ms": 9206,
+    "sha256": "f5fe737b2266888cb495c8a6a72bbd0cf1abf69fa0a08ea3f1debe5bfeb5dca1",
+    "text_sha256": "d070e52ddcd864f924c0ab977c4146efe40aa0d0b226cc68557a0497102ab792",
+    "integrated_lufs": -18.43,
+    "true_peak_dbfs": -2.69,
+    "generator": "edge_tts",
+    "generator_revision": "7.2.8",
+    "model_id": "zh-CN-XiaoxiaoNeural",
+    "generator_provenance": "edge_managed_cloud",
+    "line_version": 1,
+    "profile_version": 1,
+    "postprocess_version": 1,
+    "cues": [
+      {
+        "start_ms": 0,
+        "end_ms": 3138,
+        "text": "陈守义说，他这辈子最骄傲的事，"
+      },
+      {
+        "start_ms": 3138,
+        "end_ms": 9206,
+        "text": "就是1970年在西安城墙下给300个人演了一场三英战吕布。"
+      }
+    ],
+    "approved": true
+  },
+  {
+    "id": "hypothesis_1972_legacy.resolution",
+    "filename": "fixed/hypothesis-1972-legacy-resolution.opus",
+    "media_type": "audio/ogg; codecs=opus",
+    "duration_ms": 5506,
+    "sha256": "b06753825a4e0dd41f9fc1bcca2cac4a22c61460f71192d2c20c5556e5e42bb5",
+    "text_sha256": "b8428075062d18e0fc98b751e9bff7bccbf4ce2099d4f8a1b6d9c924b076cdc0",
+    "integrated_lufs": -18.49,
+    "true_peak_dbfs": -2.39,
+    "generator": "edge_tts",
+    "generator_revision": "7.2.8",
+    "model_id": "zh-CN-XiaoxiaoNeural",
+    "generator_provenance": "edge_managed_cloud",
+    "line_version": 1,
+    "profile_version": 1,
+    "postprocess_version": 1,
+    "cues": [
+      {
+        "start_ms": 0,
+        "end_ms": 2155,
+        "text": "两条记忆互相印证。"
+      },
+      {
+        "start_ms": 2155,
+        "end_ms": 5506,
+        "text": "你可以带着这份理解作出选择。"
+      }
+    ],
+    "approved": true
+  }
+]

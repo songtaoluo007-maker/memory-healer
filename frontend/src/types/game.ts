@@ -14,6 +14,8 @@ export interface Scene {
   triggers?: Record<string, string>
   transition_in?: string
   transition_out?: string
+  transition_in_voice_line_id?: string | null
+  transition_out_voice_line_id?: string | null
   fallback_asset: string
 }
 
@@ -29,6 +31,7 @@ export interface Npc {
   system_prompt: string
   initial_trust: number
   fragments_to_reveal: string[]
+  initial_voice_line_id?: string | null
 }
 
 export interface Fragment {
@@ -40,6 +43,7 @@ export interface Fragment {
   unlock_hint: string
   memory_text: string
   collected: boolean
+  memory_voice_line_id?: string | null
 }
 
 export interface FragmentState {
@@ -77,6 +81,7 @@ export interface GameState {
   npc_emotions: Record<string, string>
   key_choices: KeyChoiceRecord[]
   butterfly_choices: Record<string, string>
+  confirmed_hypotheses?: Record<string, string>
   dialogue_history: DialogueMessage[]
   current_mood: string
   play_time_seconds: number
@@ -91,6 +96,7 @@ export interface NpcSummary {
   title: string
   avatar: string
   initial_trust: number
+  initial_voice_line_id?: string | null
 }
 
 export interface SceneFragment {
@@ -101,8 +107,13 @@ export interface SceneFragment {
   unlock_method: string
   unlock_hint: string
   memory_text: string
+  unlock_npc_id?: string | null
+  minimum_trust?: number | null
+  dialogue_prompt?: string | null
+  dialogue_trust_reward?: number
   is_revealed: boolean
   is_collected: boolean
+  memory_voice_line_id?: string | null
 }
 
 export interface Hotspot {
@@ -124,6 +135,21 @@ export interface ChoiceEffects {
   current_mood: string | null
 }
 
+export type ChoiceRequirement =
+  | {
+      kind: 'hypothesis_confirmed'
+      hypothesis_id: string
+    }
+  | {
+      kind: 'fragment_collected'
+      fragment_id: string
+    }
+  | {
+      kind: 'npc_trust_at_least'
+      npc_id: string
+      minimum: number
+    }
+
 export interface Choice {
   id: string
   scene_id: string
@@ -131,6 +157,26 @@ export interface Choice {
   target_scene: string | null
   is_key: boolean
   effects: ChoiceEffects
+  requirements: ChoiceRequirement[]
+}
+
+export interface Hypothesis {
+  id: string
+  scene_id: string
+  question: string
+  statement: string
+  evidence_ids: string[]
+  resolution: string
+  resolution_voice_line_id?: string | null
+}
+
+export interface AppliedConsequence {
+  id: string
+  source_choice_id: string
+  target_scene_id: string
+  variant: string
+  scene_text: string
+  npc_context: Record<string, string>
 }
 
 export interface SceneView {
@@ -139,6 +185,8 @@ export interface SceneView {
   fragments: SceneFragment[]
   hotspots: Hotspot[]
   choices: Choice[]
+  hypotheses?: Hypothesis[]
+  applied_consequences: AppliedConsequence[]
   content_version: number
 }
 
@@ -187,6 +235,7 @@ export interface EndingContent {
     min_key_choices: number
     required_npc_trust: Record<string, number>
   }
+  voice_line_id?: string | null
 }
 
 export interface SaveSlot {
@@ -225,6 +274,33 @@ export interface AuthUser {
 }
 
 export type EndingType = 'hope' | 'bittersweet' | 'tragic' | 'legacy'
+
+export type VoiceProvider = 'fixed' | 'remote' | 'edge' | 'silent'
+export type VoicePriority = 'ending' | 'critical' | 'dialogue' | 'narration' | 'system'
+
+export interface VoiceCue {
+  start_ms: number
+  end_ms: number
+  text: string
+}
+
+export interface VoiceResponse {
+  url: string | null
+  provider: VoiceProvider
+  cached: boolean
+  media_type: string | null
+  duration_ms: number | null
+  line_id: string | null
+  cues: VoiceCue[]
+  degraded: boolean
+}
+
+export interface VoicePlaybackRequest {
+  url: string
+  priority: VoicePriority
+  lineId: string | null
+  cues: VoiceCue[]
+}
 
 // 场景ID类型
 export type SceneId = 'scene_1972' | 'scene_1990' | 'scene_2024' | 'scene_2050' | 'scene_2089'

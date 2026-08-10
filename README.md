@@ -3,8 +3,8 @@
 一款关于皮影、记忆与代际传承的 AI 叙事游戏。玩家作为“记忆修复师”，
 穿行于陈守义跨越百年的五段人生，通过探索、对话和选择修复逐渐消散的记忆。
 
-当前分支已完成 P0-A 产品稳定底座；电影级 UI/美术属于下一阶段 P0-B，尚未
-在本文中冒充已完成。
+当前版本已完成 P0-A 产品稳定底座、五年代电影级美术，以及 1972 第一幕的
+固定语音纵向切片。其余年代不会在叙事脚本冻结前批量生成固定语音。
 
 ## 当前可玩范围
 
@@ -12,7 +12,8 @@
 - 7 位场景角色、17 个记忆碎片、17 个可探索热区。
 - 10 个权威选择和 4 个确定性结局。
 - DeepSeek 结构化角色对白；未配置或不可用时自动使用角色化本地对白。
-- Edge TTS 语音增强；失败时保留文字，不阻断剧情。
+- 1972 第一幕已提供 Edge 托管云在构建期生成的批准语音资产；运行时 Edge
+  语音失败时保持完整文字玩法。
 - Cookie 登录、用户隔离存档和并发覆盖保护。
 
 后端是场景内容、规则和 `GameState` 的唯一权威来源。前端只提交玩家意图，
@@ -24,7 +25,7 @@
 | --- | --- |
 | 前端 | Vue 3、TypeScript、Vite、Vitest |
 | 后端 | FastAPI、Pydantic 2、SQLAlchemy 2 |
-| AI / 语音 | DeepSeek（OpenAI SDK 协议）、Edge TTS |
+| AI / 语音 | DeepSeek（OpenAI SDK 协议）、Edge 托管云语音、可选远程 HTTPS primary |
 | 数据 | 本地 SQLite；生产支持 PostgreSQL |
 | 迁移 | Alembic，当前 head 为 `20260726_0001` |
 | 部署 | Nginx 同域代理、Docker Compose、GitHub Actions |
@@ -37,7 +38,7 @@ backend/
   application/     确定性游戏与对话用例
   content/         严格内容模型和交叉引用校验
   domain/          版本化权威 GameState
-  integrations/    DeepSeek / Edge TTS 降级适配器
+  integrations/    DeepSeek / Edge / 可选远程语音适配器
   persistence/     用户、会话和存档仓储
 alembic/           初始数据库迁移
 frontend/src/      Vue 页面、组件、组合式状态和 API 客户端
@@ -69,6 +70,12 @@ npm run dev
 `DEEPSEEK_API_KEY` 是可选项。留空时游戏仍能完整启动和推进，只是对白使用
 本地降级内容。
 
+语音默认不需要额外凭据：批准的 1972 固定资产随游戏发布，动态对白使用 Edge
+托管云语音，`VOICE_PRIMARY_ENABLED=false`。可选 primary 只允许连接带 token
+的远程 HTTPS 服务；它保持禁用时，后端不会要求该服务或任何本地语音模型。
+候选生成、验证、内容寻址原子晋升、缓存清理和降级演练见
+[语音生产手册](docs/voice-production.md)。
+
 ## 登录与存档
 
 - 浏览器只使用名为 `memory_session` 的 HttpOnly、SameSite=Lax Cookie。
@@ -98,8 +105,9 @@ powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1
 docker compose down
 ```
 
-访问 `http://127.0.0.1:5173/`。Nginx 同域代理 `/api/` 与 `/tts/`；后端不向
-宿主机开放业务端口。容器启动会先执行 `alembic upgrade head`。
+访问 `http://127.0.0.1:5173/`。Nginx 同域代理 `/api/`、`/tts/` 与
+`/voice/`；批准的固定语音以只读方式挂载，运行时语音缓存使用独立可写卷。
+后端不向宿主机开放业务端口。容器启动会先执行 `alembic upgrade head`。
 
 ## 质量门
 
@@ -124,6 +132,5 @@ CI 还会构建前后端镜像并运行 Compose 冒烟测试。最新本地证�
 
 ## 下一阶段
 
-P0-B 将先完成 1972 西安老巷的电影级纵向切片：东方皮影电影感、桌面
-2.39:1 全屏舞台、常态动画电影写实、记忆高潮超现实化，以及移动端独立构图。
-质量门与权威状态边界会继续保留。
+后续先冻结重写后的其余年代叙事脚本，再按同一档案、候选审核与事务式晋升流程
+扩展固定语音。质量门、文字优先玩法与权威状态边界会继续保留。
